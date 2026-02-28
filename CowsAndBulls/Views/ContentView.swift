@@ -285,6 +285,7 @@ struct ContentView: View {
                     Text(result(for: attempt))
                 }
             }
+            .padding(.horizontal, 24)
         }
         .listStyle(.sidebar)
         .help("List of your guesses and the result for each one in descending order.")
