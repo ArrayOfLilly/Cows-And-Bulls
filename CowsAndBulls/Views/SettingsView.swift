@@ -10,6 +10,7 @@ import SwiftUI
 struct SettingsView: View {
     @AppStorage("maximumGuesses") var maximumGuesses = 10
     @AppStorage("answerLength") var answerLength = 4
+    @AppStorage("enableRepeats") var enableRepeats = false
     @AppStorage("enableHardMode") var enableHardMode = false
     @AppStorage("showGuessCount") var showGuessCount = false
 
@@ -34,6 +35,8 @@ struct SettingsView: View {
             }
             
             Form {
+                Toggle("Enable repeating", isOn: $enableRepeats)
+                    .help("This enables repeating digits in the answer.")
                 Toggle("Enable hard mode", isOn: $enableHardMode)
                     .help("This shows the cows and bulls score for only the most recent guess.")
                 Toggle("Show guess count", isOn: $showGuessCount)
@@ -47,8 +50,6 @@ struct SettingsView: View {
             .frame(width: 400)
     }
 }
-
-
 
 #Preview {
     SettingsView()
