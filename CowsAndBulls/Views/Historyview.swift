@@ -121,7 +121,7 @@ struct HistoryRow: View {
                             HStack {
                                 Text("\(item.guesses.count - index < 10 ? "0" : "")\(item.guesses.count - index). \(guess): ")
                                     .monospacedDigit()
-                                Text(item.guessResults[index])
+                                GuessResultIcons(result: item.guessResults[index])
                             }
                             .font(.caption)
                         }
@@ -130,6 +130,53 @@ struct HistoryRow: View {
                 }
             }
             .padding(6)
+        }
+    }
+}
+
+struct GuessResultIcons: View {
+    let result: String
+
+    private var counts: (bulls: Int, cows: Int)? {
+        let components = result.split(separator: "|")
+        if components.count == 2,
+           let bulls = Int(components[0]),
+           let cows = Int(components[1]) {
+            return (bulls, cows)
+        }
+
+        let bulls = result.filter { $0 == "🟢" }.count
+        let cows = result.filter { $0 == "⚪" }.count
+        if bulls > 0 || cows > 0 {
+            return (bulls, cows)
+        }
+
+        return nil
+    }
+
+    var body: some View {
+        if let counts {
+            if counts.bulls == 0 && counts.cows == 0 {
+                Text("0")
+            } else {
+                HStack(spacing: 4) {
+                    ForEach(0..<counts.bulls, id: \.self) { _ in
+                        Image("Bull")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 14, height: 14)
+                    }
+
+                    ForEach(0..<counts.cows, id: \.self) { _ in
+                        Image("Cow")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 14, height: 14)
+                    }
+                }
+            }
+        } else {
+            Text(result)
         }
     }
 }

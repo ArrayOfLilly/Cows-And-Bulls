@@ -55,10 +55,6 @@ struct ContentView: View {
         return computedScore
     }
 
-    private var winningResult: String {
-        String(Array(repeating: "🟢", count: answerLength))
-    }
-
     private var gameModeText: String {
         "\(enableHardMode ? "hard" : "normal") with \(enableRepeats ? "repeats" : "unique numbers")"
     }
@@ -132,11 +128,11 @@ struct ContentView: View {
         }
         currentRound += 1
 
-        if result(for: guess) == winningResult {
+        if bullCowCounts(for: guess).bulls == answerLength {
             isWon = true
         }
 
-        if currentRound == maximumGuesses && result(for: guess) != winningResult {
+        if currentRound == maximumGuesses && bullCowCounts(for: guess).bulls != answerLength {
             isGameOver = true
         }
 
@@ -144,7 +140,7 @@ struct ContentView: View {
     }
 
     // LeetCode version
-    private func result(for guess: String) -> String {
+    private func bullCowCounts(for guess: String) -> (bulls: Int, cows: Int) {
         let guessLetters = Array(guess)
         let answerLetters = Array(answer)
 
@@ -167,7 +163,12 @@ struct ContentView: View {
             cows += min(letterCount, guessLetterCount[char] ?? 0)
         }
 
-        return String(Array(repeating: "🟢", count: bulls) + Array(repeating: "⚪", count: cows))
+        return (bulls, cows)
+    }
+
+    private func result(for guess: String) -> String {
+        let counts = bullCowCounts(for: guess)
+        return "\(counts.bulls)|\(counts.cows)"
     }
 
     private func saveGameToHistory(finalState: Bool, score: Int) {
@@ -282,7 +283,7 @@ struct ContentView: View {
                 Spacer()
 
                 if shouldShowResult {
-                    Text(result(for: attempt))
+                    bullCowResultView(for: attempt)
                 }
             }
             .padding(.horizontal, 24)
@@ -308,6 +309,31 @@ struct ContentView: View {
         .help("Restarts the game and clears all your guesses.")
         .padding(.top, 2)
         .padding(.bottom, 20)
+    }
+
+    @ViewBuilder
+    private func bullCowResultView(for guess: String) -> some View {
+        let counts = bullCowCounts(for: guess)
+
+        if counts.bulls == 0 && counts.cows == 0 {
+            Text("0")
+        } else {
+            HStack(spacing: 4) {
+                ForEach(0..<counts.bulls, id: \.self) { _ in
+                    Image("Bull")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 24, height: 24)
+                }
+
+                ForEach(0..<counts.cows, id: \.self) { _ in
+                    Image("Cow")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 24, height: 24)
+                }
+            }
+        }
     }
 }
 
