@@ -8,40 +8,67 @@
 import SwiftUI
 
 struct HistoryView: View {
-    @EnvironmentObject var historyStore: HistoryStore
-
-    @State private var expandedItems: Set<UUID> = []
+    @EnvironmentObject private var historyStore: HistoryStore
+    @State private var showClearConfirmation = false
 
     var body: some View {
-        VStack {
-            Text("History")
-                .font(.title2)
-                .fontDesign(.rounded)
-                .padding()
+        Group {
+            if historyStore.items.isEmpty {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("History")
+                            .font(.title2)
+                            .fontDesign(.rounded)
 
-
-            List {
-                ForEach(historyStore.items) { item in
-                    HistoryRow(item: item)
-                }
-                    .padding(4)
-            }
-                .help("List of your previous attempts.")
-                .toolbar {
-                ToolbarItem(id: "Clear history", placement: .confirmationAction) {
-                    Button(role: .destructive, action: historyStore.clear) {
-                        Image(systemName: "xmark.circle.fill")
+                        ContentUnavailableView(
+                            "No Data Yet",
+                            systemImage: "clock.arrow.circlepath",
+                            description: Text("Play a few rounds and your history will appear here.")
+                        )
                     }
-                        .help("Clear your entire history.")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding()
+                }
+            } else {
+                VStack {
+                    Text("History")
+                        .font(.title2)
+                        .fontDesign(.rounded)
+                        .padding()
+
+                    List {
+                        ForEach(historyStore.items) { item in
+                            HistoryRow(item: item)
+                                .padding(4)
+                        }
+                    }
+                    .help("List of your previous attempts.")
                 }
             }
-                .navigationTitle("Cows and Bulls")
-                .frame(width: 300)
-                .frame(minHeight: 350, maxHeight: .infinity)
-                .foregroundStyle(Color.blue)
-
         }
-            .tabItem {
+        .toolbar {
+            ToolbarItem(id: "Clear history", placement: .confirmationAction) {
+                Button(role: .destructive) {
+                    showClearConfirmation = true
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                }
+                .help("Clear your entire history.")
+                .disabled(historyStore.items.isEmpty)
+            }
+        }
+        .navigationTitle("Cows and Bulls")
+        .frame(maxWidth: .infinity)
+        .frame(minHeight: 350, maxHeight: .infinity)
+        .confirmationDialog("Clear history?", isPresented: $showClearConfirmation, titleVisibility: .visible) {
+            Button("Clear", role: .destructive) {
+                historyStore.clear()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will permanently remove all saved games.")
+        }
+        .tabItem {
             Label("History", systemImage: "clock.arrow.circlepath")
         }
     }
@@ -49,7 +76,7 @@ struct HistoryView: View {
 
 struct HistoryRow: View {
     let item: HistoryItem
-    
+
     @State private var isExpanded = false
 
     var body: some View {
@@ -83,7 +110,7 @@ struct HistoryRow: View {
                 }
                 .font(.subheadline)
             }
-            .buttonStyle(.plain)   // Important for macOS
+            .buttonStyle(.plain) // Important for macOS
 
             if isExpanded {
                 VStack(alignment: .leading, spacing: 4) {
