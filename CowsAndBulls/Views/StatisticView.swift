@@ -63,20 +63,20 @@ struct StatisticView: View {
     }
 
     private var mostUsedMode: String {
-        guard totalGames > 0 else { return "-" }
+        guard totalGames > 0 else { return localized("-") }
 
         let hardCount = items.filter { $0.hardMode }.count
         let normalCount = totalGames - hardCount
 
         if hardCount == normalCount {
-            return "Tie"
+            return localized("Tie")
         }
 
-        return hardCount > normalCount ? "Hard" : "Normal"
+        return hardCount > normalCount ? localized("Hard") : localized("Normal")
     }
 
     private var mostUsedLength: String {
-        guard totalGames > 0 else { return "-" }
+        guard totalGames > 0 else { return localized("-") }
 
         var lengthCounts: [Int: Int] = [:]
         for item in items {
@@ -89,23 +89,23 @@ struct StatisticView: View {
             }
             return lhs.value < rhs.value
         }) else {
-            return "-"
+            return localized("-")
         }
 
-        return "\(best.key) digits"
+        return localized("%lld digits", best.key)
     }
 
     private var mostUsedRepeats: String {
-        guard totalGames > 0 else { return "-" }
+        guard totalGames > 0 else { return localized("-") }
 
         let repeatsOnCount = items.filter { $0.enableRepeats }.count
         let repeatsOffCount = totalGames - repeatsOnCount
 
         if repeatsOnCount == repeatsOffCount {
-            return "Tie"
+            return localized("Tie")
         }
 
-        return repeatsOnCount > repeatsOffCount ? "Repeats On" : "Repeats Off"
+        return repeatsOnCount > repeatsOffCount ? localized("Repeats On") : localized("Repeats Off")
     }
 
     // MARK: - View
@@ -140,28 +140,28 @@ struct StatisticView: View {
     // MARK: - Sections
 
     private var overviewSection: some View {
-        GroupBox("Overview") {
-            statisticRow("Total games", value: "\(totalGames)")
-            statisticRow("Wins", value: "\(wonGames)")
-            statisticRow("Losses", value: "\(lostGames)")
-            statisticRow("Win rate", value: "\(formatted(winRate, decimals: 1))%")
+        GroupBox(localized("Overview")) {
+            statisticRow(localized("Total games"), value: "\(totalGames)")
+            statisticRow(localized("Wins"), value: "\(wonGames)")
+            statisticRow(localized("Losses"), value: "\(lostGames)")
+            statisticRow(localized("Win rate"), value: "\(formatted(winRate, decimals: 1))%")
         }
     }
 
     private var performanceSection: some View {
-        GroupBox("Performance") {
-            statisticRow("Total score", value: "\(totalScore)")
-            statisticRow("Average score", value: formatted(averageScore, decimals: 1))
-            statisticRow("Average steps", value: formatted(averageSteps, decimals: 2))
-            statisticRow("Average step ratio", value: formatted(averageStepRatio, decimals: 2))
+        GroupBox(localized("Performance")) {
+            statisticRow(localized("Total score"), value: "\(totalScore)")
+            statisticRow(localized("Average score"), value: formatted(averageScore, decimals: 1))
+            statisticRow(localized("Average steps"), value: formatted(averageSteps, decimals: 2))
+            statisticRow(localized("Average step ratio"), value: formatted(averageStepRatio, decimals: 2))
         }
     }
 
     private var settingsSection: some View {
-        GroupBox("Most Used Settings") {
-            statisticRow("Mode", value: mostUsedMode)
-            statisticRow("Answer length", value: mostUsedLength)
-            statisticRow("Repeats", value: mostUsedRepeats)
+        GroupBox(localized("Most Used Settings")) {
+            statisticRow(localized("Mode"), value: mostUsedMode)
+            statisticRow(localized("Answer length"), value: mostUsedLength)
+            statisticRow(localized("Repeats"), value: mostUsedRepeats)
         }
     }
 

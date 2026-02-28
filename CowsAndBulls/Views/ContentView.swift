@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AppKit
 
 struct ContentView: View {
     @AppStorage("maximumGuesses") private var maximumGuesses = 10
@@ -13,6 +14,10 @@ struct ContentView: View {
     @AppStorage("answerLength") private var answerLength = 4
     @AppStorage("enableHardMode") private var enableHardMode = false
     @AppStorage("enableRepeats") private var enableRepeats = false
+    @AppStorage("enableSoundEffects") private var enableSoundEffects = true
+    @AppStorage("soundEffectsVolume") private var soundEffectsVolume = 0.8
+    @AppStorage("selectedBullAssetName") private var selectedBullAssetName = "Bull"
+    @AppStorage("selectedCowAssetName") private var selectedCowAssetName = "Cow"
 
     @EnvironmentObject private var historyStore: HistoryStore
 
@@ -25,150 +30,122 @@ struct ContentView: View {
     @State private var isDisabledSubmitButton = false
     @State private var guessInputErrorMessage = ""
     @State private var showAnswer = ""
+    @FocusState private var isGuessFieldFocused: Bool
 
     // MARK: - Computed Values
 
     private var score: Int {
-        var computedScore = 0
-
-        if guesses.count == maximumGuesses {
-            computedScore = 1
-        } else if Double(guesses.count) < Double(maximumGuesses) * 0.5 {
-            computedScore = 25
-        } else if Double(guesses.count) < Double(maximumGuesses) * 0.625 {
-            computedScore = 20
-        } else if Double(guesses.count) < Double(maximumGuesses) * 0.75 {
-            computedScore = 15
-        } else if Double(guesses.count) < Double(maximumGuesses) * 0.9 {
-            computedScore = 10
-        } else if Double(guesses.count) == 1 {
-            computedScore = 100
-        } else {
-            computedScore = 5
-        }
-
-        computedScore = answerLength * computedScore
-        if enableHardMode {
-            computedScore *= 2
-        }
-
-        return computedScore
+        GameLogic.score(
+            guessCount: guesses.count,
+            maximumGuesses: maximumGuesses,
+            answerLength: answerLength,
+            hardMode: enableHardMode
+        )
     }
 
     private var gameModeText: String {
-        "\(enableHardMode ? "hard" : "normal") with \(enableRepeats ? "repeats" : "unique numbers")"
+        localized(
+            "game.mode.format",
+            localized(enableHardMode ? "game.mode.hard" : "game.mode.normal"),
+            localized(enableRepeats ? "game.mode.repeats" : "game.mode.unique")
+        )
+    }
+
+    private var averageStepsAllGames: Double {
+        let items = historyStore.items
+        guard items.isEmpty == false else { return 0 }
+        let totalSteps = items.reduce(0) { $0 + $1.steps }
+        return Double(totalSteps) / Double(items.count)
+    }
+
+    private var bestWinStreak: Int {
+        var current = 0
+        var best = 0
+
+        for item in historyStore.items {
+            if item.finalState {
+                current += 1
+                best = max(best, current)
+            } else {
+                current = 0
+            }
+        }
+
+        return best
     }
 
     // MARK: - Game Logic
 
     private func resetGuessInputErrorMessage() {
         guard answerLength >= 3 && answerLength <= 8 else { return }
-        guard guess.count == answerLength else { return }
-
-        if enableRepeats == false {
-            guard Set(guess).count == answerLength else { return }
+        if GameLogic.validateGuess(
+            guess: guess,
+            answerLength: answerLength,
+            guesses: guesses,
+            allowRepeats: enableRepeats
+        ) == nil {
+            guessInputErrorMessage = ""
         }
-
-        guard guesses.contains(guess) == false else { return }
-
-        let badCharacters = CharacterSet(charactersIn: "0123456789").inverted
-        guard guess.rangeOfCharacter(from: badCharacters) == nil else { return }
-
-        guessInputErrorMessage = ""
     }
 
     private func startNewGame() {
         resetGuessInputErrorMessage()
 
         guard answerLength >= 3 && answerLength <= 8 else {
-            guessInputErrorMessage = "Answer length must be 3...8"
+            guessInputErrorMessage = String(localized: "validation.answer_length_range")
             return
         }
 
         showAnswer = ""
         guess = ""
         guesses.removeAll()
-        answer = ""
+        answer = GameLogic.generateAnswer(length: answerLength, allowRepeats: enableRepeats)
         currentRound = 0
         isDisabledSubmitButton = false
-
-        let numbers = (0...9).shuffled()
-        for index in 0..<answerLength {
-            answer.append(String(numbers[index]))
-        }
+        focusGuessField()
     }
 
     private func submitGuess() {
         resetGuessInputErrorMessage()
 
-        guard guess.count == answerLength else {
-            guessInputErrorMessage = "Answer length must be \(answerLength)"
+        if let validationError = GameLogic.validateGuess(
+            guess: guess,
+            answerLength: answerLength,
+            guesses: guesses,
+            allowRepeats: enableRepeats
+        ) {
+            guessInputErrorMessage = validationError
+            focusGuessField(selectAll: true)
             return
         }
 
-        if enableRepeats == false {
-            guard Set(guess).count == answerLength else {
-                guessInputErrorMessage = "Guesses must not contain repeated digits"
-                return
-            }
-            guard guesses.contains(guess) == false else {
-                guessInputErrorMessage = "You already guessed this sequence."
-                return
-            }
-        }
-
-        let badCharacters = CharacterSet(charactersIn: "0123456789").inverted
-        guard guess.rangeOfCharacter(from: badCharacters) == nil else {
-            guessInputErrorMessage = "Guesses must only contain digits"
-            return
-        }
+        let counts = bullCowCounts(for: guess)
 
         withAnimation {
             guesses.insert(guess, at: 0)
         }
         currentRound += 1
 
-        if bullCowCounts(for: guess).bulls == answerLength {
+        if counts.bulls == answerLength {
+            SoundPlayer.shared.play(.win, enabled: enableSoundEffects, volume: soundEffectsVolume)
             isWon = true
-        }
-
-        if currentRound == maximumGuesses && bullCowCounts(for: guess).bulls != answerLength {
+        } else if currentRound == maximumGuesses {
+            SoundPlayer.shared.play(.lose, enabled: enableSoundEffects, volume: soundEffectsVolume)
             isGameOver = true
+        } else {
+            SoundPlayer.shared.play(.submit, enabled: enableSoundEffects, volume: soundEffectsVolume)
         }
 
         guess = ""
+        focusGuessField()
     }
 
-    // LeetCode version
     private func bullCowCounts(for guess: String) -> (bulls: Int, cows: Int) {
-        let guessLetters = Array(guess)
-        let answerLetters = Array(answer)
-
-        var bulls = 0
-        var cows = 0
-
-        var answerLetterCount: [Character: Int] = [:]
-        var guessLetterCount: [Character: Int] = [:]
-
-        for index in 0..<answerLetters.count {
-            if answerLetters[index] == guessLetters[index] {
-                bulls += 1
-            } else {
-                answerLetterCount[answerLetters[index], default: 0] += 1
-                guessLetterCount[guessLetters[index], default: 0] += 1
-            }
-        }
-
-        for (char, letterCount) in answerLetterCount {
-            cows += min(letterCount, guessLetterCount[char] ?? 0)
-        }
-
-        return (bulls, cows)
+        GameLogic.bullCowCounts(guess: guess, answer: answer)
     }
 
     private func result(for guess: String) -> String {
-        let counts = bullCowCounts(for: guess)
-        return "\(counts.bulls)|\(counts.cows)"
+        GameLogic.encodedResult(guess: guess, answer: answer)
     }
 
     private func saveGameToHistory(finalState: Bool, score: Int) {
@@ -185,6 +162,18 @@ struct ContentView: View {
         )
     }
 
+    private func focusGuessField(selectAll: Bool = false) {
+        DispatchQueue.main.async {
+            isGuessFieldFocused = true
+
+            if selectAll {
+                DispatchQueue.main.async {
+                    NSApp.sendAction(#selector(NSText.selectAll(_:)), to: nil, from: nil)
+                }
+            }
+        }
+    }
+
     // MARK: - View
 
     var body: some View {
@@ -193,7 +182,7 @@ struct ContentView: View {
             HistoryView()
             StatisticView()
         }
-        .frame(minWidth: 430, idealWidth: 460)
+        .frame(minWidth: 520, idealWidth: 560)
         .frame(minHeight: 500, idealHeight: .infinity, alignment: .init(horizontal: .center, vertical: .top))
     }
 
@@ -211,21 +200,29 @@ struct ContentView: View {
             startNewGame()
         }
         .alert("You Won!", isPresented: $isWon) {
+            Button("Play Again") {
+                saveGameToHistory(finalState: true, score: score)
+                startNewGame()
+            }
             Button("OK") {
                 isDisabledSubmitButton = true
                 saveGameToHistory(finalState: true, score: score)
             }
         } message: {
-            Text("Congratulations! You won in \(guesses.count) steps, you got \(score) points.")
+            Text(localized("alert.win.message", guesses.count, score))
         }
         .alert("Game Over!", isPresented: $isGameOver) {
+            Button("Play Again") {
+                saveGameToHistory(finalState: false, score: 0)
+                startNewGame()
+            }
             Button("OK") {
                 isDisabledSubmitButton = true
-                showAnswer = "The answer was: \(answer)."
+                showAnswer = localized("game.answer_was", answer)
                 saveGameToHistory(finalState: false, score: 0)
             }
         } message: {
-            Text("You lost, the correct answer is: \(answer).")
+            Text(localized("alert.lose.message", answer))
         }
         .touchBar {
             HStack {
@@ -250,10 +247,32 @@ struct ContentView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            .padding(.bottom, 10)
+            .padding(.top, 10)
+
+            HStack(spacing: 16) {
+                Text(localized("game.header.best_streak", bestWinStreak))
+                Text(localized("game.header.avg_steps", averageStepsAllGames))
+            }
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+
+            HStack(spacing: 8) {
+                Text("Theme:")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Image(selectedBullAssetName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 14, height: 14)
+                Image(selectedCowAssetName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 14, height: 14)
+            }
 
             HStack {
                 TextField("Enter a guess…", text: $guess)
+                    .focused($isGuessFieldFocused)
                     .onChange(of: guess) {
                         resetGuessInputErrorMessage()
                     }
@@ -264,13 +283,14 @@ struct ContentView: View {
                     .disabled(isDisabledSubmitButton)
                     .help("Submit your guess here.")
             }
+            .padding(.horizontal, 70)
+            .padding(.vertical, 10)
 
             Text(guessInputErrorMessage)
                 .foregroundStyle(.red)
             Text(showAnswer)
                 .foregroundStyle(.blue)
         }
-        .padding(40)
     }
 
     private var guessesListSection: some View {
@@ -320,14 +340,14 @@ struct ContentView: View {
         } else {
             HStack(spacing: 4) {
                 ForEach(0..<counts.bulls, id: \.self) { _ in
-                    Image("Bull")
+                    Image(selectedBullAssetName)
                         .resizable()
                         .scaledToFit()
                         .frame(width: 24, height: 24)
                 }
 
                 ForEach(0..<counts.cows, id: \.self) { _ in
-                    Image("Cow")
+                    Image(selectedCowAssetName)
                         .resizable()
                         .scaledToFit()
                         .frame(width: 24, height: 24)

@@ -12,11 +12,20 @@ struct CowsAndBullsApp: App {
     @Environment(\.openWindow) private var openWindow
 
     @StateObject private var historyStore = HistoryStore()
+    @AppStorage("appLanguageCode") private var appLanguageCode = "system"
+
+    private var appLocale: Locale {
+        if appLanguageCode == "system" {
+            return Locale.current
+        }
+        return Locale(identifier: appLanguageCode)
+    }
     
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environmentObject(historyStore)
+                .environment(\.locale, appLocale)
         }
         .commands {
             CommandGroup(replacing: .help) {
@@ -32,10 +41,12 @@ struct CowsAndBullsApp: App {
         
         Settings {
             SettingsView()
+                .environment(\.locale, appLocale)
         }
         
         Window("Learn", id: "learn") {
                 LearnView()
+                    .environment(\.locale, appLocale)
             }
     }
 }

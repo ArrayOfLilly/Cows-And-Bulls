@@ -10,6 +10,36 @@ import SwiftUI
 struct HistoryView: View {
     @EnvironmentObject private var historyStore: HistoryStore
     @State private var showClearConfirmation = false
+    @AppStorage("selectedBullAssetName") private var selectedBullAssetName = "Bull"
+    @AppStorage("selectedCowAssetName") private var selectedCowAssetName = "Cow"
+    @State private var filter: HistoryFilter = .all
+    @State private var sort: HistorySort = .newest
+
+    private var displayedItems: [HistoryItem] {
+        let filtered: [HistoryItem]
+        switch filter {
+        case .all:
+            filtered = historyStore.items
+        case .wins:
+            filtered = historyStore.items.filter { $0.finalState }
+        case .losses:
+            filtered = historyStore.items.filter { $0.finalState == false }
+        }
+
+        switch sort {
+        case .newest:
+            return filtered.sorted { $0.date > $1.date }
+        case .oldest:
+            return filtered.sorted { $0.date < $1.date }
+        case .highestScore:
+            return filtered.sorted { lhs, rhs in
+                if lhs.score == rhs.score {
+                    return lhs.date > rhs.date
+                }
+                return lhs.score > rhs.score
+            }
+        }
+    }
 
     var body: some View {
         Group {
@@ -36,14 +66,46 @@ struct HistoryView: View {
                         .fontDesign(.rounded)
                         .padding()
 
-                    ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 10) {
-                            ForEach(historyStore.items) { item in
-                                HistoryRow(item: item)
+                    HStack(spacing: 12) {
+                        Picker("Filter", selection: $filter) {
+                            ForEach(HistoryFilter.allCases) { item in
+                                Text(item.title).tag(item)
                             }
                         }
-                        .padding(.horizontal)
-                        .padding(.bottom)
+                        .pickerStyle(.segmented)
+
+                        Picker("Sort", selection: $sort) {
+                            ForEach(HistorySort.allCases) { item in
+                                Text(item.title).tag(item)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .frame(width: 140)
+                    }
+                    .padding(.horizontal)
+                    .padding(.bottom, 6)
+
+                    ScrollView {
+                        if displayedItems.isEmpty {
+                            ContentUnavailableView(
+                                "No Matching Games",
+                                systemImage: "line.3.horizontal.decrease.circle",
+                                description: Text("Try a different filter.")
+                            )
+                            .padding(.top, 40)
+                        } else {
+                            LazyVStack(alignment: .leading, spacing: 10) {
+                                ForEach(displayedItems) { item in
+                                    HistoryRow(
+                                        item: item,
+                                        bullAssetName: selectedBullAssetName,
+                                        cowAssetName: selectedCowAssetName
+                                    )
+                                }
+                            }
+                            .padding(.horizontal)
+                            .padding(.bottom)
+                        }
                     }
                     .help("List of your previous attempts.")
                 }
@@ -77,8 +139,42 @@ struct HistoryView: View {
     }
 }
 
+private enum HistoryFilter: String, CaseIterable, Identifiable {
+    case all
+    case wins
+    case losses
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .all: return localized("history.filter.all")
+        case .wins: return localized("history.filter.wins")
+        case .losses: return localized("history.filter.losses")
+        }
+    }
+}
+
+private enum HistorySort: String, CaseIterable, Identifiable {
+    case newest
+    case oldest
+    case highestScore
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .newest: return localized("history.sort.newest")
+        case .oldest: return localized("history.sort.oldest")
+        case .highestScore: return localized("history.sort.best_score")
+        }
+    }
+}
+
 struct HistoryRow: View {
     let item: HistoryItem
+    let bullAssetName: String
+    let cowAssetName: String
 
     @State private var isExpanded = false
 
@@ -86,7 +182,7 @@ struct HistoryRow: View {
         GroupBox {
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
-                    Text(item.finalState ? "✅ Won" : "❌ Lost")
+                    Text(item.finalState ? "✅ \(String(localized: "history.state.won"))" : "❌ \(String(localized: "history.state.lost"))")
                         .fontWeight(.bold)
 
                     Spacer()
@@ -97,19 +193,25 @@ struct HistoryRow: View {
                 }
 
                 Text("Answer: \(item.answer)")
-                Text("Steps: \(item.steps)/\(item.maxSteps), Score: \(item.score)")
-                Text("Game mode: \(item.hardMode ? "Hard" : "Normal"), \(item.answer.count) digits \(item.enableRepeats ? "repeating numbers" : "unique numbers")")
+                Text(localized("history.row.steps_score", item.steps, item.maxSteps, item.score))
+                Text(
+                    localized(
+                        "history.row.mode",
+                        String(localized: item.hardMode ? "game.mode.hard" : "game.mode.normal"),
+                        item.answer.count,
+                        String(localized: item.enableRepeats ? "game.mode.repeats" : "game.mode.unique")
+                    )
+                )
 
-                // Custom toggle button
                 Button {
-                    withAnimation(.easeInOut) {
+                    withAnimation(.easeInOut(duration: 0.35)) {
                         isExpanded.toggle()
                     }
                 } label: {
                     HStack {
                         Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
                             .foregroundStyle(Color.accentColor)
-                        Text("View Guesses (\(item.guesses.count))")
+                        Text(localized("history.row.view_guesses", item.guesses.count))
                     }
                     .font(.subheadline)
                 }
@@ -121,12 +223,16 @@ struct HistoryRow: View {
                             HStack {
                                 Text("\(item.guesses.count - index < 10 ? "0" : "")\(item.guesses.count - index). \(guess): ")
                                     .monospacedDigit()
-                                GuessResultIcons(result: item.guessResults[index])
+                                GuessResultIcons(
+                                    result: item.guessResults[index],
+                                    bullAssetName: bullAssetName,
+                                    cowAssetName: cowAssetName
+                                )
                             }
                             .font(.caption)
                         }
                     }
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .transition(.move(edge: .leading).combined(with: .opacity))
                 }
             }
             .padding(6)
@@ -136,6 +242,8 @@ struct HistoryRow: View {
 
 struct GuessResultIcons: View {
     let result: String
+    let bullAssetName: String
+    let cowAssetName: String
 
     private var counts: (bulls: Int, cows: Int)? {
         let components = result.split(separator: "|")
@@ -161,14 +269,14 @@ struct GuessResultIcons: View {
             } else {
                 HStack(spacing: 4) {
                     ForEach(0..<counts.bulls, id: \.self) { _ in
-                        Image("Bull")
+                        Image(bullAssetName)
                             .resizable()
                             .scaledToFit()
                             .frame(width: 14, height: 14)
                     }
 
                     ForEach(0..<counts.cows, id: \.self) { _ in
-                        Image("Cow")
+                        Image(cowAssetName)
                             .resizable()
                             .scaledToFit()
                             .frame(width: 14, height: 14)
