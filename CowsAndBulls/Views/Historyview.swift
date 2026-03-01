@@ -80,7 +80,7 @@ struct HistoryView: View {
                             }
                         }
                         .pickerStyle(.menu)
-                        .frame(width: 140)
+                        .frame(width: 128)
                     }
                     .padding(.horizontal)
                     .padding(.bottom, 6)
@@ -107,7 +107,7 @@ struct HistoryView: View {
                             .padding(.bottom)
                         }
                     }
-                    .help("List of your previous attempts.")
+                    .help(localized("List of your previous attempts."))
                 }
             }
         }
@@ -117,8 +117,9 @@ struct HistoryView: View {
                     showClearConfirmation = true
                 } label: {
                     Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.accent)
                 }
-                .help("Clear your entire history.")
+                .help(localized("Clear your entire history."))
                 .disabled(historyStore.items.isEmpty)
             }
         }

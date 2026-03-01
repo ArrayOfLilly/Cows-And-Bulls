@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="AppleTitle" content="Cows and Bulls Help">
+    <meta name="AppleIcon" content="AppIcon">
+    <meta name="keywords" content="cows and bulls,help,rules,scoring,history,settings,hard mode,repeating,tips">
+    <title>Cows and Bulls Help</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+    <a name="index"></a>
+    <h1>Cows and Bulls Help</h1>
+    <p class="subtitle">Quick guide with searchable topics.</p>
+
+    <div class="section">
+        <h2>Topics</h2>
+        <ul>
+            <li><a href="#rules">Rules</a></li>
+            <li><a href="#scoring">Scoring</a></li>
+            <li><a href="#settings">Settings</a></li>
+            <li><a href="#history">History and Statistics</a></li>
+        </ul>
+    </div>
+
+    <div class="section" id="rules">
+        <h2>Rules</h2>
+        <ul>
+            <li>The app generates a secret number with configurable length (3...8).</li>
+            <li>You submit guesses to find the secret within the maximum step count.</li>
+            <li><strong>Bull</strong>: correct digit in the correct position.</li>
+            <li><strong>Cow</strong>: correct digit in the wrong position.</li>
+        </ul>
+    </div>
+
+    <div class="section" id="scoring">
+        <h2>Scoring</h2>
+        <p><strong>Final score</strong> = base score × difficulty multiplier × performance multiplier.</p>
+        <p><strong>Base score</strong> depends on code-space size: <code>log10(combinations) × 100</code>.</p>
+
+        <h3>Difficulty multipliers</h3>
+        <table>
+            <tr><th>Option</th><th>Multiplier</th></tr>
+            <tr><td>Repeating digits enabled</td><td>×1.15</td></tr>
+            <tr><td>Hard mode enabled</td><td>×1.40</td></tr>
+            <tr><td>Hide remaining guesses</td><td>×1.15</td></tr>
+            <tr><td>Per-guess timer enabled</td><td>×1.20</td></tr>
+            <tr><td>Game timer enabled</td><td>×1.15</td></tr>
+            <tr><td>Guess pressure</td><td>×max(1.0, standardGuesses / maxGuesses)</td></tr>
+        </table>
+
+        <p><strong>Performance multiplier</strong>: <code>min(2.5, standardGuesses / usedGuesses)</code>.</p>
+        <p><strong>First-guess jackpot</strong>: if solved in 1 guess, extra <code>+ base score × 3.0</code>.</p>
+        <p class="note">If any enabled timer expires, the game is lost.</p>
+    </div>
+
+    <div class="section" id="settings">
+        <h2>Settings</h2>
+        <ul>
+            <li><strong>Maximum guesses</strong>: game ends when this limit is reached.</li>
+            <li><strong>Answer length</strong>: length of the generated secret number.</li>
+            <li><strong>Enable repeating</strong>: allows repeated digits.</li>
+            <li><strong>Enable hard mode</strong>: only latest feedback is shown.</li>
+            <li><strong>Per-guess timer</strong>: set a time limit for each guess.</li>
+            <li><strong>Game timer</strong>: set a time limit for the whole game.</li>
+            <li><strong>Timer behavior</strong>: if any enabled timer expires, the game is lost.</li>
+            <li><strong>Sound</strong>: toggle effects and set volume.</li>
+            <li><strong>Theme</strong>: choose bull/cow image pair.</li>
+            <li><strong>Language</strong>: follow system, English, or Hungarian. Changes may require restart; the app can prompt you to restart.</li>
+        </ul>
+    </div>
+
+    <div class="section" id="history">
+        <h2>History and Statistics</h2>
+        <ul>
+            <li>Use <strong>Filter</strong> (All/Won/Lost) and <strong>Sort</strong> (Newest/Oldest/Highest score).</li>
+            <li>Expand a game row to view all guesses and bull/cow results.</li>
+            <li>The Statistics tab shows overview, performance, and most used settings.</li>
+        </ul>
+    </div>
+</body>
+</html>

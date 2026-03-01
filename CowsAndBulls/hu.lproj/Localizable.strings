@@ -23,8 +23,8 @@
 "history.state.won" = "Győzelem";
 "history.state.lost" = "Vereség";
 "history.filter.all" = "Összes";
-"history.filter.wins" = "Győzelmek";
-"history.filter.losses" = "Vereségek";
+"history.filter.wins" = "Győzelem";
+"history.filter.losses" = "Vereség";
 "history.sort.newest" = "Legújabb";
 "history.sort.oldest" = "Legrégebbi";
 "history.sort.best_score" = "Legmagasabb pontszám";
@@ -57,6 +57,21 @@
 "learn.score.last_try.points" = "1 pont";
 "learn.score.multiplied_by_length" = "A végső pontszám szorzódik a válasz hosszával.";
 "learn.score.hard_mode_double" = "Nehezített módban a végső pontszám duplázódik.";
+"learn.score.base_intro" = "Az alappontszám a játék matematikai nehézségétől függ, amelyet a lehetséges titkos kódok száma alapján számolunk.";
+"learn.score.base_formula" = "Alappont = log10(lehetséges kombinációk száma) × 100";
+"learn.score.difficulty_title" = "Nehézségi szorzók járnak az alábbiakért:";
+"learn.score.difficulty.repeats" = "• Ismétlődő számjegyek engedélyezése: ×1.15";
+"learn.score.difficulty.hard" = "• Nehéz mód (csak az utolsó visszajelzés látható): ×1.40";
+"learn.score.difficulty.hidden" = "• Hátralévő tippek elrejtése: ×1.15";
+"learn.score.difficulty.guess_limit" = "• Limitált tippszám: ×max(1.0, (3 × kódhossz) / max tippszám)";
+"learn.score.difficulty.per_move_time" = "• Lépésenkénti időkorlát: ×1.20";
+"learn.score.difficulty.total_time" = "• Teljes játékidő korlát: ×1.15";
+"learn.score.performance_title" = "A teljesítmény szorzó jutalmazza a kevés lépésből történő megoldást:";
+"learn.score.performance_formula" = "Teljesítmény = (3 × kódhossz) / felhasznált tippek száma";
+"learn.score.performance_cap" = "Maximum teljesítmény szorzó: 2.5×";
+"learn.score.jackpot_title" = "Jackpot:";
+"learn.score.jackpot_desc" = "Ha első próbálkozásra eltalálod a kódot, extra 3× alappont bónuszt kapsz.";
+"learn.score.final_formula" = "Végső pontszám = Alappont × Nehézség × Teljesítmény + Jackpot";
 
 "learn.options.step_count.title" = "Lépésszám";
 "learn.options.step_count.desc" = "Beállíthatod, legfeljebb hány tipp után érjen véget a játék.";
@@ -72,6 +87,16 @@
 "learn.options.theming.desc" = "Beállíthatod a játék kinézetét.";
 "learn.objective.line1" = "A játék célja, hogy kitaláld a másik játékos által kitalált 4 számjegyű számot.";
 "learn.objective.line2" = "Legfeljebb 10 kérdést tehetsz fel, hogy kitaláld a számot.";
+"help.settings.maximum_guesses" = "A beküldhető tippek maximális száma. Módosításkor a játék azonnal újraindul.";
+"help.settings.answer_length" = "A kitalálandó számsor hossza. Módosításkor a játék azonnal újraindul.";
+"help.settings.enable_repeating" = "Engedélyezi az ismétlődő számjegyeket a válaszban.";
+"help.settings.enable_hard_mode" = "Csak a legutóbbi tipp tehén-bika eredményét mutatja.";
+"help.settings.show_guess_count" = "Egy alsó sort ad hozzá a tippek összesített számával.";
+"help.settings.sound_effects" = "Lejátsza a beküldés, győzelem és vereség hangjait játék közben.";
+"help.content.game_mode" = "Mutatja a nehézségi módot és hogy engedélyezettek-e az ismétlődő számok.";
+"help.content.guess_field" = "Írj be ide egy négyjegyű, egyedi számjegyekből álló számot.";
+"help.settings.enable_per_guess_time_limit" = "Ha be van kapcsolva, minden tippet be kell küldeni, mielőtt ez az idő lejár.";
+"help.settings.enable_game_time_limit" = "Ha be van kapcsolva, a teljes játékot be kell fejezni, mielőtt ez az idő lejár.";
 
 /* Static literals used directly in views */
 "Help" = "Súgó";
@@ -84,6 +109,7 @@
 "Guesses: %lld" = "Tippek: %lld";
 "Game" = "Játék";
 "Game mode:" = "Játékmód:";
+"About %@" = "%@ névjegye";
 "Theme:" = "Téma:";
 "Enter a guess…" = "Tippelj…";
 "Type a %lld-digit %@ number here." = "Írj be ide egy %lld jegyű %@ számot.";
@@ -101,6 +127,10 @@
 "Enable repeating" = "Ismétlődés engedélyezése";
 "Enable hard mode" = "Nehéz mód";
 "Show guess count" = "Tippszám megjelenítése";
+"Enable per-guess time limit" = "Tippenkénti időlimit";
+"Per-guess limit: %lld sec" = "Tippenkénti limit: %lld mp";
+"Enable game time limit" = "Játékidő-limit";
+"Game limit: %lld sec" = "Játéklimit: %lld mp";
 "Enable sound effects" = "Hangeffektek";
 "Volume" = "Hangerő";
 "Advanced" = "Haladó";
@@ -173,3 +203,16 @@
 "Magyar" = "Magyar";
 "Changes apply immediately." = "A módosítások azonnal érvényesülnek.";
 "Language" = "Nyelv";
+"Restart required" = "Újraindítás szükséges";
+"Restart now" = "Újraindítás most";
+"Later" = "Később";
+"Language change may require app restart. Restart now?" = "A nyelvváltáshoz újraindítás szükséges lehet. Újraindítod most?";
+"Some language changes require restart." = "Néhány nyelvi változtatás újraindítást igényelhet.";
+
+"about.version.format" = "Verzió %@ (%@)";
+"about.credits.fallback" = "Köszönöm, hogy a Bika és Tehén játékkal játszol - remélem, tetszik a játék!\n\n@ArrayOfLillies.com\n\nKép kredit:\nDesigned by Freepik\nhttp://www.freepik.com\n\nZene kredit:\nMushroom Background Music by Sunsai\nhttps://freesound.org/s/415804/\nLicenc: Attribution 4.0\n\nCandyworld Background Music by Sunsai\nhttps://freesound.org/s/415807/\nLicenc: Attribution 4.0\n\nDesert background music by Sunsai\nhttps://freesound.org/s/415806/\nLicenc: Attribution 4.0";
+"about.credits.body" = "Köszönöm, hogy a Bika és Tehén játékkal játszol - remélem, tetszik!\n\n@ArrayOfLillies.com\n\nKép kredit:\nDesigned by Freepik\nhttp://www.freepik.com\n\nZene kredit:\nMushroom Background Music by Sunsai\nhttps://freesound.org/s/415804/\nLicenc: Attribution 4.0";
+"timer.per_guess.remaining" = "Tippidő: %@";
+"timer.game.remaining" = "Játékidő: %@";
+"alert.per_guess_timeout.message" = "Lejárt az idő erre a tippre. A helyes válasz: %@.";
+"alert.game_timeout.message" = "Lejárt a teljes játékidő. A helyes válasz: %@.";

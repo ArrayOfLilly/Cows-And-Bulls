@@ -16,6 +16,10 @@ struct ContentView: View {
     @AppStorage("enableRepeats") private var enableRepeats = false
     @AppStorage("enableSoundEffects") private var enableSoundEffects = true
     @AppStorage("soundEffectsVolume") private var soundEffectsVolume = 0.8
+    @AppStorage("enablePerGuessTimeLimit") private var enablePerGuessTimeLimit = false
+    @AppStorage("enableGameTimeLimit") private var enableGameTimeLimit = false
+    @AppStorage("perGuessTimeLimitSeconds") private var perGuessTimeLimitSeconds = 30
+    @AppStorage("gameTimeLimitSeconds") private var gameTimeLimitSeconds = 300
     @AppStorage("selectedBullAssetName") private var selectedBullAssetName = "Bull"
     @AppStorage("selectedCowAssetName") private var selectedCowAssetName = "Cow"
 
@@ -30,16 +34,25 @@ struct ContentView: View {
     @State private var isDisabledSubmitButton = false
     @State private var guessInputErrorMessage = ""
     @State private var showAnswer = ""
+    @State private var gameOverMessage = ""
+    @State private var perGuessRemainingSeconds = 0
+    @State private var gameRemainingSeconds = 0
+    @State private var perGuessTimerTask: Task<Void, Never>?
+    @State private var gameTimerTask: Task<Void, Never>?
     @FocusState private var isGuessFieldFocused: Bool
 
     // MARK: - Computed Values
 
     private var score: Int {
         GameLogic.score(
-            guessCount: guesses.count,
-            maximumGuesses: maximumGuesses,
-            answerLength: answerLength,
-            hardMode: enableHardMode
+            codeLength: answerLength,
+            allowRepeats: enableRepeats,
+            hardMode: enableHardMode,
+            hidesRemainingGuesses: showGuessCount == false,
+            maxGuesses: maximumGuesses,
+            usedGuesses: guesses.count,
+            perMoveTimeLimit: isPerGuessLimitActive ? TimeInterval(perGuessTimeLimitSeconds) : 0,
+            totalTimeLimit: isGameLimitActive ? TimeInterval(gameTimeLimitSeconds) : 0
         )
     }
 
@@ -56,6 +69,23 @@ struct ContentView: View {
         guard items.isEmpty == false else { return 0 }
         let totalSteps = items.reduce(0) { $0 + $1.steps }
         return Double(totalSteps) / Double(items.count)
+    }
+
+    private var isPerGuessLimitActive: Bool {
+        enablePerGuessTimeLimit && perGuessTimeLimitSeconds > 0
+    }
+
+    private var isGameLimitActive: Bool {
+        enableGameTimeLimit && gameTimeLimitSeconds > 0
+    }
+
+    private var isAnyTimerActive: Bool {
+        isPerGuessLimitActive || isGameLimitActive
+    }
+
+    private enum TimeLimitType {
+        case perGuess
+        case game
     }
 
     private var bestWinStreak: Int {
@@ -89,6 +119,7 @@ struct ContentView: View {
     }
 
     private func startNewGame() {
+        stopAllTimers()
         resetGuessInputErrorMessage()
 
         guard answerLength >= 3 && answerLength <= 8 else {
@@ -102,6 +133,8 @@ struct ContentView: View {
         answer = GameLogic.generateAnswer(length: answerLength, allowRepeats: enableRepeats)
         currentRound = 0
         isDisabledSubmitButton = false
+        gameOverMessage = ""
+        startTimeLimits()
         focusGuessField()
     }
 
@@ -127,13 +160,17 @@ struct ContentView: View {
         currentRound += 1
 
         if counts.bulls == answerLength {
+            stopAllTimers()
             SoundPlayer.shared.play(.win, enabled: enableSoundEffects, volume: soundEffectsVolume)
             isWon = true
         } else if currentRound == maximumGuesses {
+            stopAllTimers()
+            gameOverMessage = localized("alert.lose.message", answer)
             SoundPlayer.shared.play(.lose, enabled: enableSoundEffects, volume: soundEffectsVolume)
             isGameOver = true
         } else {
             SoundPlayer.shared.play(.submit, enabled: enableSoundEffects, volume: soundEffectsVolume)
+            restartPerGuessTimeLimit()
         }
 
         guess = ""
@@ -174,6 +211,124 @@ struct ContentView: View {
         }
     }
 
+    private func stopPerGuessTimer() {
+        perGuessTimerTask?.cancel()
+        perGuessTimerTask = nil
+    }
+
+    private func stopGameTimer() {
+        gameTimerTask?.cancel()
+        gameTimerTask = nil
+    }
+
+    private func stopAllTimers() {
+        stopPerGuessTimer()
+        stopGameTimer()
+    }
+
+    private func startTimeLimits() {
+        if isPerGuessLimitActive {
+            perGuessRemainingSeconds = perGuessTimeLimitSeconds
+            startPerGuessTimer()
+        } else {
+            perGuessRemainingSeconds = 0
+            stopPerGuessTimer()
+        }
+
+        if isGameLimitActive {
+            gameRemainingSeconds = gameTimeLimitSeconds
+            startGameTimer()
+        } else {
+            gameRemainingSeconds = 0
+            stopGameTimer()
+        }
+    }
+
+    private func restartPerGuessTimeLimit() {
+        guard isPerGuessLimitActive, isWon == false, isGameOver == false else { return }
+        perGuessRemainingSeconds = perGuessTimeLimitSeconds
+        startPerGuessTimer()
+    }
+
+    private func applyTimeLimitSettingsImmediately() {
+        guard isWon == false, isGameOver == false else {
+            stopAllTimers()
+            return
+        }
+        startTimeLimits()
+    }
+
+    private func startPerGuessTimer() {
+        stopPerGuessTimer()
+        perGuessTimerTask = Task {
+            while Task.isCancelled == false {
+                try? await Task.sleep(for: .seconds(1))
+                if Task.isCancelled { return }
+
+                var expired = false
+                await MainActor.run {
+                    guard isWon == false, isGameOver == false, isPerGuessLimitActive else { return }
+                    if perGuessRemainingSeconds > 0 {
+                        perGuessRemainingSeconds -= 1
+                    }
+                    if perGuessRemainingSeconds <= 0 {
+                        expired = true
+                    }
+                }
+
+                if expired {
+                    await MainActor.run {
+                        handleTimeLimitExpired(.perGuess)
+                    }
+                    return
+                }
+            }
+        }
+    }
+
+    private func startGameTimer() {
+        stopGameTimer()
+        gameTimerTask = Task {
+            while Task.isCancelled == false {
+                try? await Task.sleep(for: .seconds(1))
+                if Task.isCancelled { return }
+
+                var expired = false
+                await MainActor.run {
+                    guard isWon == false, isGameOver == false, isGameLimitActive else { return }
+                    if gameRemainingSeconds > 0 {
+                        gameRemainingSeconds -= 1
+                    }
+                    if gameRemainingSeconds <= 0 {
+                        expired = true
+                    }
+                }
+
+                if expired {
+                    await MainActor.run {
+                        handleTimeLimitExpired(.game)
+                    }
+                    return
+                }
+            }
+        }
+    }
+
+    private func handleTimeLimitExpired(_ type: TimeLimitType) {
+        guard isWon == false, isGameOver == false else { return }
+        stopAllTimers()
+        gameOverMessage = type == .perGuess
+            ? localized("alert.per_guess_timeout.message", answer)
+            : localized("alert.game_timeout.message", answer)
+        SoundPlayer.shared.play(.lose, enabled: enableSoundEffects, volume: soundEffectsVolume)
+        isGameOver = true
+    }
+
+    private func formattedTimer(_ totalSeconds: Int) -> String {
+        let safeSeconds = max(0, totalSeconds)
+        return String(format: "%02d:%02d", safeSeconds / 60, safeSeconds % 60)
+    }
+
     // MARK: - View
 
     var body: some View {
@@ -182,7 +337,7 @@ struct ContentView: View {
             HistoryView()
             StatisticView()
         }
-        .frame(minWidth: 520, idealWidth: 560)
+        .frame(minWidth: 470, idealWidth: 510)
         .frame(minHeight: 500, idealHeight: .infinity, alignment: .init(horizontal: .center, vertical: .top))
     }
 
@@ -198,6 +353,18 @@ struct ContentView: View {
         .onAppear(perform: startNewGame)
         .onChange(of: answerLength) {
             startNewGame()
+        }
+        .onChange(of: enablePerGuessTimeLimit) {
+            applyTimeLimitSettingsImmediately()
+        }
+        .onChange(of: enableGameTimeLimit) {
+            applyTimeLimitSettingsImmediately()
+        }
+        .onChange(of: perGuessTimeLimitSeconds) {
+            applyTimeLimitSettingsImmediately()
+        }
+        .onChange(of: gameTimeLimitSeconds) {
+            applyTimeLimitSettingsImmediately()
         }
         .alert("You Won!", isPresented: $isWon) {
             Button("Play Again") {
@@ -222,7 +389,7 @@ struct ContentView: View {
                 saveGameToHistory(finalState: false, score: 0)
             }
         } message: {
-            Text(localized("alert.lose.message", answer))
+            Text(gameOverMessage.isEmpty ? localized("alert.lose.message", answer) : gameOverMessage)
         }
         .touchBar {
             HStack {
@@ -242,7 +409,7 @@ struct ContentView: View {
                 Text("Game mode:")
                     .font(.caption)
                     .fontWeight(.semibold)
-                    .help("Shows the difficulty of the game and whether numbers can be repeated.")
+                    .help(localized("help.content.game_mode"))
                 Text(gameModeText)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -255,6 +422,19 @@ struct ContentView: View {
             }
             .font(.caption2)
             .foregroundStyle(.secondary)
+
+            if isAnyTimerActive {
+                HStack(spacing: 10) {
+                    if isPerGuessLimitActive {
+                        Text(localized("timer.per_guess.remaining", formattedTimer(perGuessRemainingSeconds)))
+                    }
+                    if isGameLimitActive {
+                        Text(localized("timer.game.remaining", formattedTimer(gameRemainingSeconds)))
+                    }
+                }
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            }
 
             HStack(spacing: 8) {
                 Text("Theme:")
@@ -277,11 +457,11 @@ struct ContentView: View {
                         resetGuessInputErrorMessage()
                     }
                     .onSubmit(submitGuess)
-                    .help("Type a \(answerLength)-digit \(enableRepeats ? "" : "unique") number here.")
+                    .help(localized("help.content.guess_field"))
 
                 Button("Go", action: submitGuess)
                     .disabled(isDisabledSubmitButton)
-                    .help("Submit your guess here.")
+                    .help(localized("Submit your guess here."))
             }
             .padding(.horizontal, 70)
             .padding(.vertical, 10)
@@ -309,7 +489,7 @@ struct ContentView: View {
             .padding(.horizontal, 24)
         }
         .listStyle(.sidebar)
-        .help("List of your guesses and the result for each one in descending order.")
+        .help(localized("List of your guesses and the result for each one in descending order."))
     }
 
     @ViewBuilder
@@ -317,7 +497,7 @@ struct ContentView: View {
         if showGuessCount {
             Text("Guesses: \(guesses.count)/\(maximumGuesses)")
                 .padding()
-                .help("Shows how many guesses you've made so far and how many you have left.")
+                .help(localized("Shows how many guesses you've made so far and how many you have left."))
         }
     }
 
@@ -326,7 +506,7 @@ struct ContentView: View {
             startNewGame()
         }
         .foregroundStyle(.blue)
-        .help("Restarts the game and clears all your guesses.")
+        .help(localized("Restarts the game and clears all your guesses."))
         .padding(.top, 2)
         .padding(.bottom, 20)
     }

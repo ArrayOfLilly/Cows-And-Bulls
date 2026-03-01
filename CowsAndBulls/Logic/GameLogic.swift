@@ -6,30 +6,61 @@
 import Foundation
 
 struct GameLogic {
-    static func score(guessCount: Int, maximumGuesses: Int, answerLength: Int, hardMode: Bool) -> Int {
-        var baseScore = 0
-
-        if guessCount == 1 {
-            baseScore = 100
-        } else if guessCount == maximumGuesses {
-            baseScore = 1
-        } else if Double(guessCount) < Double(maximumGuesses) * 0.5 {
-            baseScore = 25
-        } else if Double(guessCount) < Double(maximumGuesses) * 0.625 {
-            baseScore = 20
-        } else if Double(guessCount) < Double(maximumGuesses) * 0.75 {
-            baseScore = 15
-        } else if Double(guessCount) < Double(maximumGuesses) * 0.9 {
-            baseScore = 10
-        } else {
-            baseScore = 5
+    static func score(
+        codeLength: Int,
+        allowRepeats: Bool,
+        hardMode: Bool,
+        hidesRemainingGuesses: Bool,
+        maxGuesses: Int,
+        usedGuesses: Int,
+        perMoveTimeLimit: TimeInterval,
+        totalTimeLimit: TimeInterval
+    ) -> Int {
+        func permutation(_ n: Int, _ r: Int) -> Double {
+            guard r <= n else { return 0 }
+            return (0..<r).reduce(1.0) { result, i in
+                result * Double(n - i)
+            }
         }
 
-        var finalScore = answerLength * baseScore
+        let combinations: Double = allowRepeats
+            ? pow(10.0, Double(codeLength))
+            : permutation(10, codeLength)
+        let baseScore = log10(combinations) * 100.0
+
+        let standardGuesses = 3 * codeLength
+
+        var difficulty: Double = 1.0
+        if allowRepeats {
+            difficulty *= 1.15
+        }
         if hardMode {
-            finalScore *= 2
+            difficulty *= 1.40
         }
-        return finalScore
+        if hidesRemainingGuesses {
+            difficulty *= 1.15
+        }
+        if maxGuesses > 0 {
+            let guessPressure = Double(standardGuesses) / Double(maxGuesses)
+            difficulty *= max(1.0, guessPressure)
+        }
+        if perMoveTimeLimit > 0 {
+            difficulty *= 1.20
+        }
+        if totalTimeLimit > 0 {
+            difficulty *= 1.15
+        }
+
+        let performanceMultiplier = min(
+            2.5,
+            Double(standardGuesses) / Double(max(1, usedGuesses))
+        )
+
+        var finalScore = baseScore * difficulty * performanceMultiplier
+        if usedGuesses == 1 {
+            finalScore += baseScore * 3.0
+        }
+        return Int(finalScore.rounded())
     }
 
     static func generateAnswer(length: Int, allowRepeats: Bool) -> String {

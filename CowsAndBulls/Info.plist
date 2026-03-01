@@ -5,9 +5,19 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>English</string>
 	<key>CFBundleName</key>
-	<string>Bulls and Cows</string>
+	<string>Cows &amp; Bulls</string>
+	<key>CFBundleDisplayName</key>
+	<string>Cows &amp; Bulls</string>
+	<key>CFAppleHelpAnchor</key>
+	<string>index</string>
+	<key>CFBundleHelpBookFolder</key>
+	<string></string>
+	<key>CFBundleHelpBookName</key>
+	<string>CowsAndBullsHelp</string>
 	<key>CFBundleVersion</key>
-	<string>1.6</string>
+	<string>2</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.8</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>ArrayOfLilly</string>
 </dict>

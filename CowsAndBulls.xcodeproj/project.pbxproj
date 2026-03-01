@@ -6,8 +6,15 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		ABEB1BA02F54161F006D62C3 /* INSTALL.en.md in Resources */ = {isa = PBXBuildFile; fileRef = ABEB1B9F2F54161F006D62C3 /* INSTALL.en.md */; };
+		ABEB1BA22F54161F006D62C3 /* INSTALL.hu.md in Resources */ = {isa = PBXBuildFile; fileRef = ABEB1BA12F54161F006D62C3 /* INSTALL.hu.md */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
-		ABE95FCA2F4E246300BAF3CA /* CowsAndBulls.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CowsAndBulls.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		ABE95FCA2F4E246300BAF3CA /* Cows & Bulls.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Cows & Bulls.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		ABEB1B9F2F54161F006D62C3 /* INSTALL.en.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = INSTALL.en.md; sourceTree = "<group>"; };
+		ABEB1BA12F54161F006D62C3 /* INSTALL.hu.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = INSTALL.hu.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -47,13 +54,15 @@
 			children = (
 				ABE95FCC2F4E246300BAF3CA /* CowsAndBulls */,
 				ABE95FCB2F4E246300BAF3CA /* Products */,
+				ABEB1B9F2F54161F006D62C3 /* INSTALL.en.md */,
+				ABEB1BA12F54161F006D62C3 /* INSTALL.hu.md */,
 			);
 			sourceTree = "<group>";
 		};
 		ABE95FCB2F4E246300BAF3CA /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				ABE95FCA2F4E246300BAF3CA /* CowsAndBulls.app */,
+				ABE95FCA2F4E246300BAF3CA /* Cows & Bulls.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -80,7 +89,7 @@
 			packageProductDependencies = (
 			);
 			productName = CowsAndBulls;
-			productReference = ABE95FCA2F4E246300BAF3CA /* CowsAndBulls.app */;
+			productReference = ABE95FCA2F4E246300BAF3CA /* Cows & Bulls.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -123,6 +132,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				ABEB1BA02F54161F006D62C3 /* INSTALL.en.md in Resources */,
+				ABEB1BA22F54161F006D62C3 /* INSTALL.hu.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -271,7 +282,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 7C5WB3886P;
 				ENABLE_APP_SANDBOX = YES;
@@ -280,16 +291,16 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = CowsAndBulls/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Cows and Bulls";
+				INFOPLIST_KEY_CFBundleDisplayName = "Cows & Bulls";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.games";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.3;
+				MARKETING_VERSION = 1.8;
 				PRODUCT_BUNDLE_IDENTIFIER = com.arrayoflilly.CowsAndBulls;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = "Cows & Bulls";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -308,7 +319,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 7C5WB3886P;
 				ENABLE_APP_SANDBOX = YES;
@@ -317,16 +328,16 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = CowsAndBulls/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Cows and Bulls";
+				INFOPLIST_KEY_CFBundleDisplayName = "Cows & Bulls";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.games";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.3;
+				MARKETING_VERSION = 1.8;
 				PRODUCT_BUNDLE_IDENTIFIER = com.arrayoflilly.CowsAndBulls;
-				PRODUCT_NAME = "Cows and Bulls";
+				PRODUCT_NAME = "Cows & Bulls";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;

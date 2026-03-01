@@ -57,6 +57,21 @@
 "learn.score.last_try.points" = "1 point";
 "learn.score.multiplied_by_length" = "Final score is multiplied by the answer length.";
 "learn.score.hard_mode_double" = "Hard mode doubles the final score.";
+"learn.score.base_intro" = "Your base score depends on the mathematical difficulty of the game, calculated from the number of possible secret codes.";
+"learn.score.base_formula" = "Base score = log10(number of possible combinations) × 100";
+"learn.score.difficulty_title" = "Difficulty multipliers apply for:";
+"learn.score.difficulty.repeats" = "• Allowing repeated digits: ×1.15";
+"learn.score.difficulty.hard" = "• Hard mode (only last feedback visible): ×1.40";
+"learn.score.difficulty.hidden" = "• Hidden remaining guesses: ×1.15";
+"learn.score.difficulty.guess_limit" = "• Limited number of guesses: ×max(1.0, (3 × code length) / max guesses)";
+"learn.score.difficulty.per_move_time" = "• Per-move time limit: ×1.20";
+"learn.score.difficulty.total_time" = "• Total game time limit: ×1.15";
+"learn.score.performance_title" = "Performance multiplier rewards solving in fewer guesses:";
+"learn.score.performance_formula" = "Performance = (3 × code length) / used guesses";
+"learn.score.performance_cap" = "Maximum performance multiplier is 2.5×";
+"learn.score.jackpot_title" = "Jackpot:";
+"learn.score.jackpot_desc" = "If you guess the secret code on the first try, you receive an additional 3× base score bonus.";
+"learn.score.final_formula" = "Final Score = Base × Difficulty × Performance + Jackpot";
 
 "learn.options.step_count.title" = "Step Count";
 "learn.options.step_count.desc" = "You can set the maximum number of guesses before the game ends.";
@@ -72,6 +87,16 @@
 "learn.options.theming.desc" = "You can set the theme of the game.";
 "learn.objective.line1" = "The objective of the game is to guess a 4-digit number that the other player has in mind.";
 "learn.objective.line2" = "You can ask up to 10 questions to try and guess the number.";
+"help.settings.maximum_guesses" = "The maximum number of answers you can submit. Changing this will immediately restart your game.";
+"help.settings.answer_length" = "The length of the number string to guess. Changing this will immediately restart your game.";
+"help.settings.enable_repeating" = "This enables repeating digits in the answer.";
+"help.settings.enable_hard_mode" = "This shows the cows and bulls score for only the most recent guess.";
+"help.settings.show_guess_count" = "Adds a footer below your guesses showing the total.";
+"help.settings.sound_effects" = "Play submit, win, and lose sounds during gameplay.";
+"help.content.game_mode" = "Shows the difficulty of the game and whether numbers can be repeated.";
+"help.content.guess_field" = "Type a 4-digit number with unique digits.";
+"help.settings.enable_per_guess_time_limit" = "If enabled, each guess must be submitted before this timer expires.";
+"help.settings.enable_game_time_limit" = "If enabled, the whole game must finish before this timer expires.";
 
 /* Static literals used directly in views */
 "Help" = "Help";
@@ -84,6 +109,7 @@
 "Guesses: %lld" = "Guesses: %lld";
 "Game" = "Game";
 "Game mode:" = "Game mode:";
+"About %@" = "About %@";
 "Theme:" = "Theme:";
 "Enter a guess…" = "Enter a guess…";
 "Type a %lld-digit %@ number here." = "Type a %lld-digit %@ number here.";
@@ -101,6 +127,10 @@
 "Enable repeating" = "Enable repeating";
 "Enable hard mode" = "Enable hard mode";
 "Show guess count" = "Show guess count";
+"Enable per-guess time limit" = "Enable per-guess time limit";
+"Per-guess limit: %lld sec" = "Per-guess limit: %lld sec";
+"Enable game time limit" = "Enable game time limit";
+"Game limit: %lld sec" = "Game limit: %lld sec";
 "Enable sound effects" = "Enable sound effects";
 "Volume" = "Volume";
 "Advanced" = "Advanced";
@@ -173,3 +203,15 @@
 "Magyar" = "Magyar";
 "Changes apply immediately." = "Changes apply immediately.";
 "Language" = "Language";
+"Restart required" = "Restart required";
+"Restart now" = "Restart now";
+"Later" = "Later";
+"Language change may require app restart. Restart now?" = "Language change may require app restart. Restart now?";
+"Some language changes require restart." = "Some language changes require restart.";
+"about.version.format" = "Version %@ (%@)";
+"about.credits.fallback" = "Thanks for playing Cows and Bulls - I hope you enjoy the game!\n\n@ArrayOfLillies.com\n\nImage credits:\nDesigned by Freepik\nhttp://www.freepik.com\n\nMusic credits:\nMushroom Background Music by Sunsai\nhttps://freesound.org/s/415804/\nLicense: Attribution 4.0\n\nCandyworld Background Music by Sunsai\nhttps://freesound.org/s/415807/\nLicense: Attribution 4.0\n\nDesert background music by Sunsai\nhttps://freesound.org/s/415806/\nLicense: Attribution 4.0";
+"about.credits.body" = "Thanks for playing Cows and Bulls - I hope you enjoy the game!\n\n@ArrayOfLillies.com\n\nImage credits:\nDesigned by Freepik\nhttp://www.freepik.com\n\nMusic credits:\nMushroom Background Music by Sunsai\nhttps://freesound.org/s/415804/\nLicense: Attribution 4.0";
+"timer.per_guess.remaining" = "Guess timer: %@";
+"timer.game.remaining" = "Game timer: %@";
+"alert.per_guess_timeout.message" = "Time is up for this guess. The correct answer is: %@.";
+"alert.game_timeout.message" = "Total game time is up. The correct answer is: %@.";

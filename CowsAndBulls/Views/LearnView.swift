@@ -136,16 +136,31 @@ struct LearnView: View {
                 .padding(.bottom, 10)
 
             VStack(alignment: .leading, spacing: 8) {
-                scoringRow(localized("learn.score.first_guess.rule"), localized("learn.score.first_guess.points"))
-                scoringRow(localized("learn.score.lt_half.rule"), localized("learn.score.lt_half.points"))
-                scoringRow(localized("learn.score.half_to_625.rule"), localized("learn.score.half_to_625.points"))
-                scoringRow(localized("learn.score.625_to_75.rule"), localized("learn.score.625_to_75.points"))
-                scoringRow(localized("learn.score.75_to_90.rule"), localized("learn.score.75_to_90.points"))
-                scoringRow(localized("learn.score.90_to_100.rule"), localized("learn.score.90_to_100.points"))
-                scoringRow(localized("learn.score.last_try.rule"), localized("learn.score.last_try.points"))
-                Text("")
-                Text(localized("learn.score.multiplied_by_length"))
-                Text(localized("learn.score.hard_mode_double"))
+                Text(localized("learn.score.base_intro"))
+                Text(localized("learn.score.base_formula"))
+                    .fontWeight(.semibold)
+
+                Text(localized("learn.score.difficulty_title"))
+                    .padding(.top, 4)
+                Text(localized("learn.score.difficulty.repeats"))
+                Text(localized("learn.score.difficulty.hard"))
+                Text(localized("learn.score.difficulty.hidden"))
+                Text(localized("learn.score.difficulty.guess_limit"))
+                Text(localized("learn.score.difficulty.per_move_time"))
+                Text(localized("learn.score.difficulty.total_time"))
+
+                Text(localized("learn.score.performance_title"))
+                    .padding(.top, 4)
+                Text(localized("learn.score.performance_formula"))
+                Text(localized("learn.score.performance_cap"))
+
+                Text(localized("learn.score.jackpot_title"))
+                    .padding(.top, 4)
+                Text(localized("learn.score.jackpot_desc"))
+
+                Text(localized("learn.score.final_formula"))
+                    .fontWeight(.semibold)
+                    .padding(.top, 4)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 4)
@@ -201,15 +216,6 @@ struct LearnView: View {
         }
     }
 
-    private func scoringRow(_ rule: String, _ points: String) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            Text(rule)
-                .fontWeight(.semibold)
-                .frame(width: 210, alignment: .leading)
-            Text(points)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
 }
 
 #Preview {

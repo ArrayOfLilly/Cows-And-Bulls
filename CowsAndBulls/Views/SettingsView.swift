@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AppKit
 
 struct SettingsView: View {
     @AppStorage("maximumGuesses") private var maximumGuesses = 10
@@ -13,9 +14,18 @@ struct SettingsView: View {
     @AppStorage("enableRepeats") private var enableRepeats = false
     @AppStorage("enableHardMode") private var enableHardMode = false
     @AppStorage("showGuessCount") private var showGuessCount = false
+    @AppStorage("enablePerGuessTimeLimit") private var enablePerGuessTimeLimit = false
+    @AppStorage("enableGameTimeLimit") private var enableGameTimeLimit = false
+    @AppStorage("perGuessTimeLimitSeconds") private var perGuessTimeLimitSeconds = 30
+    @AppStorage("gameTimeLimitSeconds") private var gameTimeLimitSeconds = 300
     @AppStorage("enableSoundEffects") private var enableSoundEffects = true
     @AppStorage("soundEffectsVolume") private var soundEffectsVolume = 0.8
+    @AppStorage("enableBackgroundMusic") private var enableBackgroundMusic = false
+    @AppStorage("backgroundMusicTrackID") private var backgroundMusicTrackID = "Mushroom Background Music"
+    @AppStorage("backgroundMusicVolume") private var backgroundMusicVolume = 0.35
     @AppStorage("appLanguageCode") private var appLanguageCode = "system"
+    @State private var previousLanguageCode = "system"
+    @State private var showRestartPrompt = false
 
     @AppStorage("selectedAnimalThemeID") private var selectedAnimalThemeID = "classic"
     @AppStorage("selectedBullAssetName") private var selectedBullAssetName = "Bull"
@@ -40,11 +50,13 @@ struct SettingsView: View {
             gameTab
             advancedTab
             soundTab
+            musicTab
             languageTab
             themeTab
         }
         .frame(width: 420, height: 400)
         .onAppear {
+            previousLanguageCode = appLanguageCode
             if animalThemes.contains(where: { $0.id == selectedAnimalThemeID }) == false {
                 if let matchedTheme = animalThemes.first(where: {
                     $0.bullAsset == selectedBullAssetName && $0.cowAsset == selectedCowAssetName
@@ -55,6 +67,30 @@ struct SettingsView: View {
                 }
             }
         }
+        .confirmationDialog(
+            localized("Restart required"),
+            isPresented: $showRestartPrompt,
+            titleVisibility: .visible
+        ) {
+            Button(localized("Restart now"), role: .destructive) {
+                restartApplication()
+            }
+            Button(localized("Later"), role: .cancel) {}
+        } message: {
+            Text(localized("Language change may require app restart. Restart now?"))
+        }
+        .onAppear {
+            applyMusicSettings()
+        }
+        .onChange(of: enableBackgroundMusic) {
+            applyMusicSettings()
+        }
+        .onChange(of: backgroundMusicTrackID) {
+            applyMusicSettings()
+        }
+        .onChange(of: backgroundMusicVolume) {
+            applyMusicSettings()
+        }
     }
 
     private func applyTheme(_ theme: AnimalTheme) {
@@ -63,13 +99,27 @@ struct SettingsView: View {
         selectedCowAssetName = theme.cowAsset
     }
 
+    private func restartApplication() {
+        let appURL = Bundle.main.bundleURL
+        NSWorkspace.shared.open(appURL)
+        NSApp.terminate(nil)
+    }
+
+    private func applyMusicSettings() {
+        SoundPlayer.shared.updateBackgroundMusic(
+            enabled: enableBackgroundMusic,
+            trackID: backgroundMusicTrackID,
+            volume: backgroundMusicVolume
+        )
+    }
+
     private var gameTab: some View {
         Form {
             TextField("Maximum guesses:", value: $maximumGuesses, format: .number)
-                .help("The maximum number of answers you can submit. Changing this will immediately restart your game.")
+                .help(localized("help.settings.maximum_guesses"))
 
             TextField("Answer length:", value: $answerLength, format: .number)
-                .help("The length of the number string to guess. Changing this will immediately restart your game.")
+                .help(localized("help.settings.answer_length"))
 
             if answerLength < 3 || answerLength > 8 {
                 Text("Must be between 3 and 8")
@@ -88,11 +138,32 @@ struct SettingsView: View {
     private var advancedTab: some View {
         Form {
             Toggle("Enable repeating", isOn: $enableRepeats)
-                .help("This enables repeating digits in the answer.")
+                .help(localized("help.settings.enable_repeating"))
             Toggle("Enable hard mode", isOn: $enableHardMode)
-                .help("This shows the cows and bulls score for only the most recent guess.")
+                .help(localized("help.settings.enable_hard_mode"))
             Toggle("Show guess count", isOn: $showGuessCount)
-                .help("Adds a footer below your guesses showing the total.")
+                .help(localized("help.settings.show_guess_count"))
+
+            Divider()
+                .padding(.vertical, 4)
+
+            Toggle("Enable per-guess time limit", isOn: $enablePerGuessTimeLimit)
+                .help(localized("help.settings.enable_per_guess_time_limit"))
+            Stepper(
+                localized("Per-guess limit: %lld sec", perGuessTimeLimitSeconds),
+                value: $perGuessTimeLimitSeconds,
+                in: 5...180
+            )
+            .disabled(enablePerGuessTimeLimit == false)
+
+            Toggle("Enable game time limit", isOn: $enableGameTimeLimit)
+                .help(localized("help.settings.enable_game_time_limit"))
+            Stepper(
+                localized("Game limit: %lld sec", gameTimeLimitSeconds),
+                value: $gameTimeLimitSeconds,
+                in: 30...3600
+            )
+            .disabled(enableGameTimeLimit == false)
         }
         .padding()
         .padding(.top, 10)
@@ -105,7 +176,7 @@ struct SettingsView: View {
     private var soundTab: some View {
         Form {
             Toggle("Enable sound effects", isOn: $enableSoundEffects)
-                .help("Play submit, win, and lose sounds during gameplay.")
+                .help(localized("help.settings.sound_effects"))
 
             HStack {
                 Text("Volume")
@@ -133,8 +204,13 @@ struct SettingsView: View {
                 Text("Magyar").tag("hu")
             }
             .pickerStyle(.radioGroup)
+            .onChange(of: appLanguageCode) {
+                guard appLanguageCode != previousLanguageCode else { return }
+                previousLanguageCode = appLanguageCode
+                showRestartPrompt = true
+            }
 
-            Text("Changes apply immediately.")
+            Text("Some language changes require restart.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .padding(.top, 6)
@@ -144,6 +220,35 @@ struct SettingsView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .tabItem {
             Label("Language", systemImage: "globe")
+        }
+    }
+
+    private var musicTab: some View {
+        Form {
+            Toggle("Enable background music", isOn: $enableBackgroundMusic)
+
+            Picker("Track", selection: $backgroundMusicTrackID) {
+                ForEach(SoundPlayer.availableBackgroundTracks) { track in
+                    Text(track.displayName).tag(track.id)
+                }
+            }
+            .disabled(enableBackgroundMusic == false)
+
+            HStack {
+                Text("Volume")
+                Slider(value: $backgroundMusicVolume, in: 0...1, step: 0.05)
+                    .disabled(enableBackgroundMusic == false)
+                Text("\(Int(backgroundMusicVolume * 100))%")
+                    .monospacedDigit()
+                    .frame(width: 42, alignment: .trailing)
+                    .foregroundStyle(enableBackgroundMusic ? .primary : .secondary)
+            }
+        }
+        .padding()
+        .padding(.top, 10)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .tabItem {
+            Label("Music", systemImage: "music.note")
         }
     }
 

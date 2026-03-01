@@ -4,4 +4,10 @@
    <FileRef
       location = "self:">
    </FileRef>
+   <FileRef
+      location = "group:INSTALL.en.md">
+   </FileRef>
+   <FileRef
+      location = "group:INSTALL.hu.md">
+   </FileRef>
 </Workspace>
