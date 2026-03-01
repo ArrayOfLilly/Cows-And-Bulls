@@ -1,17 +1,17 @@
 {
   "images" : [
     {
-      "filename" : "OBJECTS.png",
+      "filename" : "Cow.png",
       "idiom" : "universal",
       "scale" : "1x"
     },
     {
-      "filename" : "OBJECTS@2x.png",
+      "filename" : "Cow@2x.png",
       "idiom" : "universal",
       "scale" : "2x"
     },
     {
-      "filename" : "OBJECTS@3x.png",
+      "filename" : "Cow@3x.png",
       "idiom" : "universal",
       "scale" : "3x"
     }
