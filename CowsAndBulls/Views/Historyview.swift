@@ -46,14 +46,14 @@ struct HistoryView: View {
     var body: some View {
         VStack {
             HStack(spacing: 12) {
-                Picker("Filter", selection: $filter) {
+                Picker(localized("history.filter.title"), selection: $filter) {
                     ForEach(HistoryFilter.allCases) { item in
                         Text(item.title).tag(item)
                     }
                 }
                 .pickerStyle(.segmented)
 
-                Picker("Sort", selection: $sort) {
+                Picker(localized("history.sort.title"), selection: $sort) {
                     ForEach(HistorySort.allCases) { item in
                         Text(item.title).tag(item)
                     }
@@ -69,16 +69,16 @@ struct HistoryView: View {
                     // ContentUnavailableView is a macOS/iOS system empty-state component.
                     // It gives a consistent, native "no data" UX with minimal custom code.
                     ContentUnavailableView(
-                        "No Data Yet",
+                        localized("history.empty.title"),
                         systemImage: "clock.arrow.circlepath",
-                        description: Text("Play a few rounds and your history will appear here.")
+                        description: Text(localized("history.empty.description"))
                     )
                     .padding(.top, 40)
                 } else if displayedItems.isEmpty {
                     ContentUnavailableView(
-                        "No Matching Games",
+                        localized("history.filtered_empty.title"),
                         systemImage: "line.3.horizontal.decrease.circle",
-                        description: Text("Try a different filter.")
+                        description: Text(localized("history.filtered_empty.description"))
                     )
                     .padding(.top, 40)
                 } else {
@@ -95,7 +95,7 @@ struct HistoryView: View {
                     .padding(.bottom)
                 }
             }
-            .help(localized("List of your previous attempts."))
+            .help(localized("history.help.list"))
         }
         .toolbar {
             // confirmationAction placement puts the action in the expected trailing toolbar position on macOS.
@@ -106,23 +106,23 @@ struct HistoryView: View {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundColor(.accent)
                 }
-                .help(localized("Clear your entire history."))
+                .help(localized("history.help.clear"))
                 .disabled(historyStore.items.isEmpty)
             }
         }
-        .navigationTitle("Cows and Bulls")
+        .navigationTitle(localized("app.title"))
         .frame(maxWidth: .infinity)
         .frame(minHeight: 350, maxHeight: .infinity)
-        .confirmationDialog("Clear history?", isPresented: $showClearConfirmation, titleVisibility: .visible) {
-            Button("Clear", role: .destructive) {
+        .confirmationDialog(localized("history.clear.title"), isPresented: $showClearConfirmation, titleVisibility: .visible) {
+            Button(localized("history.clear.action"), role: .destructive) {
                 historyStore.clear()
             }
-            Button("Cancel", role: .cancel) {}
+            Button(localized("common.action.cancel"), role: .cancel) {}
         } message: {
-            Text("This will permanently remove all saved games.")
+            Text(localized("history.clear.message"))
         }
         .tabItem {
-            Label("History", systemImage: "clock.arrow.circlepath")
+            Label(localized("tab.history"), systemImage: "clock.arrow.circlepath")
         }
     }
 }
@@ -182,7 +182,7 @@ struct HistoryRow: View {
                         .foregroundColor(.gray)
                 }
 
-                Text("Answer: \(item.answer)")
+                Text(localized("history.row.answer", item.answer))
                 Text(localized("history.row.steps_score", item.steps, item.maxSteps, item.score))
                 Text(
                     localized(
@@ -197,13 +197,13 @@ struct HistoryRow: View {
                     HStack(alignment: .center, spacing: 2) {
 
                         if item.hasPerGuessLimit {
-                            Text("⏱ Per guess: \(item.perGuessLimit) sec")
+                            Text(localized("history.row.timer.per_guess", item.perGuessLimit))
                                 .padding(.trailing, 6)
                         }
                         
 
                         if item.hasTotalTimeLimit {
-                            Text("🕒 Game limit: \(item.totalTimeLimit) sec")
+                            Text(localized("history.row.timer.game", item.totalTimeLimit))
                         }
                     }
                 }
@@ -226,6 +226,7 @@ struct HistoryRow: View {
 
                 if isExpanded {
                     VStack(alignment: .leading, spacing: 4) {
+                        // Guesses are stored newest-first, so this list mirrors gameplay recency.
                         ForEach(Array(item.guesses.enumerated()), id: \.offset) { index, guess in
                             HStack {
                                 Text("\(guess): ")

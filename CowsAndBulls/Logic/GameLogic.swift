@@ -9,10 +9,20 @@ import Foundation
 import SwiftUI
 
 /// Pure game rules and scoring utilities used by the UI layer.
+/// No view state is stored here, so these functions are deterministic for the same input.
 struct GameLogic {
 
     /// Computes the final score using code complexity, active difficulty settings,
     /// and player efficiency (used guesses).
+    ///
+    /// Formula overview:
+    /// `final = base * difficulty * performance * time + jackpotIfFirstGuess`
+    ///
+    /// - base: logarithmic complexity estimate from the number of possible codes
+    /// - difficulty: configuration multipliers (hard mode, repeats, hidden guess count, guess pressure)
+    /// - performance: rewards solving in fewer guesses, capped at 2.5x
+    /// - time: optional timer-based multiplier from `timeMultiplier`
+    /// - jackpot: `+ base * 10.0` when solved on the very first guess
     static func score(
         codeLength: Int,
         allowRepeats: Bool,
@@ -30,9 +40,11 @@ struct GameLogic {
             }
         }
 
+        // Number of theoretical secret-code combinations under current rules.
         let combinations: Double = allowRepeats
             ? pow(10.0, Double(codeLength))
             : permutation(10, codeLength)
+        // Log scaling keeps score growth manageable when code length increases.
         let baseScore = log10(combinations) * 100.0
 
         let standardGuesses = 3 * codeLength
@@ -42,6 +54,7 @@ struct GameLogic {
         if hardMode { difficulty *= 1.40 }
         if hidesRemainingGuesses { difficulty *= 1.15 }
         if maxGuesses > 0 {
+            // Guess pressure rewards stricter guess limits, but never penalizes with <1.0.
             let guessPressure = Double(standardGuesses) / Double(maxGuesses)
             difficulty *= max(1.0, guessPressure)
         }
@@ -60,13 +73,23 @@ struct GameLogic {
         var finalScore = baseScore * difficulty * performanceMultiplier * timeMult
             
         if usedGuesses == 1 {
-            finalScore += baseScore * 3.0
+            // First-guess jackpot is intentionally large to strongly reward perfect starts.
+            finalScore += baseScore * 10.0
         }
         return Int(finalScore.rounded())
     }
     
     // MARK: - Time Difficulty Multiplier
 
+    /// Builds a dynamic time multiplier from enabled timers.
+    ///
+    /// Both timer channels contribute additively to the multiplier:
+    /// - per-guess timer: +0.0 ... +0.5
+    /// - total-game timer: +0.0 ... +0.5
+    ///
+    /// Result range:
+    /// - minimum: 1.0 (no timers, or loosest limits)
+    /// - maximum: 2.0 (both timers active at strictest limits)
     static func timeMultiplier(
         enablePerGuess: Bool,
         perGuessSeconds: Int,
@@ -76,7 +99,7 @@ struct GameLogic {
 
         var multiplier: Double = 1.0
 
-        // Per-guess timer
+        // Per-guess timer contribution (strict 5s => max bonus, relaxed 180s => no bonus).
         if enablePerGuess {
             let min: Double = 5
             let max: Double = 180
@@ -86,7 +109,7 @@ struct GameLogic {
             multiplier += normalized * 0.5   // max +50%
         }
 
-        // Game timer
+        // Total game timer contribution (strict 300s => max bonus, relaxed 1800s => no bonus).
         if enableGame {
             let min: Double = 300
             let max: Double = 1800
@@ -125,6 +148,9 @@ struct GameLogic {
         var answerLetterCount: [Character: Int] = [:]
         var guessLetterCount: [Character: Int] = [:]
 
+        // First pass:
+        // - exact-position matches are bulls
+        // - non-matching digits are counted for later cow calculation
         for index in 0..<answerLetters.count {
             if answerLetters[index] == guessLetters[index] {
                 bulls += 1
@@ -134,6 +160,8 @@ struct GameLogic {
             }
         }
 
+        // Second pass:
+        // cows are limited by the overlap of remaining digit frequencies.
         for (char, count) in answerLetterCount {
             cows += min(count, guessLetterCount[char] ?? 0)
         }
@@ -171,6 +199,7 @@ struct GameLogic {
         guesses: [String],
         allowRepeats: Bool
     ) -> String? {
+        // Keep validation order deterministic so users always get predictable feedback.
         guard guess.count == answerLength else {
             return localized("validation.answer_length", answerLength)
         }

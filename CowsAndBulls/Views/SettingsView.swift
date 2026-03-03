@@ -19,6 +19,7 @@ struct SettingsView: View {
     @AppStorage("enableGameTimeLimit") private var enableGameTimeLimit = false
     @AppStorage("perGuessTimeLimitSeconds") private var perGuessTimeLimitSeconds = 30
     @AppStorage("gameTimeLimitSeconds") private var gameTimeLimitSeconds = 300
+    @AppStorage("gameInProgress") private var gameInProgress = false
     @AppStorage("enableSoundEffects") private var enableSoundEffects = true
     @AppStorage("soundEffectsVolume") private var soundEffectsVolume = 0.8
     @AppStorage("enableBackgroundMusic") private var enableBackgroundMusic = false
@@ -72,16 +73,16 @@ struct SettingsView: View {
         }
         // confirmationDialog is more lightweight than a full modal sheet for one decision.
         .confirmationDialog(
-            localized("Restart required"),
+            localized("settings.restart.title"),
             isPresented: $showRestartPrompt,
             titleVisibility: .visible
         ) {
-            Button(localized("Restart now"), role: .destructive) {
+            Button(localized("settings.restart.action_now"), role: .destructive) {
                 restartApplication()
             }
-            Button(localized("Later"), role: .cancel) { }
+            Button(localized("settings.restart.action_later"), role: .cancel) { }
         } message: {
-            Text(localized("Settings change may require app restart. Restart now?"))
+            Text(localized("settings.restart.message"))
         }
             .onAppear {
             applyMusicSettings()
@@ -164,7 +165,7 @@ struct SettingsView: View {
 
             VStack(alignment: .leading, spacing: 5) {
                 // MARK: - Per-guess time limit
-                Toggle(localized("Enable per-guess time limit"), isOn: $enablePerGuessTimeLimit)
+                Toggle(localized("settings.timer.per_guess.enable"), isOn: $enablePerGuessTimeLimit)
                     .help(localized("help.settings.enable_per_guess_time_limit"))
                     .padding(.bottom, 5)
                 
@@ -177,17 +178,18 @@ struct SettingsView: View {
                         in: 5...180,
                         step: 5
                     )
-                    .disabled(!enablePerGuessTimeLimit)
+                    // Lock timer sliders during active games to avoid scoring inconsistencies.
+                    .disabled(!enablePerGuessTimeLimit || gameInProgress)
                     .padding(.horizontal, 50)
                     .padding(.bottom, 5)
-                    Text(localized("Per-guess limit: %lld sec", perGuessTimeLimitSeconds))
+                    Text(localized("settings.timer.per_guess.value", perGuessTimeLimitSeconds))
                         .font(.headline)
                 }
                 .padding(.horizontal, 10)
                 .padding(.bottom, 20)
 
                 // MARK: - Game time limit
-                Toggle(localized("Enable game time limit"), isOn: $enableGameTimeLimit)
+                Toggle(localized("settings.timer.game.enable"), isOn: $enableGameTimeLimit)
                     .help(localized("help.settings.enable_game_time_limit"))
                     .padding(.bottom, 5)
                 
@@ -200,14 +202,21 @@ struct SettingsView: View {
                         in: 300...1800,
                         step: 60
                     )
-                        .disabled(!enableGameTimeLimit)
+                        .disabled(!enableGameTimeLimit || gameInProgress)
                         .padding(.horizontal, 50)
                         .padding(.bottom, 5)
                     
-                    Text(localized("Game limit: %lld sec", gameTimeLimitSeconds))
+                    Text(localized("settings.timer.game.value", gameTimeLimitSeconds))
                         .font(.headline)
                 }
                 .padding(.horizontal, 10)
+
+                if gameInProgress {
+                    Text(localized("settings.warning.timer_locked_during_game"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.top, 6)
+                }
             }
         }
             .padding()
@@ -259,6 +268,7 @@ struct SettingsView: View {
                 .onChange(of: appLanguageCode) {
                 guard appLanguageCode != previousLanguageCode else { return }
                 previousLanguageCode = appLanguageCode
+                // Switching app language may affect localized resources loaded at launch.
                 showRestartPrompt = true
             }
 
@@ -278,9 +288,9 @@ struct SettingsView: View {
     private var musicTab: some View {
         Form {
             VStack(alignment: .leading, spacing: 16) {
-                Toggle("Enable background music", isOn: $enableBackgroundMusic)
+                Toggle(localized("settings.music.enable"), isOn: $enableBackgroundMusic)
 
-                Picker("Track", selection: $backgroundMusicTrackID) {
+                Picker(localized("settings.music.track"), selection: $backgroundMusicTrackID) {
                     ForEach(SoundPlayer.availableBackgroundTracks) { track in
                         Text(track.displayName).tag(track.id)
                     }
@@ -304,7 +314,7 @@ struct SettingsView: View {
             .padding(.top, 10)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .tabItem {
-            Label("Music", systemImage: "music.note")
+            Label(localized("settings.tab.music"), systemImage: "music.note")
         }
     }
     private var themeTab: some View {

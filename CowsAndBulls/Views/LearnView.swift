@@ -15,7 +15,7 @@ struct LearnView: View {
 
     var body: some View {
         ScrollView {
-            Text(localized("Rules of Games"))
+            Text(localized("learn.title.rules"))
                 .font(Font.largeTitle)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 4)
@@ -23,7 +23,7 @@ struct LearnView: View {
             Divider()
                 .padding()
 
-            Text(localized("Objective"))
+            Text(localized("learn.section.objective.title"))
                 .font(Font.title)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 4)
@@ -40,17 +40,17 @@ struct LearnView: View {
             Divider()
                 .padding()
 
-            Text(localized("Skills Learned"))
+            Text(localized("learn.section.skills.title"))
                 .font(Font.title)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 4)
                 .padding(.bottom, 10)
 
             VStack(alignment: .leading, spacing: 8) {
-                Text(localized("Logical Deduction – Narrowing possibilities based on feedback."))
-                Text(localized("Pattern Recognition – Identifying overlap between guesses."))
-                Text(localized("Strategic Guessing – Choosing guesses that eliminate the most options."))
-                Text(localized("Memory – Tracking which guesses have ruled out or confirmed symbols."))
+                Text(localized("learn.skill.logical_deduction"))
+                Text(localized("learn.skill.pattern_recognition"))
+                Text(localized("learn.skill.strategic_guessing"))
+                Text(localized("learn.skill.memory"))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .multilineTextAlignment(.leading)
@@ -59,16 +59,16 @@ struct LearnView: View {
             Divider()
                 .padding()
 
-            Text(localized("How to play"))
+            Text(localized("learn.section.how_to_play.title"))
                 .font(Font.title)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 4)
                 .padding(.bottom, 10)
 
             VStack(alignment: .leading, spacing: 8) {
-                Text(localized("The computer choose a sequence of digits (you can set the length between 3 and 8 digits) which the code-breaker cannot see."))
-                Text(localized("Digits can be from 0–9. Decide if repeats are allowed, currently repeats are not allowed."))
-                Text(localized("Code-breaker makes the first guess."))
+                Text(localized("learn.how_to_play.line1"))
+                Text(localized("learn.how_to_play.line2"))
+                Text(localized("learn.how_to_play.line3"))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 4)
@@ -76,7 +76,7 @@ struct LearnView: View {
             Divider()
                 .padding()
 
-            Text(localized("For each guess:"))
+            Text(localized("learn.section.each_guess.title"))
                 .font(Font.title)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 4)
@@ -85,7 +85,7 @@ struct LearnView: View {
             VStack(alignment: .leading) {
                 HStack {
                     HStack(alignment: .center, spacing: 2) {
-                        Text(localized("Bull"))
+                        Text(localized("learn.term.bull"))
                             .fontWeight(.bold)
                         Text("(")
                         Image(selectedBullAssetName)
@@ -94,13 +94,13 @@ struct LearnView: View {
                             .frame(width: 18, height: 18)
                         Text(")")
                     }
-                    Text(localized("Correct digit in the correct position."))
+                    Text(localized("learn.term.bull.description"))
                 }
                 .padding(1)
 
                 HStack {
                     HStack(alignment: .center, spacing: 2) {
-                        Text(localized("Cow"))
+                        Text(localized("learn.term.cow"))
                             .fontWeight(.bold)
                         Text("(")
                         Image(selectedCowAssetName)
@@ -109,7 +109,7 @@ struct LearnView: View {
                             .frame(width: 18, height: 18)
                         Text(")")
                     }
-                    Text(localized("Correct digit in the wrong position."))
+                    Text(localized("learn.term.cow.description"))
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -120,9 +120,9 @@ struct LearnView: View {
             .padding(.bottom, 10)
             
             VStack(alignment: .leading, spacing: 8) {
-                Text(localized("Keep track of which numbers have been confirmed or eliminated, and which positions might be correct."))
-                Text(localized("The code-breaker keeps making guesses, one per turn, using feedback to narrow the possibilities."))
-                Text(localized("The code-breaker wins by matching the code exactly, in less round than the current limit is. (You can set the limit as you wish.)"))
+                Text(localized("learn.strategy.line1"))
+                Text(localized("learn.strategy.line2"))
+                Text(localized("learn.strategy.line3"))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 4)
@@ -131,7 +131,7 @@ struct LearnView: View {
                 .font(.body)
                 .padding()
 
-            Text(localized("Scoring:"))
+            Text(localized("learn.section.scoring.title"))
                 .font(Font.title)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 4)
@@ -171,13 +171,14 @@ struct LearnView: View {
             .padding()
             .font(.body)
 
-            Text(localized("Options:"))
+            Text(localized("learn.section.options.title"))
                 .font(Font.title)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 4)
                 .padding(.bottom, 10)
 
             VStack(alignment: .leading, spacing: 10) {
+                // Structured option rows keep labels aligned across localized text lengths.
                 optionRow(localized("learn.options.step_count.title"), localized("learn.options.step_count.desc"))
                 optionRow(localized("learn.options.answer_length.title"), localized("learn.options.answer_length.desc"))
                 optionRow(localized("learn.options.repeating.title"), localized("learn.options.repeating.desc"))
@@ -195,7 +196,7 @@ struct LearnView: View {
             Divider()
             .padding()
 
-            Text(localized("Enjoy the game!"))
+            Text(localized("learn.footer.enjoy"))
                 .font(.title2.weight(.semibold))
                 .padding(.horizontal, 18)
                 .padding(.vertical, 8)

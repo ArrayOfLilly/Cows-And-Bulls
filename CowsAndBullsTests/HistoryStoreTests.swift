@@ -6,11 +6,15 @@ import Foundation
 /// in memory and persists to the permanent storage (UserDefaults).
 @Suite("History Storage (HistoryStore) Tests")
 struct HistoryStoreTests {
-
     /// Helper to create a clean store for every test.
     /// This prevents tests from interfering with each other's data.
-    private func setupStore() -> HistoryStore {
-        let store = HistoryStore()
+    private func setupStore(
+        suiteName: String = "HistoryStoreTests.\(UUID().uuidString)",
+        storageKey: String = "history.tests"
+    ) -> HistoryStore {
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defaults.removePersistentDomain(forName: suiteName)
+        let store = HistoryStore(userDefaults: defaults, storageKey: storageKey)
         store.clear()
         return store
     }
@@ -47,6 +51,7 @@ struct HistoryStoreTests {
         #expect(item?.hardMode == true)
         #expect(item?.guesses == guesses)
         #expect(item?.guessResults == results)
+        #expect(item?.endReason == .completed)
     }
 
     @Test("LIFO ordering check: Newest games must appear at the top of the list")
@@ -73,12 +78,15 @@ struct HistoryStoreTests {
 
     @Test("Persistence check: Data remains available even after creating a new store instance")
     func persistenceCheck() {
-        let store = setupStore()
+        let suiteName = "HistoryStoreTests.persistence.\(UUID().uuidString)"
+        let storageKey = "history.tests.persistence"
+        let store = setupStore(suiteName: suiteName, storageKey: storageKey)
         store.add(finalState: true, answer: "PERSISTENT", steps: 1, score: 100, maxSteps: 10, hardMode: false, enableRepeats: false, guesses: [], guessResults: [], duration: 34, hasPerGuessLimit: true, hasTotalTimeLimit: false, perGuessLimit: 15, totalTimeLimit: 300, guessDurations: [])
 
         // Create a completely separate instance of HistoryStore.
-        // Since both use @AppStorage on the same key, they share the same backend data.
-        let secondInstance = HistoryStore()
+        // Since both use the same UserDefaults suite/key, they share backend data.
+        let secondDefaults = UserDefaults(suiteName: suiteName)!
+        let secondInstance = HistoryStore(userDefaults: secondDefaults, storageKey: storageKey)
         #expect(secondInstance.items.contains(where: { $0.answer == "PERSISTENT" }))
     }
 
@@ -89,5 +97,35 @@ struct HistoryStoreTests {
 
         // Expecting "dd/MM/yyyy HH:mm:ss" which always results in 19 characters.
         #expect(formattedDate.count == 19)
+    }
+
+    @Test("Timeout end reason is persisted with history item")
+    func timeoutEndReasonPersists() {
+        let suiteName = "HistoryStoreTests.timeout.\(UUID().uuidString)"
+        let storageKey = "history.tests.timeout"
+        let store = setupStore(suiteName: suiteName, storageKey: storageKey)
+
+        store.add(
+            finalState: false,
+            answer: "TIMEOUT",
+            steps: 0,
+            score: 0,
+            maxSteps: 10,
+            hardMode: false,
+            enableRepeats: false,
+            guesses: [],
+            guessResults: [],
+            duration: 12,
+            hasPerGuessLimit: true,
+            hasTotalTimeLimit: false,
+            perGuessLimit: 15,
+            totalTimeLimit: 300,
+            guessDurations: [],
+            endReason: .timeoutPerGuess
+        )
+
+        let secondDefaults = UserDefaults(suiteName: suiteName)!
+        let secondInstance = HistoryStore(userDefaults: secondDefaults, storageKey: storageKey)
+        #expect(secondInstance.items.first?.endReason == .timeoutPerGuess)
     }
 }

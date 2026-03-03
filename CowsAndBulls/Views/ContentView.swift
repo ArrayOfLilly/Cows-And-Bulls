@@ -23,6 +23,7 @@ struct ContentView: View {
     @AppStorage("gameTimeLimitSeconds") private var gameTimeLimitSeconds = 300
     @AppStorage("selectedBullAssetName") private var selectedBullAssetName = "Bull"
     @AppStorage("selectedCowAssetName") private var selectedCowAssetName = "Cow"
+    @AppStorage("gameInProgress") private var gameInProgress = false
 
     @EnvironmentObject private var historyStore: HistoryStore
 
@@ -46,6 +47,15 @@ struct ContentView: View {
     @State private var gameStartTime: Date?
     @State private var lastGuessTime: Date?
     @State private var guessDurations: [Int] = []
+    @State private var gameEndTime: Date?
+    @State private var timeoutEndReason: HistoryItem.EndReason?
+    @State private var showSurrenderConfirmation = false
+    @State private var startedEnablePerGuessTimeLimit = false
+    @State private var startedEnableGameTimeLimit = false
+    @State private var startedPerGuessTimeLimitSeconds = 30
+    @State private var startedGameTimeLimitSeconds = 300
+    @State private var isPaused = false
+    @State private var pauseStartedAt: Date?
     
     @FocusState private var isGuessFieldFocused: Bool
 
@@ -55,17 +65,42 @@ struct ContentView: View {
         StatisticsLogic(items: historyStore.items)
     }
 
-    private var scoreValue: Int {
-        GameLogic.score(
+    private func scoreForTimers(
+        enablePerGuess: Bool,
+        perGuessSeconds: Int,
+        enableGame: Bool,
+        gameSeconds: Int
+    ) -> Int {
+        let perMoveLimit = (enablePerGuess && perGuessSeconds > 0) ? TimeInterval(perGuessSeconds) : 0
+        let totalLimit = (enableGame && gameSeconds > 0) ? TimeInterval(gameSeconds) : 0
+        return GameLogic.score(
             codeLength: answerLength,
             allowRepeats: enableRepeats,
             hardMode: enableHardMode,
             hidesRemainingGuesses: showGuessCount == false,
             maxGuesses: maximumGuesses,
             usedGuesses: guesses.count,
-            perMoveTimeLimit: isPerGuessLimitActive ? TimeInterval(perGuessTimeLimitSeconds) : 0,
-            totalTimeLimit: isGameLimitActive ? TimeInterval(gameTimeLimitSeconds) : 0
+            perMoveTimeLimit: perMoveLimit,
+            totalTimeLimit: totalLimit
         )
+    }
+
+    private var scoreValue: Int {
+        // Fairness rule: if timer settings were changed mid-game, use the lower score
+        // between "started configuration" and "current configuration".
+        let currentScore = scoreForTimers(
+            enablePerGuess: enablePerGuessTimeLimit,
+            perGuessSeconds: perGuessTimeLimitSeconds,
+            enableGame: enableGameTimeLimit,
+            gameSeconds: gameTimeLimitSeconds
+        )
+        let startedScore = scoreForTimers(
+            enablePerGuess: startedEnablePerGuessTimeLimit,
+            perGuessSeconds: startedPerGuessTimeLimitSeconds,
+            enableGame: startedEnableGameTimeLimit,
+            gameSeconds: startedGameTimeLimitSeconds
+        )
+        return min(currentScore, startedScore)
     }
 
     private var isPerGuessLimitActive: Bool { enablePerGuessTimeLimit && perGuessTimeLimitSeconds > 0 }
@@ -73,7 +108,7 @@ struct ContentView: View {
     private var isAnyTimerActive: Bool { isPerGuessLimitActive || isGameLimitActive }
     
     private var gameModeMessage: String {
-        var message = localized("Game mode:") + " "
+        var message = localized("game.mode.title") + " "
         if enableHardMode {
             message += String(localized: "game.mode.hard") + " "
         } else {
@@ -114,25 +149,29 @@ struct ContentView: View {
         currentRound = 0
         isDisabledSubmitButton = false
         gameOverMessage = ""
+        gameInProgress = true
         
         // Mark starting timestamps
         let now = Date()
         gameStartTime = now
         lastGuessTime = now
+        gameEndTime = nil
+        timeoutEndReason = nil
+        startedEnablePerGuessTimeLimit = enablePerGuessTimeLimit
+        startedEnableGameTimeLimit = enableGameTimeLimit
+        startedPerGuessTimeLimitSeconds = perGuessTimeLimitSeconds
+        startedGameTimeLimitSeconds = gameTimeLimitSeconds
+        isPaused = false
+        pauseStartedAt = nil
         
         startTimeLimits()
         focusGuessField()
     }
 
     private func submitGuess() {
-        guessInputErrorMessage = ""
-        if let validationError = GameLogic.validateGuess(
-            guess: guess,
-            answerLength: answerLength,
-            guesses: guesses,
-            allowRepeats: enableRepeats
-        ) {
-            guessInputErrorMessage = validationError
+        let errors = validationErrors(for: guess, includeLengthError: true)
+        if errors.isEmpty == false {
+            guessInputErrorMessage = errors.joined(separator: "\n")
             focusGuessField(selectAll: true)
             return
         }
@@ -151,10 +190,18 @@ struct ContentView: View {
 
         if counts.bulls == answerLength {
             stopAllTimers()
+            gameEndTime = Date()
+            gameInProgress = false
+            isPaused = false
+            pauseStartedAt = nil
             SoundPlayer.shared.play(.win, enabled: enableSoundEffects, volume: soundEffectsVolume)
             isWon = true
         } else if currentRound == maximumGuesses {
             stopAllTimers()
+            gameEndTime = Date()
+            gameInProgress = false
+            isPaused = false
+            pauseStartedAt = nil
             gameOverMessage = localized("alert.lose.message", answer)
             SoundPlayer.shared.play(.lose, enabled: enableSoundEffects, volume: soundEffectsVolume)
             isGameOver = true
@@ -167,9 +214,46 @@ struct ContentView: View {
         focusGuessField()
     }
 
-    private func saveGameToHistory(finalState: Bool, score: Int) {
-        guard guesses.count > 0 else { return }
-        let totalDuration = lastGuessTime!.timeIntervalSince(gameStartTime!)
+    private func updateLiveGuessValidation() {
+        guard guess.isEmpty == false else {
+            guessInputErrorMessage = ""
+            return
+        }
+        let errors = validationErrors(for: guess, includeLengthError: false)
+        // Length validation is intentionally omitted while typing.
+        guessInputErrorMessage = errors.joined(separator: "\n")
+    }
+
+    private func validationErrors(for guess: String, includeLengthError: Bool) -> [String] {
+        var messages: [String] = []
+
+        if includeLengthError && guess.count != answerLength {
+            messages.append(localized("validation.answer_length", answerLength))
+        }
+
+        let badCharacters = CharacterSet(charactersIn: "0123456789").inverted
+        if guess.rangeOfCharacter(from: badCharacters) != nil {
+            messages.append(String(localized: "validation.only_digits"))
+        }
+
+        if enableRepeats == false {
+            if Set(guess).count != guess.count {
+                messages.append(String(localized: "validation.no_repeats"))
+            }
+
+            if guess.count == answerLength && guesses.contains(guess) {
+                messages.append(String(localized: "validation.already_guessed"))
+            }
+        }
+
+        return messages
+    }
+
+    private func saveGameToHistory(finalState: Bool, score: Int, endReason: HistoryItem.EndReason = .completed) {
+        // Do not store rounds that ended before any guess was submitted.
+        guard guesses.isEmpty == false || endReason == .surrender else { return }
+        guard let gameStartTime else { return }
+        let totalDuration = max(0, (gameEndTime ?? Date()).timeIntervalSince(gameStartTime))
         
         historyStore.add(
             finalState: finalState,
@@ -186,7 +270,8 @@ struct ContentView: View {
             hasTotalTimeLimit: enableGameTimeLimit,
             perGuessLimit: perGuessTimeLimitSeconds,
             totalTimeLimit: gameTimeLimitSeconds,
-            guessDurations: guessDurations
+            guessDurations: guessDurations,
+            endReason: endReason
         )
     }
 
@@ -206,6 +291,16 @@ struct ContentView: View {
         }
         if isGameLimitActive {
             gameRemainingSeconds = gameTimeLimitSeconds
+            startGameTimer()
+        }
+    }
+
+    private func resumeTimeLimitsAfterPause() {
+        // Resume from remaining seconds instead of resetting limits.
+        if isPerGuessLimitActive {
+            startPerGuessTimer()
+        }
+        if isGameLimitActive {
             startGameTimer()
         }
     }
@@ -248,6 +343,11 @@ struct ContentView: View {
 
     private func handleTimeLimitExpired(_ type: TimeLimitType) {
         stopAllTimers()
+        gameEndTime = Date()
+        gameInProgress = false
+        isPaused = false
+        pauseStartedAt = nil
+        timeoutEndReason = type == .perGuess ? .timeoutPerGuess : .timeoutGame
         gameOverMessage = type == .perGuess
             ? localized("alert.per_guess_timeout.message", answer)
             : localized("alert.game_timeout.message", answer)
@@ -257,6 +357,36 @@ struct ContentView: View {
 
     private func restartPerGuessTimeLimit() {
         perGuessRemainingSeconds = perGuessTimeLimitSeconds
+    }
+
+    private func togglePause() {
+        guard isAnyTimerActive, isWon == false, isGameOver == false else { return }
+        if isPaused {
+            if let pauseStartedAt {
+                // Shift timestamps forward so paused time is excluded from durations/scoring.
+                let pauseDuration = Date().timeIntervalSince(pauseStartedAt)
+                gameStartTime = gameStartTime?.addingTimeInterval(pauseDuration)
+                lastGuessTime = lastGuessTime?.addingTimeInterval(pauseDuration)
+            }
+            pauseStartedAt = nil
+            isPaused = false
+            resumeTimeLimitsAfterPause()
+            focusGuessField()
+        } else {
+            stopAllTimers()
+            pauseStartedAt = Date()
+            isPaused = true
+        }
+    }
+
+    private func surrenderGame() {
+        stopAllTimers()
+        gameEndTime = Date()
+        gameInProgress = false
+        timeoutEndReason = .surrender
+        gameOverMessage = localized("alert.surrender.message", answer)
+        SoundPlayer.shared.play(.lose, enabled: enableSoundEffects, volume: soundEffectsVolume)
+        isGameOver = true
     }
 
     private func focusGuessField(selectAll: Bool = false) {
@@ -292,28 +422,39 @@ struct ContentView: View {
         .onChange(of: enableGameTimeLimit) {
             startNewGame()
         }
-        .alert("You Won!", isPresented: $isWon) {
-            Button("Play Again") {
-                saveGameToHistory(finalState: true, score: scoreValue)
+        .onChange(of: guess) {
+            updateLiveGuessValidation()
+        }
+        .confirmationDialog(localized("game.surrender.title"), isPresented: $showSurrenderConfirmation, titleVisibility: .visible) {
+            Button(localized("game.surrender.action"), role: .destructive) {
+                surrenderGame()
+            }
+            Button(localized("common.action.cancel"), role: .cancel) {}
+        } message: {
+            Text(localized("game.surrender.message"))
+        }
+        .alert(localized("game.alert.win.title"), isPresented: $isWon) {
+            Button(localized("common.action.play_again")) {
+                saveGameToHistory(finalState: true, score: scoreValue, endReason: .completed)
                 startNewGame()
             }
-            Button("OK") {
+            Button(localized("common.action.ok")) {
                 isDisabledSubmitButton = true
-                saveGameToHistory(finalState: true, score: scoreValue)
+                saveGameToHistory(finalState: true, score: scoreValue, endReason: .completed)
             }
         } message: { Text(localized("alert.win.message", guesses.count, scoreValue)) }
-        .alert("Game Over!", isPresented: $isGameOver) {
-            Button("Play Again") {
-                saveGameToHistory(finalState: false, score: 0)
+        .alert(localized("game.alert.lose.title"), isPresented: $isGameOver) {
+            Button(localized("common.action.play_again")) {
+                saveGameToHistory(finalState: false, score: 0, endReason: timeoutEndReason ?? .completed)
                 startNewGame()
             }
-            Button("OK") {
+            Button(localized("common.action.ok")) {
                 isDisabledSubmitButton = true
                 showAnswer = localized("game.answer_was", answer)
-                saveGameToHistory(finalState: false, score: 0)
+                saveGameToHistory(finalState: false, score: 0, endReason: timeoutEndReason ?? .completed)
             }
         } message: { Text(gameOverMessage.isEmpty ? localized("alert.lose.message", answer) : gameOverMessage) }
-        .tabItem { Label("Game", systemImage: "gamecontroller") }
+        .tabItem { Label(localized("tab.game"), systemImage: "gamecontroller") }
     }
 
     private var headerSection: some View {
@@ -332,7 +473,7 @@ struct ContentView: View {
             .padding(.bottom, 4)
             
             HStack(spacing: 12) {
-                Text(localized("Theme"))
+                Text(localized("settings.theme.label"))
                 Image(selectedBullAssetName).resizable().frame(width: 20, height: 20)
                 Image(selectedCowAssetName).resizable().frame(width: 20, height: 20)
             }
@@ -347,6 +488,9 @@ struct ContentView: View {
                     if isGameLimitActive {
                         Label(GameLogic.formatTime(gameRemainingSeconds), systemImage: "hourglass")
                     }
+                    Button(isPaused ? localized("game.timer.resume") : localized("game.timer.pause")) {
+                        togglePause()
+                    }
                 }
                 .font(.system(.body, design: .monospaced))
                 .foregroundStyle(.orange)
@@ -358,13 +502,14 @@ struct ContentView: View {
     private var inputSection: some View {
         VStack {
             HStack {
-                TextField(localized("Enter a guess…"), text: $guess)
+                TextField(localized("game.input.placeholder"), text: $guess)
                     .focused($isGuessFieldFocused)
                     .onSubmit(submitGuess)
                     .textFieldStyle(.roundedBorder)
+                    .disabled(isPaused)
 
-                Button("Go", action: submitGuess)
-                    .disabled(isDisabledSubmitButton)
+                Button(localized("game.input.submit"), action: submitGuess)
+                    .disabled(isDisabledSubmitButton || isPaused)
                    // .buttonStyle(.borderedProminent)
             }
             .padding(.horizontal, 60)
@@ -372,7 +517,7 @@ struct ContentView: View {
             Text(guessInputErrorMessage)
                 .font(.caption)
                 .foregroundStyle(.red)
-                .frame(height: 14)
+                .frame(minHeight: 14, alignment: .top)
         }
         .padding(.vertical, 10)
     }
@@ -398,15 +543,23 @@ struct ContentView: View {
     private var footerSection: some View {
         VStack {
             if showGuessCount {
-                Text("Guesses: \(guesses.count)/\(maximumGuesses)")
+                Text(localized("Guesses: %lld/%lld", guesses.count, maximumGuesses))
                     .foregroundStyle(.secondary)
                     .padding(.top, 10)
                     .padding(.bottom, 5)
             }
-                
-            Button("Restart Game", action: startNewGame)
-                .foregroundStyle(.blue)
-                .padding(.bottom, 20)
+
+            HStack(spacing: 12) {
+                Button(localized("game.action.surrender")) {
+                    showSurrenderConfirmation = true
+                }
+                .foregroundStyle(Color(red: 1.0, green: 0.27, blue: 0.0))
+                .disabled(isWon || isGameOver)
+
+                Button(localized("game.action.restart"), action: startNewGame)
+                    .foregroundStyle(.blue)
+            }
+            .padding(.bottom, 20)
         }
     }
 
@@ -421,4 +574,3 @@ struct ContentView: View {
     }
         
 }
-

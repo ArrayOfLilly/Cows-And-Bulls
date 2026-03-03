@@ -13,8 +13,14 @@ struct StatisticsLogic {
     var wonGames: Int { items.filter { $0.finalState }.count }
     var lostGames: Int { totalGames - wonGames }
     var totalScore: Int { items.reduce(0) { $0 + $1.score } }
+    var bestScore: Int { items.map(\.score).max() ?? 0 }
     var totalSteps: Int { items.reduce(0) { $0 + $1.steps } }
     var averageStepRatio: Double { Double(totalSteps) / Double(items.reduce(0) { $0 + $1.maxSteps }) }
+    var firstGuessWinsCount: Int { items.filter { $0.finalState && $0.steps == 1 }.count }
+    var firstGuessWinRate: Double {
+        guard wonGames > 0 else { return 0 }
+        return (Double(firstGuessWinsCount) / Double(wonGames)) * 100
+    }
 
 
     // MARK: - Timing Metrics
@@ -22,6 +28,16 @@ struct StatisticsLogic {
     /// Total number of games played with any active time limit.
     var timedGamesCount: Int {
         items.filter { $0.isTimed }.count
+    }
+    var timeoutLossesCount: Int {
+        items.filter {
+            $0.finalState == false &&
+            ($0.endReason == .timeoutPerGuess || $0.endReason == .timeoutGame)
+        }.count
+    }
+    var timeoutRate: Double {
+        guard totalGames > 0 else { return 0 }
+        return (Double(timeoutLossesCount) / Double(totalGames)) * 100
     }
 
     /// Total number of games played with active guess time limit.
@@ -38,6 +54,7 @@ struct StatisticsLogic {
     var bestWinStreak: Int {
         var current = 0
         var best = 0
+        // items are stored newest-first, so reverse to evaluate streaks in chronological order.
         for item in items.reversed() {
             if item.finalState {
                 current += 1
@@ -49,51 +66,39 @@ struct StatisticsLogic {
         return best
     }
 
-    /// Average completion move time for games.
+    /// Average completion time for timed games only.
     var averageDuration: TimeInterval {
-        guard totalGames > 0 else { return 0 }
-        let totalTime = items.reduce(0.0) { $0 + $1.duration }
-        return totalTime / Double(items.count)
+        let timedItems = items.filter(\.isTimed)
+        guard timedItems.isEmpty == false else { return 0 }
+        let totalTime = timedItems.reduce(0.0) { $0 + $1.duration }
+        return totalTime / Double(timedItems.count)
     }
 
-    /// Average completion move time for games.
+    /// Average guess duration for timed games only.
     var averageStepDuration: TimeInterval {
-        guard totalGames > 0 else { return 0 }
-        var allStepTimes: Double = 0
-        var allStepCount: Int = 0
-
-        let stepTimes = items.reduce([0]) { $0 + $1.guessDurations }
-        for duration in stepTimes {
-            allStepTimes += Double(duration)
-            allStepCount += 1
-        }
-        return allStepTimes / Double(allStepCount)
+        let stepTimes = items.filter(\.isTimed).flatMap(\.guessDurations)
+        guard stepTimes.isEmpty == false else { return 0 }
+        let allStepTimes = stepTimes.reduce(0.0) { $0 + Double($1) }
+        return allStepTimes / Double(stepTimes.count)
     }
 
 
-    /// Average completion move time for won games.
+    /// Average completion time for won timed games only.
     var averageDurationForWonGames: TimeInterval {
-        let wonItems = items.filter { $0.finalState }
+        let wonItems = items.filter { $0.finalState && $0.isTimed }
         guard wonItems.isEmpty == false else { return 0 }
         let totalTime = wonItems.reduce(0.0) { $0 + $1.duration }
         return totalTime / Double(wonItems.count)
     }
 
 
-    /// Average completion move time for won games.
+    /// Average guess duration for won timed games only.
     var averageStepDurationForWonGames: TimeInterval {
-        let wonItems = items.filter { $0.finalState }
-        guard wonItems.isEmpty == false else { return 0 }
-        
-        var allStepTimes: Double = 0
-        var allStepCount: Int = 0
-
-        let stepTimes = wonItems.reduce([0]) { $0 + $1.guessDurations }
-        for duration in stepTimes {
-            allStepTimes += Double(duration)
-            allStepCount += 1
-        }
-        return allStepTimes / Double(allStepCount)
+        let wonItems = items.filter { $0.finalState && $0.isTimed }
+        let stepTimes = wonItems.flatMap(\.guessDurations)
+        guard stepTimes.isEmpty == false else { return 0 }
+        let allStepTimes = stepTimes.reduce(0.0) { $0 + Double($1) }
+        return allStepTimes / Double(stepTimes.count)
     }
 
     /// The absolute fastest win in seconds.
@@ -120,6 +125,7 @@ struct StatisticsLogic {
 
     // MARK: - Mode Preferences
 
+    /// Dominant mode preference derived from history.
     enum ModeResult: Equatable { case hard, normal, tie, none }
     var mostUsedMode: ModeResult {
         guard totalGames > 0 else { return .none }
@@ -138,6 +144,7 @@ struct StatisticsLogic {
         })?.key
     }
 
+    /// Dominant repeats preference derived from history.
     enum mostUsedRepeatsResult: Equatable { case tie, on, off, none }
     var mostUsedRepeats: mostUsedRepeatsResult {
         guard totalGames > 0 else { return .none }
@@ -154,6 +161,7 @@ struct StatisticsLogic {
         }
     }
 
+    /// Most frequent timer setup profile.
     enum mostUsedTimerResult: Equatable { case all, perGuess, perGame, off, none }
     var mostUsedTimers: mostUsedTimerResult {
         var mostUsedTimer: mostUsedTimerResult = .none
@@ -165,6 +173,7 @@ struct StatisticsLogic {
         let relaxedGamesCount = items.count - allTimedGamesCount
         let mostFrequentTimerSettings = { max(perGuessTimedGamesCount, perGameTimedGamesCount, allTimedGamesCount, relaxedGamesCount) }
 
+        // In case of ties, this switch resolves by case order.
         switch mostFrequentTimerSettings() {
         case perGuessTimedGamesCount:
             mostUsedTimer = .perGuess

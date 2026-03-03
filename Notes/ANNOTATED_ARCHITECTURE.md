@@ -57,7 +57,6 @@ SwiftUI does not expose the same level of control for these macOS-specific windo
 - `@FocusState`: keyboard focus control for TextField
 - `.onSubmit`: Enter key submits guess
 - `.alert`: win/lose dialogs
-- `.touchBar`: macOS touch bar support
 
 ### Tricky implementation details
 - **Timer tasks** (`Task` + `Task.sleep`) are cancellable and independent.
@@ -96,11 +95,12 @@ SwiftUI does not expose the same level of control for these macOS-specific windo
 
 ### Role
 - Stores finished games (`HistoryItem`)
-- Persists to `@AppStorage` as encoded JSON `Data`
+- Persists to `UserDefaults` as encoded JSON `Data`
 - Publishes changes to UI
 
 ### Special pattern
-- `@AppStorage` + `JSONEncoder/JSONDecoder` for custom structured persistence.
+- Injected `UserDefaults` + `storageKey` with `JSONEncoder/JSONDecoder`.
+- This design improves testability by allowing isolated, per-test storage suites.
 
 ---
 
@@ -191,6 +191,7 @@ SwiftUI does not expose the same level of control for these macOS-specific windo
 - Central helper: `localized(key, args...)`
 - Uses selected app language (`appLanguageCode`) to resolve bundle
 - Performs locale-aware string formatting
+- App text resources are maintained in `Localizable.xcstrings` (String Catalog)
 
 ### Important detail
 - `String(format:locale:arguments:)` is used so formatted values follow selected language conventions.
@@ -206,9 +207,14 @@ SwiftUI does not expose the same level of control for these macOS-specific windo
 - In-app teaching page
 - Includes rules, scoring, option explanations
 - Uses currently selected bull/cow image assets dynamically
+- Uses namespaced localization keys (`learn.*`) maintained in String Catalog
 
 ### Custom mini pattern
 - `optionRow(title, description)` helper keeps options in an aligned two-column layout.
+
+### Accuracy note
+- Learn text and HTML Help should stay in sync with `GameLogic.score` and
+  `GameLogic.timeMultiplier` to avoid documentation drift.
 
 ---
 

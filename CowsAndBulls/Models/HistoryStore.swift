@@ -11,6 +11,13 @@ internal import Combine
 
 /// A persisted snapshot of one finished game, including timing and difficulty settings.
 struct HistoryItem: Identifiable, Codable {
+    enum EndReason: String, Codable {
+        case completed
+        case timeoutPerGuess
+        case timeoutGame
+        case surrender
+    }
+
     var id: UUID = UUID()
     var date: Date = Date()
     var duration: TimeInterval = 0 // Total game duration
@@ -33,15 +40,17 @@ struct HistoryItem: Identifiable, Codable {
     var enableRepeats: Bool
     var guesses: [String]
     var guessResults: [String]
+    var endReason: EndReason = .completed
     
     enum CodingKeys: String, CodingKey {
-        case id, date, duration, hasPerGuessLimit, hasTotalTimeLimit, perGuessLimit, totalTimeLimit, guessDurations, finalState, answer, steps, score, maxSteps, hardMode, enableRepeats, guesses, guessResults
+        case id, date, duration, hasPerGuessLimit, hasTotalTimeLimit, perGuessLimit, totalTimeLimit, guessDurations, finalState, answer, steps, score, maxSteps, hardMode, enableRepeats, guesses, guessResults, endReason
     }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
         date = try container.decode(Date.self, forKey: .date)
+        // decodeIfPresent defaults keep older history payloads readable after schema changes.
         duration = try container.decodeIfPresent(TimeInterval.self, forKey: .duration) ?? 0
         hasPerGuessLimit = try container.decodeIfPresent(Bool.self, forKey: .hasPerGuessLimit) ?? false
         hasTotalTimeLimit = try container.decodeIfPresent(Bool.self, forKey: .hasTotalTimeLimit) ?? false
@@ -57,9 +66,10 @@ struct HistoryItem: Identifiable, Codable {
         enableRepeats = try container.decode(Bool.self, forKey: .enableRepeats)
         guesses = try container.decode([String].self, forKey: .guesses)
         guessResults = try container.decode([String].self, forKey: .guessResults)
+        endReason = try container.decodeIfPresent(EndReason.self, forKey: .endReason) ?? .completed
     }
     
-    init(duration: TimeInterval, hasPerGuessLimit: Bool, hasTotalTimeLimit: Bool, perGuessLimit: Int, totalTimeLimit: Int, guessDurations: [Int], finalState: Bool, answer: String, steps: Int, score: Int, maxSteps: Int, hardMode: Bool, enableRepeats: Bool, guesses: [String], guessResults: [String]) {
+    init(duration: TimeInterval, hasPerGuessLimit: Bool, hasTotalTimeLimit: Bool, perGuessLimit: Int, totalTimeLimit: Int, guessDurations: [Int], finalState: Bool, answer: String, steps: Int, score: Int, maxSteps: Int, hardMode: Bool, enableRepeats: Bool, guesses: [String], guessResults: [String], endReason: EndReason = .completed) {
         self.duration = duration
         self.hasPerGuessLimit = hasPerGuessLimit
         self.hasTotalTimeLimit = hasTotalTimeLimit
@@ -75,6 +85,7 @@ struct HistoryItem: Identifiable, Codable {
         self.enableRepeats = enableRepeats
         self.guesses = guesses
         self.guessResults = guessResults
+        self.endReason = endReason
     }
 
     func formattedDate() -> String {
@@ -89,22 +100,34 @@ struct HistoryItem: Identifiable, Codable {
 }
 
 class HistoryStore: ObservableObject {
-    @AppStorage("history") private var historyData: Data = Data()
+    private let userDefaults: UserDefaults
+    private let storageKey: String
     @Published var items: [HistoryItem] = []
     
-    init() {
+    init(
+        userDefaults: UserDefaults = .standard,
+        storageKey: String = "history"
+    ) {
+        self.userDefaults = userDefaults
+        self.storageKey = storageKey
         load()
     }
     
     private func load() {
-        if let decoded = try? JSONDecoder().decode([HistoryItem].self, from: historyData) {
+        guard let data = userDefaults.data(forKey: storageKey) else {
+            items = []
+            return
+        }
+        if let decoded = try? JSONDecoder().decode([HistoryItem].self, from: data) {
             items = decoded
+        } else {
+            items = []
         }
     }
     
     func save() {
         if let encoded = try? JSONEncoder().encode(items) {
-            historyData = encoded
+            userDefaults.set(encoded, forKey: storageKey)
         }
     }
     
@@ -123,8 +146,10 @@ class HistoryStore: ObservableObject {
         hasTotalTimeLimit: Bool,
         perGuessLimit: Int,
         totalTimeLimit: Int,
-        guessDurations: [Int]
+        guessDurations: [Int],
+        endReason: HistoryItem.EndReason = .completed
     ) {
+        // Newest-first order keeps the most recent game at the top in history/stat views.
         let newItem = HistoryItem(
             duration: duration,
             hasPerGuessLimit: hasPerGuessLimit,
@@ -140,7 +165,8 @@ class HistoryStore: ObservableObject {
             hardMode: hardMode,
             enableRepeats: enableRepeats,
             guesses: guesses,
-            guessResults: guessResults
+            guessResults: guessResults,
+            endReason: endReason
         )
         items.insert(newItem, at: 0)
         save()
@@ -155,4 +181,3 @@ class HistoryStore: ObservableObject {
         items.reduce(0) { $0 + $1.score }
     }
 }
-

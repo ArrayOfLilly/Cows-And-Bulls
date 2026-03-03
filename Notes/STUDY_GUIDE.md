@@ -8,7 +8,7 @@ A jelenlegi felosztás:
 - `Views/`: UI réteg (`ContentView`, `HistoryView`, `LearnView`, `SettingsView`, `StatisticView`)
 - `Logic/`: tiszta üzleti logika (`GameLogic`, `SoundPlayer`, `Localization`)
 - `Models/`: adatmodell és tárolás (`HistoryStore`)
-- `Localizable.strings`: nyelvi kulcsok EN/HU
+- `Localizable.xcstrings`: string catalog alapú nyelvi kulcsok EN/HU
 - `Help/`: HTML alapú help
 
 Miért jó ez?
@@ -34,6 +34,13 @@ Mit csinál:
 - bull/cow számolás
 - tipp validáció
 - pontszám számítás (nehézségi és teljesítmény szorzókkal)
+
+Pontozási modell röviden:
+- `baseScore = log10(combinations) * 100`
+- `difficulty`: repeats / hard mode / rejtett hátralévő tippszám / tipplimit-nyomás
+- `performance`: `min(2.5, standardGuesses / usedGuesses)`
+- `timeMultiplier`: 1.0...2.0 tartomány, szigorúbb limit -> nagyobb szorzó
+- jackpot: első tippes megoldásnál `+ baseScore * 10.0`
 
 Miért fontos?
 - A `ContentView` így vékonyabb, inkább UI-orientált lesz.
@@ -73,7 +80,7 @@ Miért külön a sound és music?
 Stratégia:
 - minden user-facing szöveg kulcsra kerül
 - `localized("kulcs")` hívások a UI-ban
-- `Localizable.strings/en` és `Localizable.strings/hu`
+- `Localizable.xcstrings` string catalog (EN/HU lokalizációkkal)
 
 Nyelvváltás realitás:
 - néhány rész csak újraindítás után biztosan frissül teljesen
@@ -99,6 +106,14 @@ A `showLocalizedAboutPanel()` dinamikusan tölti:
 Ez jobb, mint fix `Credits.rtf`, mert:
 - teljesen lokalizálható
 - egyszerűbben karbantartható strings kulcsokkal
+
+## 8.1 Dokumentáció konzisztencia
+
+Minden scoring/timer változtatás után frissítendő:
+- `LearnView` (`learn.*` kulcsok a catalogban)
+- HTML Help (`Help/en.lproj/index.html`, `Help/hu.lproj/index.html`)
+
+Ezzel elkerülhető, hogy a UI és a dokumentáció eltérjen a tényleges logikától.
 
 ## 9. App név és verziózás
 
@@ -160,7 +175,7 @@ Minden új feature-nél:
 
 ## 15. Következő jó tanulófeladatok
 
-1. Unit teszt a `GameLogic`-ra (bull/cow + score)
+1. További unit teszt a `GameLogic`-ra (timer-határok, jackpot, validáció edge case-ek)
 2. Külön `AudioManager` protokoll + mock (tesztelhető hangréteg)
 3. Settings kulcsok centralizálása egy `SettingsKeys` enumba
 4. Egyszerű changelog generálás release előtt

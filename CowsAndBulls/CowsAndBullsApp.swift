@@ -42,7 +42,7 @@ struct CowsAndBullsApp: App {
 
         // We use AppKit here because SwiftUI doesn't expose a fully customizable About panel API.
         var options: [NSApplication.AboutPanelOptionKey: Any] = [
-            .applicationName: localized("Cows and Bulls"),
+            .applicationName: localized("app.title"),
             .applicationVersion: localized("about.version.format", shortVersion, buildVersion)
         ]
         options[.credits] = NSAttributedString(string: localized("about.credits.body"))
@@ -77,7 +77,7 @@ struct CowsAndBullsApp: App {
         let hostingController = NSHostingController(rootView: rootView)
         let window = NSWindow(contentViewController: hostingController)
         window.identifier = windowID
-        window.title = localized("Learn")
+        window.title = localized("learn.window.title")
         window.setContentSize(NSSize(width: 560, height: 700))
         window.center()
         window.makeKeyAndOrderFront(nil)
@@ -110,7 +110,7 @@ struct CowsAndBullsApp: App {
         .commands {
             // CommandGroup(replacing:) is a macOS-specific way to override default app menu entries.
             CommandGroup(replacing: .appInfo) {
-                Button(localized("About %@", localized("Cows and Bulls"))) {
+                Button(localized("app.menu.about.format", localized("app.title"))) {
                     showLocalizedAboutPanel()
                 }
             }
