@@ -2,6 +2,11 @@
 
 Release date: 2026-03-03
 
+## Downloads
+- Download (DMG): https://github.com/ArrayOfLilly/Cows-And-Bulls/releases/download/v1.9.2/CowsAndBulls-1.9.2.dmg
+- Install guide (EN): https://github.com/ArrayOfLilly/Cows-And-Bulls/blob/main/INSTALL.en.md
+- Install guide (HU): https://github.com/ArrayOfLilly/Cows-And-Bulls/blob/main/INSTALL.hu.md
+
 ## Highlights
 - Added timed-game quality-of-life controls:
   pause/resume support during timed matches and a surrender action.
@@ -27,4 +32,3 @@ Release date: 2026-03-03
 ## Stability
 - Build validated after changes.
 - Test suite passing.
-

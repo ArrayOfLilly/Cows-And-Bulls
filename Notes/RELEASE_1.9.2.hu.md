@@ -2,6 +2,11 @@
 
 Kiadás dátuma: 2026-03-03
 
+## Letöltés
+- Download (DMG): https://github.com/ArrayOfLilly/Cows-And-Bulls/releases/download/v1.9.2/CowsAndBulls-1.9.2.dmg
+- Install guide (EN): https://github.com/ArrayOfLilly/Cows-And-Bulls/blob/main/INSTALL.en.md
+- Telepítési útmutató (HU): https://github.com/ArrayOfLilly/Cows-And-Bulls/blob/main/INSTALL.hu.md
+
 ## Főbb újdonságok
 - Időzített játékoknál kényelmi funkciók:
   bekerült a szüneteltetés/folytatás, illetve a feladás lehetősége.
@@ -27,4 +32,3 @@ Kiadás dátuma: 2026-03-03
 ## Stabilitás
 - Build ellenőrizve a módosítások után.
 - A tesztcsomag zöld.
-
