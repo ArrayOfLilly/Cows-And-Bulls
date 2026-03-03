@@ -414,7 +414,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 19.2;
+				MARKETING_VERSION = 1.9.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.arrayoflilly.CowsAndBulls;
 				PRODUCT_NAME = "Cows & Bulls";
 				REGISTER_APP_GROUPS = YES;
@@ -452,7 +452,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 19.2;
+				MARKETING_VERSION = 1.9.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.arrayoflilly.CowsAndBulls;
 				PRODUCT_NAME = "Cows & Bulls";
 				REGISTER_APP_GROUPS = YES;
