@@ -7,108 +7,13 @@
 
 import SwiftUI
 
+/// Aggregates history data into high-level player statistics.
 struct StatisticView: View {
     @EnvironmentObject private var historyStore: HistoryStore
 
-    // MARK: - Computed Data
-
-    private var items: [HistoryItem] {
-        historyStore.items
+    private var stats: StatisticsLogic {
+        StatisticsLogic(items: historyStore.items)
     }
-
-    private var totalGames: Int {
-        items.count
-    }
-
-    private var wonGames: Int {
-        items.filter { $0.finalState }.count
-    }
-
-    private var lostGames: Int {
-        totalGames - wonGames
-    }
-
-    private var totalScore: Int {
-        items.reduce(0) { $0 + $1.score }
-    }
-
-    private var totalSteps: Int {
-        items.reduce(0) { $0 + $1.steps }
-    }
-
-    private var averageScore: Double {
-        guard totalGames > 0 else { return 0 }
-        return Double(totalScore) / Double(totalGames)
-    }
-
-    private var averageSteps: Double {
-        guard totalGames > 0 else { return 0 }
-        return Double(totalSteps) / Double(totalGames)
-    }
-
-    private var averageStepRatio: Double {
-        guard totalGames > 0 else { return 0 }
-
-        let totalRatio = items.reduce(0.0) { partial, item in
-            guard item.maxSteps > 0 else { return partial }
-            return partial + (Double(item.steps) / Double(item.maxSteps))
-        }
-
-        return totalRatio / Double(totalGames)
-    }
-
-    private var winRate: Double {
-        guard totalGames > 0 else { return 0 }
-        return (Double(wonGames) / Double(totalGames)) * 100
-    }
-
-    private var mostUsedMode: String {
-        guard totalGames > 0 else { return localized("-") }
-
-        let hardCount = items.filter { $0.hardMode }.count
-        let normalCount = totalGames - hardCount
-
-        if hardCount == normalCount {
-            return localized("Tie")
-        }
-
-        return hardCount > normalCount ? localized("Hard") : localized("Normal")
-    }
-
-    private var mostUsedLength: String {
-        guard totalGames > 0 else { return localized("-") }
-
-        var lengthCounts: [Int: Int] = [:]
-        for item in items {
-            lengthCounts[item.answer.count, default: 0] += 1
-        }
-
-        guard let best = lengthCounts.max(by: { lhs, rhs in
-            if lhs.value == rhs.value {
-                return lhs.key > rhs.key
-            }
-            return lhs.value < rhs.value
-        }) else {
-            return localized("-")
-        }
-
-        return localized("%lld digits", best.key)
-    }
-
-    private var mostUsedRepeats: String {
-        guard totalGames > 0 else { return localized("-") }
-
-        let repeatsOnCount = items.filter { $0.enableRepeats }.count
-        let repeatsOffCount = totalGames - repeatsOnCount
-
-        if repeatsOnCount == repeatsOffCount {
-            return localized("Tie")
-        }
-
-        return repeatsOnCount > repeatsOffCount ? localized("Repeats On") : localized("Repeats Off")
-    }
-
-    // MARK: - View
 
     var body: some View {
         ScrollView {
@@ -116,14 +21,19 @@ struct StatisticView: View {
                 Text("Statistics")
                     .font(.title2)
                     .fontDesign(.rounded)
+                    .padding(.bottom, 4)
 
-                if items.isEmpty {
+                if historyStore.items.isEmpty {
                     ContentUnavailableView("No Data Yet", systemImage: "chart.bar")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     overviewSection
+                        .padding(.bottom, 4)
                     performanceSection
+                        .padding(.bottom, 4)
                     settingsSection
+                        .padding(.bottom, 4)
+                    timerSection
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -137,35 +47,79 @@ struct StatisticView: View {
         }
     }
 
-    // MARK: - Sections
-
     private var overviewSection: some View {
         GroupBox(localized("Overview")) {
-            statisticRow(localized("Total games"), value: "\(totalGames)")
-            statisticRow(localized("Wins"), value: "\(wonGames)")
-            statisticRow(localized("Losses"), value: "\(lostGames)")
-            statisticRow(localized("Win rate"), value: "\(formatted(winRate, decimals: 1))%")
+            statisticRow(localized("Total games"), value: "\(stats.totalGames)")
+            statisticRow(localized("Wins"), value: "\(stats.wonGames)")
+            statisticRow(localized("Losses"), value: "\(stats.lostGames)")
+            statisticRow(localized("Win rate"), value: "\(formatted(stats.winRate, decimals: 1))%")
         }
     }
 
     private var performanceSection: some View {
         GroupBox(localized("Performance")) {
-            statisticRow(localized("Total score"), value: "\(totalScore)")
-            statisticRow(localized("Average score"), value: formatted(averageScore, decimals: 1))
-            statisticRow(localized("Average steps"), value: formatted(averageSteps, decimals: 2))
-            statisticRow(localized("Average step ratio"), value: formatted(averageStepRatio, decimals: 2))
+            statisticRow(localized("Total score"), value: "\(stats.totalScore)")
+            statisticRow(localized("Average score"), value: formatted(stats.averageScore, decimals: 1))
+            statisticRow(localized("Average steps"), value: formatted(stats.averageSteps, decimals: 2))
+            statisticRow(localized("Average step ratio"), value: formatted(stats.averageStepRatio, decimals: 2))
+        }
+    }
+    
+    private var timerSection: some View {
+        GroupBox(localized("Timing")) {
+            // GameLogic.formatDuration(TimeInterval(stats.averageDuration))
+
+            statisticRow(localized("Average game duration"), value: "\(GameLogic.formatDuration(TimeInterval(stats.averageDuration)))")
+            statisticRow(localized("Average won game duration"), value: "\(GameLogic.formatDuration(TimeInterval(stats.averageDurationForWonGames)))")
+            statisticRow(localized("Average guess duration"), value: "\(GameLogic.formatDuration(TimeInterval(stats.averageStepDuration)))")
+            statisticRow(localized("Average won game guess duration"), value: "\(GameLogic.formatDuration(TimeInterval(stats.averageStepDurationForWonGames)))")
+            
         }
     }
 
     private var settingsSection: some View {
         GroupBox(localized("Most Used Settings")) {
-            statisticRow(localized("Mode"), value: mostUsedMode)
-            statisticRow(localized("Answer length"), value: mostUsedLength)
-            statisticRow(localized("Repeats"), value: mostUsedRepeats)
+            statisticRow(localized("Mode"), value: localizedMode(stats.mostUsedMode))
+            statisticRow(localized("Answer length"), value: localizedLength(stats.mostUsedLength))
+            statisticRow(localized("Repeats"), value: localizedRepeats(stats.mostUsedRepeats))
+            statisticRow(localized("Timing"), value: localizedTimers(stats.mostUsedTimers))
         }
     }
 
-    // MARK: - Helpers
+    // MARK: - Localized Helpers
+
+    private func localizedMode(_ result: StatisticsLogic.ModeResult) -> String {
+        switch result {
+        case .hard: return localized("Hard")
+        case .normal: return localized("Normal")
+        case .tie: return localized("Tie")
+        case .none: return localized("-")
+        }
+    }
+
+    private func localizedLength(_ length: Int?) -> String {
+        guard let length = length else { return localized("-") }
+        return localized("%lld digits", length)
+    }
+
+    private func localizedRepeats(_ result: StatisticsLogic.mostUsedRepeatsResult) -> String {
+        switch result {
+        case .on: return localized("Repeats On")
+        case .off: return localized("Repeats Off")
+        case .tie: return localized("Tie")
+        case .none: return localized("-")
+        }
+    }
+    
+    private func localizedTimers(_ result: StatisticsLogic.mostUsedTimerResult) -> String {
+        switch result {
+        case .all: return localized("Timers are on")
+        case .perGuess: return localized("Per guess timer is on")
+        case .perGame: return localized("Per game timer is on")
+        case .off: return localized("Timers are off")
+        case .none: return localized("-")
+        }
+    }
 
     private func formatted(_ value: Double, decimals: Int) -> String {
         String(format: "%.*f", decimals, value)
@@ -183,7 +137,3 @@ struct StatisticView: View {
     }
 }
 
-#Preview {
-    StatisticView()
-        .environmentObject(HistoryStore())
-}

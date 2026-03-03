@@ -2,10 +2,17 @@
 //  GameLogic.swift
 //  CowsAndBulls
 //
+//  Created by Ildikó Kasza on 2026. 02. 24..
+//
 
 import Foundation
+import SwiftUI
 
+/// Pure game rules and scoring utilities used by the UI layer.
 struct GameLogic {
+
+    /// Computes the final score using code complexity, active difficulty settings,
+    /// and player efficiency (used guesses).
     static func score(
         codeLength: Int,
         allowRepeats: Bool,
@@ -31,38 +38,68 @@ struct GameLogic {
         let standardGuesses = 3 * codeLength
 
         var difficulty: Double = 1.0
-        if allowRepeats {
-            difficulty *= 1.15
-        }
-        if hardMode {
-            difficulty *= 1.40
-        }
-        if hidesRemainingGuesses {
-            difficulty *= 1.15
-        }
+        if allowRepeats { difficulty *= 1.15 }
+        if hardMode { difficulty *= 1.40 }
+        if hidesRemainingGuesses { difficulty *= 1.15 }
         if maxGuesses > 0 {
             let guessPressure = Double(standardGuesses) / Double(maxGuesses)
             difficulty *= max(1.0, guessPressure)
         }
-        if perMoveTimeLimit > 0 {
-            difficulty *= 1.20
-        }
-        if totalTimeLimit > 0 {
-            difficulty *= 1.15
-        }
-
+        
         let performanceMultiplier = min(
             2.5,
             Double(standardGuesses) / Double(max(1, usedGuesses))
         )
+        let timeMult = timeMultiplier(
+            enablePerGuess: perMoveTimeLimit > 0,
+            perGuessSeconds: Int(perMoveTimeLimit),
+            enableGame: totalTimeLimit > 0,
+            gameSeconds: Int(totalTimeLimit)
+        )
 
-        var finalScore = baseScore * difficulty * performanceMultiplier
+        var finalScore = baseScore * difficulty * performanceMultiplier * timeMult
+            
         if usedGuesses == 1 {
             finalScore += baseScore * 3.0
         }
         return Int(finalScore.rounded())
     }
+    
+    // MARK: - Time Difficulty Multiplier
 
+    static func timeMultiplier(
+        enablePerGuess: Bool,
+        perGuessSeconds: Int,
+        enableGame: Bool,
+        gameSeconds: Int
+    ) -> Double {
+
+        var multiplier: Double = 1.0
+
+        // Per-guess timer
+        if enablePerGuess {
+            let min: Double = 5
+            let max: Double = 180
+            let value = Double(perGuessSeconds)
+
+            let normalized = 1.0 - ((value - min) / (max - min))
+            multiplier += normalized * 0.5   // max +50%
+        }
+
+        // Game timer
+        if enableGame {
+            let min: Double = 300
+            let max: Double = 1800
+            let value = Double(gameSeconds)
+
+            let normalized = 1.0 - ((value - min) / (max - min))
+            multiplier += normalized * 0.5   // max +50%
+        }
+
+        return multiplier
+    }
+
+    /// Generates a random numeric answer.
     static func generateAnswer(length: Int, allowRepeats: Bool) -> String {
         if allowRepeats {
             return (0..<length)
@@ -75,7 +112,9 @@ struct GameLogic {
             .map { String(numbers[$0]) }
             .joined()
     }
+    
 
+    /// Calculates how many bulls (correct digit, correct place) and cows (correct digit, wrong place).
     static func bullCowCounts(guess: String, answer: String) -> (bulls: Int, cows: Int) {
         let guessLetters = Array(guess)
         let answerLetters = Array(answer)
@@ -102,11 +141,30 @@ struct GameLogic {
         return (bulls, cows)
     }
 
+    /// Returns the bull/cow result in "B|C" string format.
     static func encodedResult(guess: String, answer: String) -> String {
         let counts = bullCowCounts(guess: guess, answer: answer)
         return "\(counts.bulls)|\(counts.cows)"
     }
+    
+    /// Formats seconds into a MM:SS string representation.
+    static func formatTime(_ totalSeconds: Int) -> String {
+        let safeSeconds = max(0, totalSeconds)
+        let minutes = safeSeconds / 60
+        let seconds = safeSeconds % 60
+        return String(format: "%02d:%02d", minutes, seconds)
+    }
+    
+    /// Formats a duration into a (x.x sec) string for individual guess feedback.
+    static func formatDuration(_ seconds: TimeInterval) -> String {
+        if seconds < 10 {
+            return String(format: "(%.1f sec)", seconds)
+        } else {
+            return String(format: "(%d sec)", Int(seconds.rounded()))
+        }
+    }
 
+    /// Validates user input for length, digits, and repeats.
     static func validateGuess(
         guess: String,
         answerLength: Int,

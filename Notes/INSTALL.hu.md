@@ -16,3 +16,11 @@ Egy ZIP csomagot kapsz, benne a `Cows & Bulls.app` alkalmazással.
 2. Nyisd meg: `System Settings` -> `Privacy & Security`.
 3. Görgess le, és a `Cows & Bulls` mellett kattints: `Open Anyway`.
 4. Indítsd el újra az appot.
+
+## Megjegyzés
+- Ez a build nem a Mac App Store-on keresztül van terjesztve.
+- Emiatt az első indításkor a macOS biztonsági figyelmeztetést jeleníthet meg.
+
+## Hibakeresés
+- Ha nem indul, tedd át az appot az `Applications` mappába, és próbáld újra.
+- Ha továbbra sem indul, indítsd újra a macOS-t, majd ismételd meg a lépéseket.

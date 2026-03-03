@@ -9,7 +9,9 @@ import SwiftUI
 import AppKit
 
 @main
+/// App entry point: injects shared state, locale, and command menu behavior.
 struct CowsAndBullsApp: App {
+    // @StateObject keeps one shared HistoryStore instance alive for the app lifetime.
     @StateObject private var historyStore = HistoryStore()
     @AppStorage("appLanguageCode") private var appLanguageCode = "system"
     @AppStorage("enableBackgroundMusic") private var enableBackgroundMusic = false
@@ -24,6 +26,9 @@ struct CowsAndBullsApp: App {
     }
 
     private func synchronizeBundleLanguagePreference() {
+        // This is an AppKit/macOS-style language override path.
+        // We write AppleLanguages so newly created localized strings resolve with the selected app language.
+        // Some UI parts still require restart to fully refresh, which is why we also show restart prompts in Settings.
         if appLanguageCode == "system" {
             UserDefaults.standard.removeObject(forKey: "AppleLanguages")
         } else {
@@ -35,6 +40,7 @@ struct CowsAndBullsApp: App {
         let shortVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
         let buildVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
 
+        // We use AppKit here because SwiftUI doesn't expose a fully customizable About panel API.
         var options: [NSApplication.AboutPanelOptionKey: Any] = [
             .applicationName: localized("Cows and Bulls"),
             .applicationVersion: localized("about.version.format", shortVersion, buildVersion)
@@ -45,6 +51,7 @@ struct CowsAndBullsApp: App {
         NSApp.activate(ignoringOtherApps: true)
     }
 
+    /// Keeps background music playback in sync with persisted user settings.
     private func applyBackgroundMusicSettings() {
         SoundPlayer.shared.updateBackgroundMusic(
             enabled: enableBackgroundMusic,
@@ -56,6 +63,7 @@ struct CowsAndBullsApp: App {
     private func openLearnWindow() {
         let windowID = NSUserInterfaceItemIdentifier("learnWindow")
 
+        // AppKit window lookup prevents opening duplicate Learn windows.
         if let existing = NSApp.windows.first(where: { $0.identifier == windowID }) {
             existing.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
@@ -64,6 +72,8 @@ struct CowsAndBullsApp: App {
 
         let rootView = LearnView()
             .environment(\.locale, appLocale)
+        // NSHostingController embeds a SwiftUI view inside an AppKit NSWindow.
+        // This is the standard bridge when you need explicit macOS window control.
         let hostingController = NSHostingController(rootView: rootView)
         let window = NSWindow(contentViewController: hostingController)
         window.identifier = windowID
@@ -78,6 +88,7 @@ struct CowsAndBullsApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(historyStore)
+                // Environment locale keeps SwiftUI-localized text in sync with the selected app language.
                 .environment(\.locale, appLocale)
                 .onAppear {
                     synchronizeBundleLanguagePreference()
@@ -97,6 +108,7 @@ struct CowsAndBullsApp: App {
                 }
         }
         .commands {
+            // CommandGroup(replacing:) is a macOS-specific way to override default app menu entries.
             CommandGroup(replacing: .appInfo) {
                 Button(localized("About %@", localized("Cows and Bulls"))) {
                     showLocalizedAboutPanel()

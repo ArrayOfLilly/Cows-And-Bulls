@@ -7,6 +7,7 @@
 
 import SwiftUI
 
+/// Displays previously finished games with filter/sort controls and expandable rows.
 struct HistoryView: View {
     @EnvironmentObject private var historyStore: HistoryStore
     @State private var showClearConfirmation = false
@@ -15,6 +16,7 @@ struct HistoryView: View {
     @State private var filter: HistoryFilter = .all
     @State private var sort: HistorySort = .newest
 
+    /// Applies the selected filter and sort mode to the stored history items.
     private var displayedItems: [HistoryItem] {
         let filtered: [HistoryItem]
         switch filter {
@@ -42,76 +44,61 @@ struct HistoryView: View {
     }
 
     var body: some View {
-        Group {
-            if historyStore.items.isEmpty {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("History")
-                            .font(.title2)
-                            .fontDesign(.rounded)
-
-                        ContentUnavailableView(
-                            "No Data Yet",
-                            systemImage: "clock.arrow.circlepath",
-                            description: Text("Play a few rounds and your history will appear here.")
-                        )
+        VStack {
+            HStack(spacing: 12) {
+                Picker("Filter", selection: $filter) {
+                    ForEach(HistoryFilter.allCases) { item in
+                        Text(item.title).tag(item)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding()
                 }
-            } else {
-                VStack {
-                    Text("History")
-                        .font(.title2)
-                        .fontDesign(.rounded)
-                        .padding()
+                .pickerStyle(.segmented)
 
-                    HStack(spacing: 12) {
-                        Picker("Filter", selection: $filter) {
-                            ForEach(HistoryFilter.allCases) { item in
-                                Text(item.title).tag(item)
-                            }
-                        }
-                        .pickerStyle(.segmented)
+                Picker("Sort", selection: $sort) {
+                    ForEach(HistorySort.allCases) { item in
+                        Text(item.title).tag(item)
+                    }
+                }
+                .pickerStyle(.menu)
+                .frame(width: 128)
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 16)
 
-                        Picker("Sort", selection: $sort) {
-                            ForEach(HistorySort.allCases) { item in
-                                Text(item.title).tag(item)
-                            }
+            ScrollView {
+                if historyStore.items.isEmpty {
+                    // ContentUnavailableView is a macOS/iOS system empty-state component.
+                    // It gives a consistent, native "no data" UX with minimal custom code.
+                    ContentUnavailableView(
+                        "No Data Yet",
+                        systemImage: "clock.arrow.circlepath",
+                        description: Text("Play a few rounds and your history will appear here.")
+                    )
+                    .padding(.top, 40)
+                } else if displayedItems.isEmpty {
+                    ContentUnavailableView(
+                        "No Matching Games",
+                        systemImage: "line.3.horizontal.decrease.circle",
+                        description: Text("Try a different filter.")
+                    )
+                    .padding(.top, 40)
+                } else {
+                    LazyVStack(alignment: .leading, spacing: 10) {
+                        ForEach(displayedItems) { item in
+                            HistoryRow(
+                                item: item,
+                                bullAssetName: selectedBullAssetName,
+                                cowAssetName: selectedCowAssetName
+                            )
                         }
-                        .pickerStyle(.menu)
-                        .frame(width: 128)
                     }
                     .padding(.horizontal)
-                    .padding(.bottom, 6)
-
-                    ScrollView {
-                        if displayedItems.isEmpty {
-                            ContentUnavailableView(
-                                "No Matching Games",
-                                systemImage: "line.3.horizontal.decrease.circle",
-                                description: Text("Try a different filter.")
-                            )
-                            .padding(.top, 40)
-                        } else {
-                            LazyVStack(alignment: .leading, spacing: 10) {
-                                ForEach(displayedItems) { item in
-                                    HistoryRow(
-                                        item: item,
-                                        bullAssetName: selectedBullAssetName,
-                                        cowAssetName: selectedCowAssetName
-                                    )
-                                }
-                            }
-                            .padding(.horizontal)
-                            .padding(.bottom)
-                        }
-                    }
-                    .help(localized("List of your previous attempts."))
+                    .padding(.bottom)
                 }
             }
+            .help(localized("List of your previous attempts."))
         }
         .toolbar {
+            // confirmationAction placement puts the action in the expected trailing toolbar position on macOS.
             ToolbarItem(id: "Clear history", placement: .confirmationAction) {
                 Button(role: .destructive) {
                     showClearConfirmation = true
@@ -172,6 +159,7 @@ private enum HistorySort: String, CaseIterable, Identifiable {
     }
 }
 
+/// A compact card for one finished game with an optional expanded guess list.
 struct HistoryRow: View {
     let item: HistoryItem
     let bullAssetName: String
@@ -180,7 +168,8 @@ struct HistoryRow: View {
     @State private var isExpanded = false
 
     var body: some View {
-        GroupBox {
+        // GroupBox gives us a compact card-like section style without building a custom container.
+        GroupBox(content: {
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
                     Text(item.finalState ? "✅ \(String(localized: "history.state.won"))" : "❌ \(String(localized: "history.state.lost"))")
@@ -203,6 +192,22 @@ struct HistoryRow: View {
                         String(localized: item.enableRepeats ? "game.mode.repeats" : "game.mode.unique")
                     )
                 )
+                
+                if item.hasPerGuessLimit || item.hasTotalTimeLimit {
+                    HStack(alignment: .center, spacing: 2) {
+
+                        if item.hasPerGuessLimit {
+                            Text("⏱ Per guess: \(item.perGuessLimit) sec")
+                                .padding(.trailing, 6)
+                        }
+                        
+
+                        if item.hasTotalTimeLimit {
+                            Text("🕒 Game limit: \(item.totalTimeLimit) sec")
+                        }
+                    }
+                }
+                
 
                 Button {
                     withAnimation(.easeInOut(duration: 0.35)) {
@@ -216,31 +221,36 @@ struct HistoryRow: View {
                     }
                     .font(.subheadline)
                 }
-                .buttonStyle(.plain) // Important for macOS
+                // Plain style prevents macOS default button chrome from fighting this row design.
+                .buttonStyle(.plain)
 
                 if isExpanded {
                     VStack(alignment: .leading, spacing: 4) {
                         ForEach(Array(item.guesses.enumerated()), id: \.offset) { index, guess in
                             HStack {
-                                Text("\(item.guesses.count - index < 10 ? "0" : "")\(item.guesses.count - index). \(guess): ")
+                                Text("\(guess): ")
                                     .monospacedDigit()
                                 GuessResultIcons(
                                     result: item.guessResults[index],
                                     bullAssetName: bullAssetName,
                                     cowAssetName: cowAssetName
                                 )
+                                let duration = index < item.guessDurations.count ? item.guessDurations[index] : 0
+                                Text(GameLogic.formatDuration(TimeInterval(duration)))
                             }
                             .font(.caption)
                         }
                     }
+                    // Combined transition feels smoother than move-only for this expandable details block.
                     .transition(.move(edge: .leading).combined(with: .opacity))
                 }
             }
             .padding(6)
-        }
+        })
     }
 }
 
+/// Renders bull/cow feedback as themed icons from encoded history result strings.
 struct GuessResultIcons: View {
     let result: String
     let bullAssetName: String

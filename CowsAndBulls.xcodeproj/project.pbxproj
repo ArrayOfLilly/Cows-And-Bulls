@@ -7,14 +7,25 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		ABEB1BA02F54161F006D62C3 /* INSTALL.en.md in Resources */ = {isa = PBXBuildFile; fileRef = ABEB1B9F2F54161F006D62C3 /* INSTALL.en.md */; };
-		ABEB1BA22F54161F006D62C3 /* INSTALL.hu.md in Resources */ = {isa = PBXBuildFile; fileRef = ABEB1BA12F54161F006D62C3 /* INSTALL.hu.md */; };
+		ABEB1BDE2F545974006D62C3 /* INSTALL.en.md in Resources */ = {isa = PBXBuildFile; fileRef = ABEB1BDD2F545974006D62C3 /* INSTALL.en.md */; };
+		ABEB1BE02F545974006D62C3 /* INSTALL.hu.md in Resources */ = {isa = PBXBuildFile; fileRef = ABEB1BDF2F545974006D62C3 /* INSTALL.hu.md */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		ABB6BB0A2F5460B500242EFC /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = ABE95FC22F4E246300BAF3CA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = ABE95FC92F4E246300BAF3CA;
+			remoteInfo = CowsAndBulls;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
+		ABB6BB062F5460B500242EFC /* CowsAndBullsTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CowsAndBullsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		ABE95FCA2F4E246300BAF3CA /* Cows & Bulls.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Cows & Bulls.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		ABEB1B9F2F54161F006D62C3 /* INSTALL.en.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = INSTALL.en.md; sourceTree = "<group>"; };
-		ABEB1BA12F54161F006D62C3 /* INSTALL.hu.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = INSTALL.hu.md; sourceTree = "<group>"; };
+		ABEB1BDD2F545974006D62C3 /* INSTALL.en.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = INSTALL.en.md; sourceTree = "<group>"; };
+		ABEB1BDF2F545974006D62C3 /* INSTALL.hu.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = INSTALL.hu.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -28,6 +39,11 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		ABB6BB072F5460B500242EFC /* CowsAndBullsTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = CowsAndBullsTests;
+			sourceTree = "<group>";
+		};
 		ABE95FCC2F4E246300BAF3CA /* CowsAndBulls */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -39,6 +55,13 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		ABB6BB032F5460B500242EFC /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		ABE95FC72F4E246300BAF3CA /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -53,9 +76,10 @@
 			isa = PBXGroup;
 			children = (
 				ABE95FCC2F4E246300BAF3CA /* CowsAndBulls */,
+				ABB6BB072F5460B500242EFC /* CowsAndBullsTests */,
 				ABE95FCB2F4E246300BAF3CA /* Products */,
-				ABEB1B9F2F54161F006D62C3 /* INSTALL.en.md */,
-				ABEB1BA12F54161F006D62C3 /* INSTALL.hu.md */,
+				ABEB1BDD2F545974006D62C3 /* INSTALL.en.md */,
+				ABEB1BDF2F545974006D62C3 /* INSTALL.hu.md */,
 			);
 			sourceTree = "<group>";
 		};
@@ -63,6 +87,7 @@
 			isa = PBXGroup;
 			children = (
 				ABE95FCA2F4E246300BAF3CA /* Cows & Bulls.app */,
+				ABB6BB062F5460B500242EFC /* CowsAndBullsTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -70,6 +95,29 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		ABB6BB052F5460B500242EFC /* CowsAndBullsTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = ABB6BB0C2F5460B500242EFC /* Build configuration list for PBXNativeTarget "CowsAndBullsTests" */;
+			buildPhases = (
+				ABB6BB022F5460B500242EFC /* Sources */,
+				ABB6BB032F5460B500242EFC /* Frameworks */,
+				ABB6BB042F5460B500242EFC /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				ABB6BB0B2F5460B500242EFC /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				ABB6BB072F5460B500242EFC /* CowsAndBullsTests */,
+			);
+			name = CowsAndBullsTests;
+			packageProductDependencies = (
+			);
+			productName = CowsAndBullsTests;
+			productReference = ABB6BB062F5460B500242EFC /* CowsAndBullsTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		ABE95FC92F4E246300BAF3CA /* CowsAndBulls */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = ABE95FD52F4E246300BAF3CA /* Build configuration list for PBXNativeTarget "CowsAndBulls" */;
@@ -99,9 +147,13 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2620;
+				LastSwiftUpdateCheck = 2630;
 				LastUpgradeCheck = 2630;
 				TargetAttributes = {
+					ABB6BB052F5460B500242EFC = {
+						CreatedOnToolsVersion = 26.3;
+						TestTargetID = ABE95FC92F4E246300BAF3CA;
+					};
 					ABE95FC92F4E246300BAF3CA = {
 						CreatedOnToolsVersion = 26.2;
 					};
@@ -123,23 +175,38 @@
 			projectRoot = "";
 			targets = (
 				ABE95FC92F4E246300BAF3CA /* CowsAndBulls */,
+				ABB6BB052F5460B500242EFC /* CowsAndBullsTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		ABB6BB042F5460B500242EFC /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		ABE95FC82F4E246300BAF3CA /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				ABEB1BA02F54161F006D62C3 /* INSTALL.en.md in Resources */,
-				ABEB1BA22F54161F006D62C3 /* INSTALL.hu.md in Resources */,
+				ABEB1BDE2F545974006D62C3 /* INSTALL.en.md in Resources */,
+				ABEB1BE02F545974006D62C3 /* INSTALL.hu.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		ABB6BB022F5460B500242EFC /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		ABE95FC62F4E246300BAF3CA /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -149,7 +216,55 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		ABB6BB0B2F5460B500242EFC /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = ABE95FC92F4E246300BAF3CA /* CowsAndBulls */;
+			targetProxy = ABB6BB0A2F5460B500242EFC /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		ABB6BB0D2F5460B500242EFC /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7C5WB3886P;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.arrayoflilly.CowsAndBullsTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Cows & Bulls.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Cows & Bulls";
+			};
+			name = Debug;
+		};
+		ABB6BB0E2F5460B500242EFC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7C5WB3886P;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.arrayoflilly.CowsAndBullsTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Cows & Bulls.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Cows & Bulls";
+			};
+			name = Release;
+		};
 		ABE95FD32F4E246300BAF3CA /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -294,12 +409,12 @@
 				INFOPLIST_FILE = CowsAndBulls/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Cows & Bulls";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.games";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSHumanReadableCopyright = ArrayOfLilly;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.8;
+				MARKETING_VERSION = 1.9;
 				PRODUCT_BUNDLE_IDENTIFIER = com.arrayoflilly.CowsAndBulls;
 				PRODUCT_NAME = "Cows & Bulls";
 				REGISTER_APP_GROUPS = YES;
@@ -332,12 +447,12 @@
 				INFOPLIST_FILE = CowsAndBulls/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Cows & Bulls";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.games";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSHumanReadableCopyright = ArrayOfLilly;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.8;
+				MARKETING_VERSION = 1.9;
 				PRODUCT_BUNDLE_IDENTIFIER = com.arrayoflilly.CowsAndBulls;
 				PRODUCT_NAME = "Cows & Bulls";
 				REGISTER_APP_GROUPS = YES;
@@ -353,6 +468,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		ABB6BB0C2F5460B500242EFC /* Build configuration list for PBXNativeTarget "CowsAndBullsTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				ABB6BB0D2F5460B500242EFC /* Debug */,
+				ABB6BB0E2F5460B500242EFC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		ABE95FC52F4E246300BAF3CA /* Build configuration list for PBXProject "CowsAndBulls" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

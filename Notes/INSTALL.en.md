@@ -16,3 +16,11 @@ You will receive a ZIP archive containing `Cows & Bulls.app`.
 2. Open `System Settings` -> `Privacy & Security`.
 3. Scroll down and click `Open Anyway` for `Cows & Bulls`.
 4. Launch the app again.
+
+## Notes
+- This build is distributed outside the Mac App Store.
+- Because of that, macOS may show a security warning on first launch.
+
+## Troubleshooting
+- If the app does not open, move it to `Applications` and try again.
+- If you still cannot open it, restart macOS and repeat the steps above.

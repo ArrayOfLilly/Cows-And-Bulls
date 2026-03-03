@@ -7,6 +7,7 @@ import Foundation
 import AVFoundation
 import AppKit
 
+/// Centralized audio service for one-shot sound effects and looping background music.
 final class SoundPlayer {
     static let shared = SoundPlayer()
 
@@ -28,6 +29,7 @@ final class SoundPlayer {
 
     private init() {}
 
+    /// Plays a short effect sound from either an asset catalog data set or bundled file.
     func play(_ effect: Effect, enabled: Bool, volume: Double) {
         guard enabled else { return }
         let clampedVolume = Float(min(max(volume, 0), 1))
@@ -42,10 +44,12 @@ final class SoundPlayer {
         }
 
         if let data = loadAudioData(for: key) {
+            // Lazy-load and cache on first playback to keep startup fast.
             playFromData(data, key: key, volume: clampedVolume)
         }
     }
 
+    /// Starts, updates, or stops looping background music based on current settings.
     func updateBackgroundMusic(enabled: Bool, trackID: String, volume: Double) {
         guard enabled, trackID.isEmpty == false else {
             stopBackgroundMusic()
@@ -55,6 +59,7 @@ final class SoundPlayer {
         let clampedVolume = Float(min(max(volume, 0), 1))
 
         if let backgroundPlayer, backgroundTrackKey == trackID {
+            // Fast path: same track selected, only update volume/play state.
             backgroundPlayer.volume = clampedVolume
             if backgroundPlayer.isPlaying == false {
                 backgroundPlayer.play()
@@ -98,6 +103,7 @@ final class SoundPlayer {
         }
     }
 
+    /// Resolves audio bytes by trying asset data first, then common file extensions.
     private func loadAudioData(for resource: String) -> Data? {
         if let dataAsset = NSDataAsset(name: resource) {
             return dataAsset.data

@@ -7,6 +7,8 @@
 
 import SwiftUI
 
+/// In-app learning reference that explains rules, scoring, and game options.
+/// In-app reference screen with localized explanations and themed bull/cow examples.
 struct LearnView: View {
     @AppStorage("selectedBullAssetName") private var selectedBullAssetName = "Bull"
     @AppStorage("selectedCowAssetName") private var selectedCowAssetName = "Cow"
@@ -182,6 +184,10 @@ struct LearnView: View {
                 optionRow(localized("learn.options.hard_mode.title"), localized("learn.options.hard_mode.desc"))
                 optionRow(localized("learn.options.show_steps.title"), localized("learn.options.show_steps.desc"))
                 optionRow(localized("learn.options.theming.title"), localized("learn.options.theming.desc"))
+                optionRow(localized("learn.options.time_limit.title"), localized("learn.options.time_limit.desc"))
+                optionRow(localized("learn.options.per_game_time_limit.title"), localized("learn.options.per_game_time_limit.desc"))
+                optionRow(localized("learn.options.sound.title"), localized("learn.options.sound.desc"))
+                optionRow(localized("learn.options.background_music.title"), localized("learn.options.background_music.desc"))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 4)
@@ -203,9 +209,10 @@ struct LearnView: View {
                 .padding(.vertical, 6)
         }
         .padding(20)
-        .frame(maxWidth: 500)
+        .frame(minWidth: 800, maxWidth: .infinity)
     }
 
+    /// Two-column option row used in the Options section for aligned labels.
     private func optionRow(_ title: String, _ description: String) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Text(title)
