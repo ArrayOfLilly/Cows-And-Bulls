@@ -72,6 +72,13 @@ struct CowsAndBullsApp: App {
         )
     }
 
+    private func applyUITestOverridesIfNeeded() {
+        let environment = ProcessInfo.processInfo.environment
+        if let forcedLanguageCode = environment["UITEST_FORCE_LANGUAGE"] {
+            appLanguageCode = forcedLanguageCode
+        }
+    }
+
     private func openLearnWindow() {
         let windowID = NSUserInterfaceItemIdentifier("learnWindow")
 
@@ -108,6 +115,7 @@ struct CowsAndBullsApp: App {
                 // Environment locale keeps SwiftUI-localized text in sync with the selected app language.
                 .environment(\.locale, appLocale)
                 .onAppear {
+                    applyUITestOverridesIfNeeded()
                     synchronizeBundleLanguagePreference()
                     applyBackgroundMusicSettings()
                     historyStore.setActiveProfileId(profileStore.selectedProfileId)

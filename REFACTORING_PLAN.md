@@ -80,14 +80,18 @@ Prefer small subviews with explicit inputs over large views that reach into mult
   - celebration appears on win
   - celebration dismisses on alert action
   - celebration auto-dismisses without alert interaction
+  - gameplay settings lock during an active game
+  - profiles creation lock during an active game
+  - language change shows restart prompt
+  - theme selection exposes semantic selected-state updates
 
 ### Still worth doing
 
-- extract more rule computation out of `SettingsView`
+- finish extracting repeated rule computation out of `SettingsView`
 - consider moving theme definitions out of the view file
 - standardize settings row visuals
-- add more accessibility identifiers to settings controls
-- add targeted UI tests for disabled-state behavior
+- add more accessibility identifiers to settings controls if new controls appear
+- add targeted UI tests for disabled-state behavior if more settings flows are added
 - decide whether celebration timing/path should become user-configurable or remain hard-coded
 
 ## Recommended Next Steps
@@ -95,6 +99,14 @@ Prefer small subviews with explicit inputs over large views that reach into mult
 ### Step 1: Normalize Settings Rules
 
 Create computed properties in `SettingsView` for repeated decision logic.
+
+Current progress:
+
+- introduced named rule properties for gameplay/profile editability
+- introduced `answerLengthHasValidationError`
+- introduced `selectedTheme`
+- introduced `ProfileRowState` so profile action booleans/help text are composed in one place
+- still worth propagating these names deeper into the extracted subviews
 
 Recommended properties:
 
@@ -126,6 +138,15 @@ Recommended small components:
 Goal:
 reduce repeated formatting and tighten visual consistency.
 
+Current progress:
+
+- introduced `SettingsHelpCaption`
+- introduced `SettingsLockedNotice`
+- introduced `SettingsSliderRow`
+- introduced `SettingsPercentSliderRow`
+- improved theme preview contrast with adaptive light/dark background fills
+- `SettingsSectionTitle` still optional if section headers keep growing
+
 ### Step 3: Decide Whether Theme Metadata Leaves the View
 
 Right now `animalThemes` lives in `SettingsView`.
@@ -143,6 +164,11 @@ Use a separate file if:
 Keep it local if:
 
 - it stays as a small, static lookup table
+
+Current progress:
+
+- completed: theme metadata moved to `Models/AnimalTheme.swift`
+- `SettingsView` now consumes `AnimalTheme.all` instead of owning the catalog inline
 
 ### Step 4: Reduce `SettingsView` Local Mutation Surface
 
@@ -215,6 +241,11 @@ Recommended identifiers:
 Goal:
 make UI tests depend on explicit identifiers instead of fragile control-role lookup.
 
+Current progress:
+
+- identifiers added for the key gameplay, timer, audio, music, language, theme, and profile-create controls
+- theme rows now expose semantic selected state for UI testing
+
 ### Step 6: Add UI Behavior Tests for Settings
 
 Recommended UI tests:
@@ -228,6 +259,13 @@ Recommended UI tests:
 Keep these tests small and avoid over-asserting on macOS role types.
 Prefer identifier-based queries.
 
+Current progress:
+
+- implemented active-game gameplay-lock test
+- implemented active-game profiles-create-lock test
+- implemented language restart prompt test
+- implemented theme selection semantic state test
+
 ### Step 7: Consider File Splitting
 
 If `SettingsView.swift` still feels crowded after the above cleanup, split by domain:
@@ -240,6 +278,16 @@ If `SettingsView.swift` still feels crowded after the above cleanup, split by do
 
 Do this only if navigation remains clear.
 Do not split into too many microscopic files.
+
+Current progress:
+
+- completed with a medium-grained split instead of many tiny files
+- current files:
+  - `Views/SettingsView.swift`
+  - `Views/SettingsSupportViews.swift`
+  - `Views/SettingsTabViews.swift`
+  - `Views/SettingsProfilesViews.swift`
+- `SettingsView` now mainly owns store wiring, local state, dialogs, and action helpers
 
 ## Recommended Order If Continuing Manually
 

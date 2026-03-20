@@ -2,21 +2,40 @@
 
 ## Immediate Next Steps
 
-- [ ] Szedd ki a visszatérő szabálylogikát computed property-kbe a `SettingsView`-ban.
-- [ ] Adj stabil accessibility identifier-eket a fontos settings vezérlőknek.
-- [ ] Vezesd be a közös kis UI elemeket:
-  - [ ] `SettingsHelpCaption`
-  - [ ] `SettingsSliderRow`
+- [~] Szedd ki a visszatérő szabálylogikát computed property-kbe a `SettingsView`-ban.
+  Már megvan:
+  - `canEditGameplaySettings`
+  - `canCreateProfiles`
+  - `canRenameProfiles`
+  - `canReorderProfiles`
+  - `canDeleteProfiles`
+  - `answerLengthHasValidationError`
+  - `selectedTheme`
+  Még hátra van:
+  - a nevek továbbvitele a kisebb extracted subview-k felé
+  - a profiles körüli helper döntések további egyszerűsítése, ha a jelenlegi `ProfileRowState` még nem elég
+- [x] Adj stabil accessibility identifier-eket a fontos settings vezérlőknek.
+- [~] Vezesd be a közös kis UI elemeket:
+  - [x] `SettingsHelpCaption`
+  - [x] `SettingsSliderRow`
   - [ ] `SettingsSectionTitle`
-  - [ ] `SettingsLockedNotice`
-- [ ] Tisztítsd a profiles helper logikát, ha még túl zajos.
-- [ ] Döntsd el, hogy az `animalThemes` maradjon-e helyben vagy menjen külön fájlba.
+  - [x] `SettingsLockedNotice`
+  - [x] `SettingsPercentSliderRow`
+- [~] Tisztítsd a profiles helper logikát, ha még túl zajos.
+  Már megvan:
+  - [x] a profilsoronkénti döntések `ProfileRowState`-ba húzása
+  Még hátra lehet:
+  - [ ] külön `ProfileEditorState` vagy további action-helper, ha ez a rész újra nő
+- [x] Döntsd el, hogy az `animalThemes` maradjon-e helyben vagy menjen külön fájlba.
+  Megoldás:
+  - [x] külön modellfájlba került: `Models/AnimalTheme.swift`
 
 ## Validation After Each Step
 
-- [ ] `SettingsView.swift` diagnosztika
-- [ ] teljes build
+- [x] `SettingsView.swift` diagnosztika
+- [x] teljes build
 - [ ] `CowsAndBullsUITests/testSmokeGameScreen()`
+- [x] célzott settings UI tesztek
 
 ## Important Guardrails
 
@@ -28,6 +47,18 @@
 
 ## Nice To Have
 
-- [ ] Settings UI tesztek a disabled state-ekre
-- [ ] külön fájlokba bontani a settings nézeteket, ha még mindig túl nagy a fájl
+- [~] Settings UI tesztek a disabled state-ekre
+  Már megvan:
+  - [x] gameplay settings lock active game alatt
+  - [x] profile create lock active game alatt
+  - [x] language change restart prompt
+  - [x] theme selection semantic state update
+  Még hátra lehet:
+  - [ ] profile reorder buttons explicit disabled-state tesztje
+- [x] külön fájlokba bontani a settings nézeteket, ha még mindig túl nagy a fájl
+  Megoldás:
+  - [x] `Views/SettingsSupportViews.swift`
+  - [x] `Views/SettingsTabViews.swift`
+  - [x] `Views/SettingsProfilesViews.swift`
+  - [x] `SettingsView.swift` kompozíciós réteggé tisztítva
 - [ ] `ProfileEditorState` bevezetése, ha a profiles szerkesztési állapot tovább nő
