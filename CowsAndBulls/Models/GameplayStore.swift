@@ -35,7 +35,12 @@ final class GameplayStore: ObservableObject {
             guessInputErrorMessage = String(localized: "validation.answer_length_range")
             return
         }
-        answer = GameLogic.generateAnswer(length: settings.answerLength, allowRepeats: settings.enableRepeats)
+        if let forcedAnswer = ProcessInfo.processInfo.environment["UITEST_FORCED_ANSWER"],
+           forcedAnswer.count == settings.answerLength {
+            answer = forcedAnswer
+        } else {
+            answer = GameLogic.generateAnswer(length: settings.answerLength, allowRepeats: settings.enableRepeats)
+        }
         isDisabledSubmitButton = false
         guessInputErrorMessage = ""
     }

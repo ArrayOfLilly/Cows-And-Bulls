@@ -270,6 +270,7 @@ struct SettingsView: View {
             SettingsGameTab(
                 maximumGuesses: binding(\.maximumGuesses),
                 answerLengthDraft: $answerLengthDraft,
+                enableCelebration: binding(\.enableCelebration),
                 canEditSettings: canEditSettings,
                 answerLengthFocus: $isAnswerLengthFocused,
                 showAnswerLengthError: {
@@ -459,6 +460,7 @@ private struct SettingsFormContainer<Content: View>: View {
 private struct SettingsGameTab: View {
     let maximumGuesses: Binding<Int>
     let answerLengthDraft: Binding<String>
+    let enableCelebration: Binding<Bool>
     let canEditSettings: Bool
     let answerLengthFocus: FocusState<Bool>.Binding
     let showAnswerLengthError: Bool
@@ -491,6 +493,10 @@ private struct SettingsGameTab: View {
                 .foregroundStyle(.red)
                 .accessibilityIdentifier("answerLengthError")
         }
+
+        Toggle("Enable celebration", isOn: enableCelebration)
+            .disabled(canEditSettings == false)
+            .padding(.top, 8)
     }
 }
 

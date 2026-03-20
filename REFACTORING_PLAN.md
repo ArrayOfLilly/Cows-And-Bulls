@@ -8,6 +8,10 @@ The project already has a cleaner separation than the original version:
 - Gameplay state is managed by `GameplayStore`.
 - Session and timing state is managed by `GameSessionStore`.
 - `SettingsView` has started to move toward a compositional structure.
+- Victory celebration is now isolated behind a dedicated screen-level controller:
+  - `Views/VictoryCelebrationWindowController.swift`
+- Celebration can be toggled per profile via settings persistence.
+- UI coverage now includes the victory celebration flow and its auto-dismiss behavior.
 
 This document is the continuation plan if the ongoing refactor needs to be finished manually.
 
@@ -70,6 +74,12 @@ Prefer small subviews with explicit inputs over large views that reach into mult
   - `ProfilesToolbarRow`
   - `ProfileRowView`
   - `ProfileActionButtons`
+- victory celebration moved out of `ContentView` into a dedicated AppKit-backed controller
+- gameplay settings include an `enableCelebration` toggle
+- UI tests cover:
+  - celebration appears on win
+  - celebration dismisses on alert action
+  - celebration auto-dismisses without alert interaction
 
 ### Still worth doing
 
@@ -78,6 +88,7 @@ Prefer small subviews with explicit inputs over large views that reach into mult
 - standardize settings row visuals
 - add more accessibility identifiers to settings controls
 - add targeted UI tests for disabled-state behavior
+- decide whether celebration timing/path should become user-configurable or remain hard-coded
 
 ## Recommended Next Steps
 
@@ -183,6 +194,7 @@ Recommended identifiers:
 
 - `settingsMaximumGuessesField`
 - `settingsAnswerLengthField`
+- `settingsEnableCelebrationToggle`
 - `settingsEnableRepeatsToggle`
 - `settingsEnableHardModeToggle`
 - `settingsShowGuessCountToggle`

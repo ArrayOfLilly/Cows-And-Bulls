@@ -26,11 +26,6 @@ struct ContentView: View {
     @State private var pendingProfileSwitchId: String?
     @State private var showProfileSwitchDialog = false
     @State private var showWinAlert = false
-    @State private var showVictoryCelebration = false
-    @State private var victoryAnimationProgress: CGFloat = 0
-    @State private var victoryFrameIndex = 0
-    @State private var winAlertTask: Task<Void, Never>?
-    @State private var victoryFrameTask: Task<Void, Never>?
     
     @FocusState private var isGuessFieldFocused: Bool
 
@@ -65,6 +60,7 @@ struct ContentView: View {
     private var maximumGuesses: Int { settings.maximumGuesses }
     private var showGuessCount: Bool { settings.showGuessCount }
     private var answerLength: Int { settings.answerLength }
+    private var enableCelebration: Bool { settings.enableCelebration }
     private var enableHardMode: Bool { settings.enableHardMode }
     private var enableRepeats: Bool { settings.enableRepeats }
     private var enableSoundEffects: Bool { settings.enableSoundEffects }
@@ -215,7 +211,12 @@ struct ContentView: View {
             stopAllTimers()
             gameSessionStore.finishGame()
             SoundPlayer.shared.play(.win, enabled: enableSoundEffects, volume: soundEffectsVolume)
-            playVictoryCelebration()
+            if enableCelebration {
+                playVictoryCelebration()
+            } else {
+                isWon = true
+                showWinAlert = true
+            }
         } else if result == .lost {
             stopAllTimers()
             gameSessionStore.finishGame()
@@ -414,48 +415,15 @@ struct ContentView: View {
     }
 
     private func playVictoryCelebration() {
-        let duration = VictoryCowOverlay.animationDuration
-        winAlertTask?.cancel()
-        victoryFrameTask?.cancel()
         showWinAlert = false
-        victoryAnimationProgress = 0
-        victoryFrameIndex = 0
-        showVictoryCelebration = true
-        DispatchQueue.main.async {
-            withAnimation(.linear(duration: duration)) {
-                victoryAnimationProgress = 1
-            }
-        }
-        victoryFrameTask = Task {
-            while Task.isCancelled == false {
-                try? await Task.sleep(for: .seconds(0.10))
-                guard Task.isCancelled == false else { return }
-                await MainActor.run {
-                    victoryFrameIndex = (victoryFrameIndex + 1) % VictoryCowOverlay.assetCount
-                }
-            }
-        }
-        winAlertTask = Task {
-            try? await Task.sleep(for: .seconds(duration))
-            guard Task.isCancelled == false else { return }
-            await MainActor.run {
-                showVictoryCelebration = false
-                victoryAnimationProgress = 0
-                victoryFrameIndex = 0
-                isWon = true
-                showWinAlert = true
-            }
+        VictoryCelebrationWindowController.shared.present(from: NSApp.keyWindow ?? NSApp.mainWindow) { [self] in
+            isWon = true
+            showWinAlert = true
         }
     }
 
     private func hideVictoryCelebration() {
-        winAlertTask?.cancel()
-        winAlertTask = nil
-        victoryFrameTask?.cancel()
-        victoryFrameTask = nil
-        showVictoryCelebration = false
-        victoryAnimationProgress = 0
-        victoryFrameIndex = 0
+        VictoryCelebrationWindowController.shared.dismiss()
     }
 
     // MARK: - UI
@@ -561,26 +529,12 @@ struct ContentView: View {
             )
                 .frame(maxWidth: .infinity)
         }
-        .overlay {
-            if showVictoryCelebration {
-                VictoryCowOverlay(
-                    progress: victoryAnimationProgress,
-                    frameIndex: victoryFrameIndex
-                )
-                    .zIndex(10)
-                    .allowsHitTesting(false)
-                    .accessibilityHidden(true)
-                    .transition(.identity)
-            }
-        }
         .onAppear {
             if answer.isEmpty {
                 resetGameSession()
             }
         }
-        .onDisappear {
-            hideVictoryCelebration()
-        }
+        .onDisappear { hideVictoryCelebration() }
         .onChange(of: guess) {
             if gameInProgress == false, guess.isEmpty == false {
                 let pendingGuess = guess
@@ -897,44 +851,6 @@ private struct GuessResultIconsView: View {
                     .frame(width: 34, height: 34)
                     .animalIconStyle(cornerRadius: 6)
             }
-        }
-    }
-}
-
-private struct VictoryCowOverlay: View {
-    static let animationDuration: TimeInterval = 2.8
-    static let assetCount = 4
-
-    let progress: CGFloat
-    let frameIndex: Int
-    private let assetNames = [
-        "Walking Cow frame 1",
-        "Walking Cow frame 2",
-        "Walking Cow frame 3",
-        "Walking Cow frame 4",
-    ]
-
-    var body: some View {
-        GeometryReader { proxy in
-            let clampedProgress = min(max(progress, 0), 1)
-            let cowSize = min(max(proxy.size.width * 0.18, 110), 180)
-            let startX = -cowSize * 0.7
-            let endX = proxy.size.width + cowSize * 0.4
-            let x = startX + (endX - startX) * clampedProgress
-            let startY = proxy.size.height * 0.88
-            let endY = proxy.size.height * 0.18
-            let diagonalY = startY + (endY - startY) * clampedProgress
-            let arcLift = sin(clampedProgress * .pi) * proxy.size.height * 0.10
-            let bob = sin(clampedProgress * .pi * 8) * 5
-            let y = diagonalY - arcLift + bob
-
-            Image(assetNames[frameIndex % assetNames.count])
-                .resizable()
-                .scaledToFit()
-                .frame(width: cowSize, height: cowSize)
-                .shadow(color: .black.opacity(0.12), radius: 6, y: 4)
-                .position(x: x, y: y)
-                .zIndex(10)
         }
     }
 }

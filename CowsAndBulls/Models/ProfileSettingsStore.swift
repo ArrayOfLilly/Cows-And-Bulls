@@ -12,6 +12,7 @@ struct ProfileSettings: Codable, Equatable {
     var maximumGuesses: Int
     var showGuessCount: Bool
     var answerLength: Int
+    var enableCelebration: Bool
     var enableHardMode: Bool
     var enableRepeats: Bool
     var enableSoundEffects: Bool
@@ -28,6 +29,7 @@ struct ProfileSettings: Codable, Equatable {
         maximumGuesses: 10,
         showGuessCount: false,
         answerLength: 4,
+        enableCelebration: true,
         enableHardMode: false,
         enableRepeats: false,
         enableSoundEffects: true,
@@ -46,6 +48,7 @@ struct ProfileSettings: Codable, Equatable {
         if defaults.object(forKey: "maximumGuesses") != nil { settings.maximumGuesses = defaults.integer(forKey: "maximumGuesses") }
         if defaults.object(forKey: "showGuessCount") != nil { settings.showGuessCount = defaults.bool(forKey: "showGuessCount") }
         if defaults.object(forKey: "answerLength") != nil { settings.answerLength = defaults.integer(forKey: "answerLength") }
+        if defaults.object(forKey: "enableCelebration") != nil { settings.enableCelebration = defaults.bool(forKey: "enableCelebration") }
         if defaults.object(forKey: "enableHardMode") != nil { settings.enableHardMode = defaults.bool(forKey: "enableHardMode") }
         if defaults.object(forKey: "enableRepeats") != nil { settings.enableRepeats = defaults.bool(forKey: "enableRepeats") }
         if defaults.object(forKey: "enableSoundEffects") != nil { settings.enableSoundEffects = defaults.bool(forKey: "enableSoundEffects") }

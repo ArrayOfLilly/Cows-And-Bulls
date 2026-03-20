@@ -172,10 +172,25 @@ struct StatisticsTests {
         #expect(stats.averageSteps == 0)
         #expect(stats.averageStepRatio == 0)
         #expect(stats.winRate == 0)
-        #expect(stats.mostUsedMode == .none)
+        switch stats.mostUsedMode {
+        case .none:
+            break
+        default:
+            Issue.record("Expected mostUsedMode to be .none")
+        }
         #expect(stats.mostUsedLength == nil)
-        #expect(stats.mostUsedRepeats == .none)
-        #expect(stats.mostUsedTimers == .none)
+        switch stats.mostUsedRepeats {
+        case .none:
+            break
+        default:
+            Issue.record("Expected mostUsedRepeats to be .none")
+        }
+        switch stats.mostUsedTimers {
+        case .none:
+            break
+        default:
+            Issue.record("Expected mostUsedTimers to be .none")
+        }
         #expect(stats.fastestWin == nil)
     }
 
@@ -230,6 +245,11 @@ struct StatisticsTests {
         ]
         let stats = StatisticsLogic(items: items)
 
-        #expect(stats.mostUsedTimers == .all)
+        switch stats.mostUsedTimers {
+        case .all:
+            break
+        default:
+            Issue.record("Expected mostUsedTimers to be .all")
+        }
     }
 }

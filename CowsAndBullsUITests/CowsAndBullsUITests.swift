@@ -53,6 +53,64 @@ final class CowsAndBullsUITests: XCTestCase {
         }
     }
 
+    func testVictoryCelebrationAppearsAndDismisses() throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["UITEST_FORCED_ANSWER"] = "1234"
+        app.launch()
+
+        let guessField = app.descendants(matching: .any).matching(identifier: "guessInputField").firstMatch
+        XCTAssertTrue(guessField.waitForExistence(timeout: 2))
+
+        let submitButton = app.buttons["submitGuessButton"]
+        XCTAssertTrue(submitButton.waitForExistence(timeout: 2))
+
+        guessField.click()
+        typeAndReplace(app: app, text: "1234")
+        submitButton.click()
+
+        let celebrationCow = app.descendants(matching: .any).matching(identifier: "victoryCelebrationCow").firstMatch
+        XCTAssertTrue(celebrationCow.waitForExistence(timeout: 2))
+
+        let winAlert = app.sheets.firstMatch
+        XCTAssertTrue(winAlert.waitForExistence(timeout: 4))
+
+        let winAlertButton = winAlert.buttons["OK"]
+        XCTAssertTrue(winAlertButton.waitForExistence(timeout: 4))
+        XCTAssertTrue(celebrationCow.exists)
+
+        winAlertButton.click()
+
+        let disappeared = NSPredicate(format: "exists == false")
+        expectation(for: disappeared, evaluatedWith: celebrationCow)
+        waitForExpectations(timeout: 2)
+    }
+
+    func testVictoryCelebrationAutoDismissesWithoutAlertInteraction() throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["UITEST_FORCED_ANSWER"] = "1234"
+        app.launch()
+
+        let guessField = app.descendants(matching: .any).matching(identifier: "guessInputField").firstMatch
+        XCTAssertTrue(guessField.waitForExistence(timeout: 2))
+
+        let submitButton = app.buttons["submitGuessButton"]
+        XCTAssertTrue(submitButton.waitForExistence(timeout: 2))
+
+        guessField.click()
+        typeAndReplace(app: app, text: "1234")
+        submitButton.click()
+
+        let celebrationCow = app.descendants(matching: .any).matching(identifier: "victoryCelebrationCow").firstMatch
+        XCTAssertTrue(celebrationCow.waitForExistence(timeout: 2))
+
+        let winAlert = app.sheets.firstMatch
+        XCTAssertTrue(winAlert.waitForExistence(timeout: 4))
+
+        let disappeared = NSPredicate(format: "exists == false")
+        expectation(for: disappeared, evaluatedWith: celebrationCow)
+        waitForExpectations(timeout: 5)
+    }
+
     private func typeAndReplace(app: XCUIApplication, text: String) {
         app.typeKey("a", modifierFlags: .command)
         app.typeKey(XCUIKeyboardKey.delete, modifierFlags: [])
