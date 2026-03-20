@@ -8,11 +8,23 @@
 import SwiftUI
 import AppKit
 
+class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        return true
+    }
+}
+
 @main
 /// App entry point: injects shared state, locale, and command menu behavior.
 struct CowsAndBullsApp: App {
-    // @StateObject keeps one shared HistoryStore instance alive for the app lifetime.
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
+    // @StateObject keeps shared stores alive for the app lifetime.
+    @StateObject private var profileStore = ProfileStore()
     @StateObject private var historyStore = HistoryStore()
+    @StateObject private var settingsStore = ProfileSettingsStore()
+    @StateObject private var gameSessionStore = GameSessionStore()
+    @StateObject private var gameplayStore = GameplayStore()
     @AppStorage("appLanguageCode") private var appLanguageCode = "system"
     @AppStorage("enableBackgroundMusic") private var enableBackgroundMusic = false
     @AppStorage("backgroundMusicTrackID") private var backgroundMusicTrackID = "Mushroom Background Music"
@@ -71,6 +83,7 @@ struct CowsAndBullsApp: App {
         }
 
         let rootView = LearnView()
+            .environmentObject(settingsStore)
             .environment(\.locale, appLocale)
         // NSHostingController embeds a SwiftUI view inside an AppKit NSWindow.
         // This is the standard bridge when you need explicit macOS window control.
@@ -88,11 +101,21 @@ struct CowsAndBullsApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(historyStore)
+                .environmentObject(profileStore)
+                .environmentObject(settingsStore)
+                .environmentObject(gameSessionStore)
+                .environmentObject(gameplayStore)
                 // Environment locale keeps SwiftUI-localized text in sync with the selected app language.
                 .environment(\.locale, appLocale)
                 .onAppear {
                     synchronizeBundleLanguagePreference()
                     applyBackgroundMusicSettings()
+                    historyStore.setActiveProfileId(profileStore.selectedProfileId)
+                    settingsStore.setActiveProfileId(profileStore.selectedProfileId)
+                }
+                .onChange(of: profileStore.selectedProfileId) {
+                    historyStore.setActiveProfileId(profileStore.selectedProfileId)
+                    settingsStore.setActiveProfileId(profileStore.selectedProfileId)
                 }
                 .onChange(of: appLanguageCode) {
                     synchronizeBundleLanguagePreference()
@@ -129,6 +152,13 @@ struct CowsAndBullsApp: App {
         Settings {
             SettingsView()
                 .environment(\.locale, appLocale)
+                .environmentObject(profileStore)
+                .environmentObject(historyStore)
+                .environmentObject(settingsStore)
+                .environmentObject(gameSessionStore)
+                .environmentObject(gameplayStore)
         }
+        .defaultSize(width: 460, height: 520)
+        .windowResizability(.contentMinSize)
     }
 }

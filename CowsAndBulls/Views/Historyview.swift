@@ -11,8 +11,7 @@ import SwiftUI
 struct HistoryView: View {
     @EnvironmentObject private var historyStore: HistoryStore
     @State private var showClearConfirmation = false
-    @AppStorage("selectedBullAssetName") private var selectedBullAssetName = "Bull"
-    @AppStorage("selectedCowAssetName") private var selectedCowAssetName = "Cow"
+    @EnvironmentObject private var settingsStore: ProfileSettingsStore
     @State private var filter: HistoryFilter = .all
     @State private var sort: HistorySort = .newest
 
@@ -86,8 +85,11 @@ struct HistoryView: View {
                         ForEach(displayedItems) { item in
                             HistoryRow(
                                 item: item,
-                                bullAssetName: selectedBullAssetName,
-                                cowAssetName: selectedCowAssetName
+                                bullAssetName: settingsStore.settings.selectedBullAssetName,
+                                cowAssetName: settingsStore.settings.selectedCowAssetName,
+                                onDelete: {
+                                    historyStore.delete(item)
+                                }
                             )
                         }
                     }
@@ -164,6 +166,7 @@ struct HistoryRow: View {
     let item: HistoryItem
     let bullAssetName: String
     let cowAssetName: String
+    let onDelete: () -> Void
 
     @State private var isExpanded = false
 
@@ -180,6 +183,13 @@ struct HistoryRow: View {
                     Text(item.formattedDate())
                         .font(.caption)
                         .foregroundColor(.gray)
+
+                    Button(role: .destructive, action: onDelete) {
+                        Image(systemName: "trash")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help(localized("history.row.delete"))
                 }
 
                 Text(localized("history.row.answer", item.answer))

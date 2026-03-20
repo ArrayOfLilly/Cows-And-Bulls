@@ -15,7 +15,11 @@ struct StatisticsLogic {
     var totalScore: Int { items.reduce(0) { $0 + $1.score } }
     var bestScore: Int { items.map(\.score).max() ?? 0 }
     var totalSteps: Int { items.reduce(0) { $0 + $1.steps } }
-    var averageStepRatio: Double { Double(totalSteps) / Double(items.reduce(0) { $0 + $1.maxSteps }) }
+    var averageStepRatio: Double {
+        let totalMaxSteps = items.reduce(0) { $0 + $1.maxSteps }
+        guard totalMaxSteps > 0 else { return 0 }
+        return Double(totalSteps) / Double(totalMaxSteps)
+    }
     var firstGuessWinsCount: Int { items.filter { $0.finalState && $0.steps == 1 }.count }
     var firstGuessWinRate: Double {
         guard wonGames > 0 else { return 0 }
@@ -66,35 +70,34 @@ struct StatisticsLogic {
         return best
     }
 
-    /// Average completion time for timed games only.
+    /// Average completion time across all finished games.
     var averageDuration: TimeInterval {
-        let timedItems = items.filter(\.isTimed)
-        guard timedItems.isEmpty == false else { return 0 }
-        let totalTime = timedItems.reduce(0.0) { $0 + $1.duration }
-        return totalTime / Double(timedItems.count)
+        guard totalGames > 0 else { return 0 }
+        let totalTime = items.reduce(0.0) { $0 + $1.duration }
+        return totalTime / Double(items.count)
     }
 
-    /// Average guess duration for timed games only.
+    /// Average guess duration across all finished games.
     var averageStepDuration: TimeInterval {
-        let stepTimes = items.filter(\.isTimed).flatMap(\.guessDurations)
+        let stepTimes = items.flatMap(\.guessDurations)
         guard stepTimes.isEmpty == false else { return 0 }
         let allStepTimes = stepTimes.reduce(0.0) { $0 + Double($1) }
         return allStepTimes / Double(stepTimes.count)
     }
 
 
-    /// Average completion time for won timed games only.
+    /// Average completion time for all won games.
     var averageDurationForWonGames: TimeInterval {
-        let wonItems = items.filter { $0.finalState && $0.isTimed }
+        let wonItems = items.filter { $0.finalState }
         guard wonItems.isEmpty == false else { return 0 }
         let totalTime = wonItems.reduce(0.0) { $0 + $1.duration }
         return totalTime / Double(wonItems.count)
     }
 
 
-    /// Average guess duration for won timed games only.
+    /// Average guess duration for all won games.
     var averageStepDurationForWonGames: TimeInterval {
-        let wonItems = items.filter { $0.finalState && $0.isTimed }
+        let wonItems = items.filter { $0.finalState }
         let stepTimes = wonItems.flatMap(\.guessDurations)
         guard stepTimes.isEmpty == false else { return 0 }
         let allStepTimes = stepTimes.reduce(0.0) { $0 + Double($1) }
@@ -164,27 +167,26 @@ struct StatisticsLogic {
     /// Most frequent timer setup profile.
     enum mostUsedTimerResult: Equatable { case all, perGuess, perGame, off, none }
     var mostUsedTimers: mostUsedTimerResult {
-        var mostUsedTimer: mostUsedTimerResult = .none
         guard totalGames > 0 else { return .none }
 
-        let perGuessTimedGamesCount = items.filter { $0.hasPerGuessLimit }.count
-        let perGameTimedGamesCount = items.filter { $0.hasTotalTimeLimit }.count
-        let allTimedGamesCount = timedGamesCount
-        let relaxedGamesCount = items.count - allTimedGamesCount
-        let mostFrequentTimerSettings = { max(perGuessTimedGamesCount, perGameTimedGamesCount, allTimedGamesCount, relaxedGamesCount) }
+        let allTimedGamesCount = items.filter { $0.hasPerGuessLimit && $0.hasTotalTimeLimit }.count
+        let perGuessOnlyGamesCount = items.filter { $0.hasPerGuessLimit && $0.hasTotalTimeLimit == false }.count
+        let perGameOnlyGamesCount = items.filter { $0.hasPerGuessLimit == false && $0.hasTotalTimeLimit }.count
+        let relaxedGamesCount = items.filter { $0.hasPerGuessLimit == false && $0.hasTotalTimeLimit == false }.count
 
-        // In case of ties, this switch resolves by case order.
-        switch mostFrequentTimerSettings() {
-        case perGuessTimedGamesCount:
-            mostUsedTimer = .perGuess
-        case perGameTimedGamesCount:
-            mostUsedTimer = .perGame
-        case allTimedGamesCount:
-            mostUsedTimer = .all
-        default:
-            mostUsedTimer = .off
+        let counts: [(mostUsedTimerResult, Int)] = [
+            (.all, allTimedGamesCount),
+            (.perGuess, perGuessOnlyGamesCount),
+            (.perGame, perGameOnlyGamesCount),
+            (.off, relaxedGamesCount)
+        ]
+
+        guard let winning = counts.max(by: { lhs, rhs in
+            lhs.1 == rhs.1 ? false : lhs.1 < rhs.1
+        }) else {
+            return .none
         }
 
-        return mostUsedTimer
+        return winning.0
     }
 }

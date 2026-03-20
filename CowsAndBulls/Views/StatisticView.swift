@@ -28,6 +28,12 @@ struct StatisticView: View {
                     ContentUnavailableView(localized("history.empty.title"), systemImage: "chart.bar")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
+                    if historyStore.isHistoryModified {
+                        Text(localized("stats.warning.modified"))
+                            .font(.caption)
+                            .foregroundStyle(.yellow)
+                            .padding(.bottom, 4)
+                    }
                     overviewSection
                         .padding(.bottom, 4)
                     performanceSection

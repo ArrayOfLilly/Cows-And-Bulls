@@ -101,8 +101,10 @@ struct HistoryItem: Identifiable, Codable {
 
 class HistoryStore: ObservableObject {
     private let userDefaults: UserDefaults
-    private let storageKey: String
+    private var storageKey: String
+    private var modifiedKey: String
     @Published var items: [HistoryItem] = []
+    @Published private(set) var isHistoryModified = false
     
     init(
         userDefaults: UserDefaults = .standard,
@@ -110,12 +112,14 @@ class HistoryStore: ObservableObject {
     ) {
         self.userDefaults = userDefaults
         self.storageKey = storageKey
+        self.modifiedKey = "\(storageKey).modified"
         load()
     }
     
     private func load() {
         guard let data = userDefaults.data(forKey: storageKey) else {
             items = []
+            isHistoryModified = userDefaults.bool(forKey: modifiedKey)
             return
         }
         if let decoded = try? JSONDecoder().decode([HistoryItem].self, from: data) {
@@ -123,12 +127,22 @@ class HistoryStore: ObservableObject {
         } else {
             items = []
         }
+        isHistoryModified = userDefaults.bool(forKey: modifiedKey)
     }
     
     func save() {
         if let encoded = try? JSONEncoder().encode(items) {
             userDefaults.set(encoded, forKey: storageKey)
         }
+    }
+
+    func setActiveProfileId(_ profileId: String) {
+        let nextStorageKey = "history.\(profileId)"
+        guard storageKey != nextStorageKey else { return }
+        migrateLegacyHistoryIfNeeded(to: profileId)
+        storageKey = nextStorageKey
+        modifiedKey = "history.\(profileId).modified"
+        load()
     }
     
     func add(
@@ -171,13 +185,60 @@ class HistoryStore: ObservableObject {
         items.insert(newItem, at: 0)
         save()
     }
+
+    func add(_ item: HistoryItem) {
+        items.insert(item, at: 0)
+        save()
+    }
     
     func clear() {
         items.removeAll()
         save()
+        markHistoryModified()
     }
     
     var totalScore: Int {
         items.reduce(0) { $0 + $1.score }
+    }
+
+    func delete(_ item: HistoryItem) {
+        items.removeAll { $0.id == item.id }
+        save()
+        markHistoryModified()
+    }
+
+    func deleteProfileData(profileId: String) {
+        let profileKey = "history.\(profileId)"
+        let profileModifiedKey = "history.\(profileId).modified"
+        userDefaults.removeObject(forKey: profileKey)
+        userDefaults.removeObject(forKey: profileModifiedKey)
+
+        if storageKey == profileKey {
+            items = []
+            isHistoryModified = false
+        }
+    }
+
+    private func markHistoryModified() {
+        guard isHistoryModified == false else { return }
+        isHistoryModified = true
+        userDefaults.set(true, forKey: modifiedKey)
+    }
+
+    private func migrateLegacyHistoryIfNeeded(to profileId: String) {
+        let legacyKey = "history"
+        let legacyModifiedKey = "history.modified"
+        let profileKey = "history.\(profileId)"
+        let profileModifiedKey = "history.\(profileId).modified"
+
+        guard let legacyData = userDefaults.data(forKey: legacyKey) else { return }
+        if userDefaults.data(forKey: profileKey) == nil {
+            userDefaults.set(legacyData, forKey: profileKey)
+            if userDefaults.object(forKey: legacyModifiedKey) != nil {
+                userDefaults.set(userDefaults.bool(forKey: legacyModifiedKey), forKey: profileModifiedKey)
+            }
+        }
+        userDefaults.removeObject(forKey: legacyKey)
+        userDefaults.removeObject(forKey: legacyModifiedKey)
     }
 }

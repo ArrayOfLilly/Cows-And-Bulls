@@ -10,8 +10,7 @@ import SwiftUI
 /// In-app learning reference that explains rules, scoring, and game options.
 /// In-app reference screen with localized explanations and themed bull/cow examples.
 struct LearnView: View {
-    @AppStorage("selectedBullAssetName") private var selectedBullAssetName = "Bull"
-    @AppStorage("selectedCowAssetName") private var selectedCowAssetName = "Cow"
+    @EnvironmentObject private var settingsStore: ProfileSettingsStore
 
     var body: some View {
         ScrollView {
@@ -88,10 +87,11 @@ struct LearnView: View {
                         Text(localized("learn.term.bull"))
                             .fontWeight(.bold)
                         Text("(")
-                        Image(selectedBullAssetName)
+                        Image(settingsStore.settings.selectedBullAssetName)
                             .resizable()
                             .scaledToFit()
                             .frame(width: 18, height: 18)
+                            .animalIconStyle(cornerRadius: 4)
                         Text(")")
                     }
                     Text(localized("learn.term.bull.description"))
@@ -103,10 +103,11 @@ struct LearnView: View {
                         Text(localized("learn.term.cow"))
                             .fontWeight(.bold)
                         Text("(")
-                        Image(selectedCowAssetName)
+                        Image(settingsStore.settings.selectedCowAssetName)
                             .resizable()
                             .scaledToFit()
                             .frame(width: 18, height: 18)
+                            .animalIconStyle(cornerRadius: 4)
                         Text(")")
                     }
                     Text(localized("learn.term.cow.description"))
@@ -185,6 +186,7 @@ struct LearnView: View {
                 optionRow(localized("learn.options.hard_mode.title"), localized("learn.options.hard_mode.desc"))
                 optionRow(localized("learn.options.show_steps.title"), localized("learn.options.show_steps.desc"))
                 optionRow(localized("learn.options.theming.title"), localized("learn.options.theming.desc"))
+                optionRow(localized("learn.options.profiles.title"), localized("learn.options.profiles.desc"))
                 optionRow(localized("learn.options.time_limit.title"), localized("learn.options.time_limit.desc"))
                 optionRow(localized("learn.options.per_game_time_limit.title"), localized("learn.options.per_game_time_limit.desc"))
                 optionRow(localized("learn.options.sound.title"), localized("learn.options.sound.desc"))
@@ -228,4 +230,5 @@ struct LearnView: View {
 
 #Preview {
     LearnView()
+        .environmentObject(ProfileSettingsStore())
 }

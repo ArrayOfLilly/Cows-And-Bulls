@@ -99,7 +99,7 @@ struct StatisticsTests {
         #expect(stats.mostUsedLength == 6)
     }
 
-    @Test("Average step duration uses real step entries only")
+    @Test("Average duration metrics include non-timed games too")
     func averageStepDurationWithoutPhantomZero() {
         let items = [
             createMockItem(
@@ -124,7 +124,7 @@ struct StatisticsTests {
                 hasPerGuessLimit: true,
                 guessDurations: [30]
             ),
-            // Non-timed entries must be excluded from duration metrics.
+            // Non-timed entries must also contribute to duration metrics.
             createMockItem(
                 won: true,
                 score: 50,
@@ -132,18 +132,18 @@ struct StatisticsTests {
                 length: 4,
                 hard: false,
                 repeats: false,
-                duration: 999,
+                duration: 50,
                 hasPerGuessLimit: false,
                 hasTotalTimeLimit: false,
-                guessDurations: [999, 999]
+                guessDurations: [40, 50]
             )
         ]
         let stats = StatisticsLogic(items: items)
 
-        #expect(stats.averageStepDuration == 20.0)
-        #expect(stats.averageStepDurationForWonGames == 15.0)
-        #expect(stats.averageDuration == 35.0)
-        #expect(stats.averageDurationForWonGames == 40.0)
+        #expect(stats.averageStepDuration == 30.0)
+        #expect(stats.averageStepDurationForWonGames == 30.0)
+        #expect(stats.averageDuration == 40.0)
+        #expect(stats.averageDurationForWonGames == 45.0)
     }
 
     @Test("Timeout and first-guess metrics are calculated correctly")
@@ -161,5 +161,75 @@ struct StatisticsTests {
         #expect(stats.firstGuessWinRate == 100.0)
         #expect(stats.timeoutLossesCount == 2)
         #expect(stats.timeoutRate == 50.0)
+    }
+
+    @Test("Empty statistics return neutral values")
+    func emptyStatistics() {
+        let stats = StatisticsLogic(items: [])
+
+        #expect(stats.totalGames == 0)
+        #expect(stats.averageScore == 0)
+        #expect(stats.averageSteps == 0)
+        #expect(stats.averageStepRatio == 0)
+        #expect(stats.winRate == 0)
+        #expect(stats.mostUsedMode == .none)
+        #expect(stats.mostUsedLength == nil)
+        #expect(stats.mostUsedRepeats == .none)
+        #expect(stats.mostUsedTimers == .none)
+        #expect(stats.fastestWin == nil)
+    }
+
+    @Test("Best win streak is evaluated in chronological order")
+    func bestWinStreakUsesChronologicalOrder() {
+        let itemsNewestFirst = [
+            createMockItem(won: true, score: 20, steps: 2, length: 4, hard: false, repeats: false),
+            createMockItem(won: true, score: 20, steps: 2, length: 4, hard: false, repeats: false),
+            createMockItem(won: false, score: 0, steps: 4, length: 4, hard: false, repeats: false),
+            createMockItem(won: true, score: 20, steps: 2, length: 4, hard: false, repeats: false)
+        ]
+        let stats = StatisticsLogic(items: itemsNewestFirst)
+
+        #expect(stats.bestWinStreak == 2)
+    }
+
+    @Test("Timed-game counters distinguish per-guess and total timers")
+    func timedGameBreakdown() {
+        let items = [
+            createMockItem(won: true, score: 10, steps: 1, length: 4, hard: false, repeats: false, hasPerGuessLimit: true),
+            createMockItem(won: true, score: 10, steps: 1, length: 4, hard: false, repeats: false, hasTotalTimeLimit: true),
+            createMockItem(won: true, score: 10, steps: 1, length: 4, hard: false, repeats: false, hasPerGuessLimit: true, hasTotalTimeLimit: true),
+            createMockItem(won: true, score: 10, steps: 1, length: 4, hard: false, repeats: false)
+        ]
+        let stats = StatisticsLogic(items: items)
+
+        #expect(stats.timedGamesCount == 3)
+        #expect(stats.perGuessTimedGamesCount == 2)
+        #expect(stats.perGameTimedGamesCount == 2)
+    }
+
+    @Test("Fastest win ignores losses")
+    func fastestWinIgnoresLosses() {
+        let items = [
+            createMockItem(won: false, score: 0, steps: 4, length: 4, hard: false, repeats: false, duration: 10),
+            createMockItem(won: true, score: 100, steps: 2, length: 4, hard: false, repeats: false, duration: 18),
+            createMockItem(won: true, score: 100, steps: 2, length: 4, hard: false, repeats: false, duration: 12)
+        ]
+        let stats = StatisticsLogic(items: items)
+
+        #expect(stats.fastestWin == 12)
+    }
+
+    @Test("Timer preference can report all timers as the most used setup")
+    func mostUsedTimersAll() {
+        let items = [
+            createMockItem(won: true, score: 10, steps: 1, length: 4, hard: false, repeats: false, hasPerGuessLimit: true, hasTotalTimeLimit: true),
+            createMockItem(won: true, score: 10, steps: 1, length: 4, hard: false, repeats: false, hasPerGuessLimit: true, hasTotalTimeLimit: true),
+            createMockItem(won: true, score: 10, steps: 1, length: 4, hard: false, repeats: false, hasPerGuessLimit: true, hasTotalTimeLimit: true),
+            createMockItem(won: true, score: 10, steps: 1, length: 4, hard: false, repeats: false, hasPerGuessLimit: true),
+            createMockItem(won: true, score: 10, steps: 1, length: 4, hard: false, repeats: false)
+        ]
+        let stats = StatisticsLogic(items: items)
+
+        #expect(stats.mostUsedTimers == .all)
     }
 }

@@ -10,56 +10,71 @@ import AppKit
 internal import Combine
 
 struct ContentView: View {
-    @AppStorage("maximumGuesses") private var maximumGuesses = 10
-    @AppStorage("showGuessCount") private var showGuessCount = false
-    @AppStorage("answerLength") private var answerLength = 4
-    @AppStorage("enableHardMode") private var enableHardMode = false
-    @AppStorage("enableRepeats") private var enableRepeats = false
-    @AppStorage("enableSoundEffects") private var enableSoundEffects = true
-    @AppStorage("soundEffectsVolume") private var soundEffectsVolume = 0.8
-    @AppStorage("enablePerGuessTimeLimit") private var enablePerGuessTimeLimit = false
-    @AppStorage("enableGameTimeLimit") private var enableGameTimeLimit = false
-    @AppStorage("perGuessTimeLimitSeconds") private var perGuessTimeLimitSeconds = 30
-    @AppStorage("gameTimeLimitSeconds") private var gameTimeLimitSeconds = 300
-    @AppStorage("selectedBullAssetName") private var selectedBullAssetName = "Bull"
-    @AppStorage("selectedCowAssetName") private var selectedCowAssetName = "Cow"
-    @AppStorage("gameInProgress") private var gameInProgress = false
-
     @EnvironmentObject private var historyStore: HistoryStore
-
-    @State private var answer = ""
-    @State private var guesses: [String] = []
-    @State private var guess = ""
-    @State private var currentRound = 0
-    @State private var isWon = false
-    @State private var isGameOver = false
-    @State private var isDisabledSubmitButton = false
-    @State private var guessInputErrorMessage = ""
-    @State private var showAnswer = ""
-    @State private var gameOverMessage = ""
-    @State private var perGuessRemainingSeconds = 0
-    @State private var gameRemainingSeconds = 0
+    @EnvironmentObject private var profileStore: ProfileStore
+    @EnvironmentObject private var settingsStore: ProfileSettingsStore
+    @EnvironmentObject private var gameSessionStore: GameSessionStore
+    @EnvironmentObject private var gameplayStore: GameplayStore
     @State private var perGuessTimerTask: Task<Void, Never>?
     @State private var gameTimerTask: Task<Void, Never>?
     
     
-    // Timing states
-    @State private var gameStartTime: Date?
-    @State private var lastGuessTime: Date?
-    @State private var guessDurations: [Int] = []
-    @State private var gameEndTime: Date?
-    @State private var timeoutEndReason: HistoryItem.EndReason?
     @State private var showSurrenderConfirmation = false
-    @State private var startedEnablePerGuessTimeLimit = false
-    @State private var startedEnableGameTimeLimit = false
-    @State private var startedPerGuessTimeLimitSeconds = 30
-    @State private var startedGameTimeLimitSeconds = 300
-    @State private var isPaused = false
-    @State private var pauseStartedAt: Date?
+    @State private var showNewProfileSheet = false
+    @State private var newProfileName = ""
+    @State private var lastSelectedProfileId = ""
+    @State private var pendingProfileSwitchId: String?
+    @State private var showProfileSwitchDialog = false
+    @State private var showWinAlert = false
+    @State private var showVictoryCelebration = false
+    @State private var victoryAnimationProgress: CGFloat = 0
+    @State private var victoryFrameIndex = 0
+    @State private var winAlertTask: Task<Void, Never>?
+    @State private var victoryFrameTask: Task<Void, Never>?
     
     @FocusState private var isGuessFieldFocused: Bool
 
     // MARK: - Computed Properties
+
+    private var settings: ProfileSettings { settingsStore.settings }
+    private var gameInProgress: Bool { gameSessionStore.gameInProgress }
+    private var answer: String { gameplayStore.answer }
+    private var guesses: [String] { gameplayStore.guesses }
+    private var guess: String {
+        get { gameplayStore.guess }
+        nonmutating set { gameplayStore.guess = newValue }
+    }
+    private var currentRound: Int { gameplayStore.currentRound }
+    private var isWon: Bool {
+        get { gameplayStore.isWon }
+        nonmutating set { gameplayStore.isWon = newValue }
+    }
+    private var isGameOver: Bool {
+        get { gameplayStore.isGameOver }
+        nonmutating set { gameplayStore.isGameOver = newValue }
+    }
+    private var isDisabledSubmitButton: Bool { gameplayStore.isDisabledSubmitButton }
+    private var guessInputErrorMessage: String { gameplayStore.guessInputErrorMessage }
+    private var showAnswer: String { gameplayStore.showAnswer }
+    private var gameOverMessage: String { gameplayStore.gameOverMessage }
+    private var perGuessRemainingSeconds: Int { gameSessionStore.perGuessRemainingSeconds }
+    private var gameRemainingSeconds: Int { gameSessionStore.gameRemainingSeconds }
+    private var guessDurations: [Int] { gameSessionStore.guessDurations }
+    private var timeoutEndReason: HistoryItem.EndReason? { gameSessionStore.timeoutEndReason }
+    private var isPaused: Bool { gameSessionStore.isPaused }
+    private var maximumGuesses: Int { settings.maximumGuesses }
+    private var showGuessCount: Bool { settings.showGuessCount }
+    private var answerLength: Int { settings.answerLength }
+    private var enableHardMode: Bool { settings.enableHardMode }
+    private var enableRepeats: Bool { settings.enableRepeats }
+    private var enableSoundEffects: Bool { settings.enableSoundEffects }
+    private var soundEffectsVolume: Double { settings.soundEffectsVolume }
+    private var enablePerGuessTimeLimit: Bool { settings.enablePerGuessTimeLimit }
+    private var enableGameTimeLimit: Bool { settings.enableGameTimeLimit }
+    private var perGuessTimeLimitSeconds: Int { settings.perGuessTimeLimitSeconds }
+    private var gameTimeLimitSeconds: Int { settings.gameTimeLimitSeconds }
+    private var selectedBullAssetName: String { settings.selectedBullAssetName }
+    private var selectedCowAssetName: String { settings.selectedCowAssetName }
 
     private var stats: StatisticsLogic {
         StatisticsLogic(items: historyStore.items)
@@ -86,6 +101,7 @@ struct ContentView: View {
     }
 
     private var scoreValue: Int {
+        let startedSnapshot = gameSessionStore.startedSettingsSnapshot ?? settings.gameplaySettingsSnapshot
         // Fairness rule: if timer settings were changed mid-game, use the lower score
         // between "started configuration" and "current configuration".
         let currentScore = scoreForTimers(
@@ -95,10 +111,10 @@ struct ContentView: View {
             gameSeconds: gameTimeLimitSeconds
         )
         let startedScore = scoreForTimers(
-            enablePerGuess: startedEnablePerGuessTimeLimit,
-            perGuessSeconds: startedPerGuessTimeLimitSeconds,
-            enableGame: startedEnableGameTimeLimit,
-            gameSeconds: startedGameTimeLimitSeconds
+            enablePerGuess: startedSnapshot.enablePerGuessTimeLimit,
+            perGuessSeconds: startedSnapshot.perGuessTimeLimitSeconds,
+            enableGame: startedSnapshot.enableGameTimeLimit,
+            gameSeconds: startedSnapshot.gameTimeLimitSeconds
         )
         return min(currentScore, startedScore)
     }
@@ -106,6 +122,55 @@ struct ContentView: View {
     private var isPerGuessLimitActive: Bool { enablePerGuessTimeLimit && perGuessTimeLimitSeconds > 0 }
     private var isGameLimitActive: Bool { enableGameTimeLimit && gameTimeLimitSeconds > 0 }
     private var isAnyTimerActive: Bool { isPerGuessLimitActive || isGameLimitActive }
+    private var canChangeProfile: Bool { gameInProgress == false }
+
+    private var profileSelection: Binding<String> {
+        Binding(
+            get: { profileStore.selectedProfileId },
+            set: { newValue in
+                if newValue == ProfileStore.newProfileSelectionId {
+                    showNewProfileSheet = true
+                    profileStore.selectProfile(id: lastSelectedProfileId)
+                    return
+                }
+                if canChangeProfile == false {
+                    pendingProfileSwitchId = newValue
+                    showProfileSwitchDialog = true
+                    profileStore.selectProfile(id: lastSelectedProfileId)
+                    return
+                }
+                applyProfileSwitch(to: newValue)
+            }
+        )
+    }
+
+    private var guessBinding: Binding<String> {
+        Binding(
+            get: { gameplayStore.guess },
+            set: { gameplayStore.guess = $0 }
+        )
+    }
+
+    private var isWonBinding: Binding<Bool> {
+        Binding(
+            get: { gameplayStore.isWon },
+            set: { gameplayStore.isWon = $0 }
+        )
+    }
+
+    private var isGameOverBinding: Binding<Bool> {
+        Binding(
+            get: { gameplayStore.isGameOver },
+            set: { gameplayStore.isGameOver = $0 }
+        )
+    }
+
+    private var showWinAlertBinding: Binding<Bool> {
+        Binding(
+            get: { showWinAlert },
+            set: { showWinAlert = $0 }
+        )
+    }
     
     private var gameModeMessage: String {
         var message = localized("game.mode.title") + " "
@@ -125,84 +190,35 @@ struct ContentView: View {
 
     // MARK: - Lifecycle
     
-    private func resetTimerDisplayToZero() {
-           perGuessRemainingSeconds = 0
-           gameRemainingSeconds     = 0
-       }
-
     private func startNewGame() {
+        hideVictoryCelebration()
         stopAllTimers()
-        perGuessRemainingSeconds = perGuessTimeLimitSeconds
-        gameRemainingSeconds    = gameTimeLimitSeconds
-        resetTimerDisplayToZero()
-        
-        guard answerLength >= 3 && answerLength <= 8 else {
-            guessInputErrorMessage = String(localized: "validation.answer_length_range")
-            return
-        }
-
-        showAnswer = ""
-        guess = ""
-        guesses.removeAll()
-        guessDurations.removeAll()
-        answer = GameLogic.generateAnswer(length: answerLength, allowRepeats: enableRepeats)
-        currentRound = 0
-        isDisabledSubmitButton = false
-        gameOverMessage = ""
-        gameInProgress = true
-        
-        // Mark starting timestamps
-        let now = Date()
-        gameStartTime = now
-        lastGuessTime = now
-        gameEndTime = nil
-        timeoutEndReason = nil
-        startedEnablePerGuessTimeLimit = enablePerGuessTimeLimit
-        startedEnableGameTimeLimit = enableGameTimeLimit
-        startedPerGuessTimeLimitSeconds = perGuessTimeLimitSeconds
-        startedGameTimeLimitSeconds = gameTimeLimitSeconds
-        isPaused = false
-        pauseStartedAt = nil
-        
+        gameSessionStore.resetSession()
+        gameplayStore.startNewGame(settings: settings)
+        guard gameplayStore.answer.isEmpty == false else { return }
+        gameSessionStore.beginGame(with: settings)
         startTimeLimits()
         focusGuessField()
     }
 
     private func submitGuess() {
-        let errors = validationErrors(for: guess, includeLengthError: true)
-        if errors.isEmpty == false {
-            guessInputErrorMessage = errors.joined(separator: "\n")
+        let result = gameplayStore.submitGuess(settings: settings, gameInProgress: gameInProgress)
+
+        if result == .invalid {
             focusGuessField(selectAll: true)
             return
         }
 
-        // Measure time taken for this guess
-        let now = Date()
-        let elapsed = now.timeIntervalSince(lastGuessTime ?? now)
-        guessDurations.insert(Int(elapsed.rounded()), at: 0) // Aligning with guesses order (newest first)
-        lastGuessTime = now
+        gameSessionStore.recordSubmittedGuess()
 
-        let counts = GameLogic.bullCowCounts(guess: guess, answer: answer)
-        withAnimation {
-            guesses.insert(guess, at: 0)
-        }
-        currentRound += 1
-
-        if counts.bulls == answerLength {
+        if result == .won {
             stopAllTimers()
-            gameEndTime = Date()
-            gameInProgress = false
-            isPaused = false
-            pauseStartedAt = nil
+            gameSessionStore.finishGame()
             SoundPlayer.shared.play(.win, enabled: enableSoundEffects, volume: soundEffectsVolume)
-            isWon = true
-        } else if currentRound == maximumGuesses {
+            playVictoryCelebration()
+        } else if result == .lost {
             stopAllTimers()
-            gameEndTime = Date()
-            gameInProgress = false
-            isPaused = false
-            pauseStartedAt = nil
-            gameOverMessage = localized("alert.lose.message", answer)
+            gameSessionStore.finishGame()
             SoundPlayer.shared.play(.lose, enabled: enableSoundEffects, volume: soundEffectsVolume)
             isGameOver = true
         } else {
@@ -210,69 +226,25 @@ struct ContentView: View {
             restartPerGuessTimeLimit()
         }
 
-        guess = ""
         focusGuessField()
     }
 
     private func updateLiveGuessValidation() {
-        guard guess.isEmpty == false else {
-            guessInputErrorMessage = ""
-            return
-        }
-        let errors = validationErrors(for: guess, includeLengthError: false)
-        // Length validation is intentionally omitted while typing.
-        guessInputErrorMessage = errors.joined(separator: "\n")
-    }
-
-    private func validationErrors(for guess: String, includeLengthError: Bool) -> [String] {
-        var messages: [String] = []
-
-        if includeLengthError && guess.count != answerLength {
-            messages.append(localized("validation.answer_length", answerLength))
-        }
-
-        let badCharacters = CharacterSet(charactersIn: "0123456789").inverted
-        if guess.rangeOfCharacter(from: badCharacters) != nil {
-            messages.append(String(localized: "validation.only_digits"))
-        }
-
-        if enableRepeats == false {
-            if Set(guess).count != guess.count {
-                messages.append(String(localized: "validation.no_repeats"))
-            }
-
-            if guess.count == answerLength && guesses.contains(guess) {
-                messages.append(String(localized: "validation.already_guessed"))
-            }
-        }
-
-        return messages
+        gameplayStore.updateLiveGuessValidation(settings: settings)
     }
 
     private func saveGameToHistory(finalState: Bool, score: Int, endReason: HistoryItem.EndReason = .completed) {
-        // Do not store rounds that ended before any guess was submitted.
-        guard guesses.isEmpty == false || endReason == .surrender else { return }
-        guard let gameStartTime else { return }
-        let totalDuration = max(0, (gameEndTime ?? Date()).timeIntervalSince(gameStartTime))
-        
-        historyStore.add(
+        guard let item = gameSessionStore.makeHistoryItem(
             finalState: finalState,
             answer: answer,
-            steps: guesses.count,
-            score: score,
-            maxSteps: maximumGuesses,
-            hardMode: enableHardMode,
-            enableRepeats: enableRepeats,
             guesses: guesses,
-            guessResults: guesses.map { GameLogic.encodedResult(guess: $0, answer: answer) },
-            duration: totalDuration,
-            hasPerGuessLimit: enablePerGuessTimeLimit,
-            hasTotalTimeLimit: enableGameTimeLimit,
-            perGuessLimit: perGuessTimeLimitSeconds,
-            totalTimeLimit: gameTimeLimitSeconds,
-            guessDurations: guessDurations,
+            score: score,
+            currentSettings: settings,
             endReason: endReason
-        )
+        ) else {
+            return
+        }
+        historyStore.add(item)
     }
 
     // MARK: - Timers
@@ -286,11 +258,9 @@ struct ContentView: View {
 
     private func startTimeLimits() {
         if isPerGuessLimitActive {
-            perGuessRemainingSeconds = perGuessTimeLimitSeconds
             startPerGuessTimer()
         }
         if isGameLimitActive {
-            gameRemainingSeconds = gameTimeLimitSeconds
             startGameTimer()
         }
     }
@@ -312,9 +282,7 @@ struct ContentView: View {
                 try? await Task.sleep(for: .seconds(1))
                 if Task.isCancelled { return }
                 await MainActor.run {
-                    if perGuessRemainingSeconds > 0 {
-                        perGuessRemainingSeconds -= 1
-                    } else {
+                    if gameSessionStore.tickPerGuessSecond() {
                         handleTimeLimitExpired(.perGuess)
                     }
                 }
@@ -329,9 +297,7 @@ struct ContentView: View {
                 try? await Task.sleep(for: .seconds(1))
                 if Task.isCancelled { return }
                 await MainActor.run {
-                    if gameRemainingSeconds > 0 {
-                        gameRemainingSeconds -= 1
-                    } else {
+                    if gameSessionStore.tickGameSecond() {
                         handleTimeLimitExpired(.game)
                     }
                 }
@@ -343,50 +309,101 @@ struct ContentView: View {
 
     private func handleTimeLimitExpired(_ type: TimeLimitType) {
         stopAllTimers()
-        gameEndTime = Date()
-        gameInProgress = false
-        isPaused = false
-        pauseStartedAt = nil
-        timeoutEndReason = type == .perGuess ? .timeoutPerGuess : .timeoutGame
-        gameOverMessage = type == .perGuess
-            ? localized("alert.per_guess_timeout.message", answer)
-            : localized("alert.game_timeout.message", answer)
+        gameSessionStore.markTimeout(type == .perGuess ? .timeoutPerGuess : .timeoutGame)
+        if guesses.isEmpty {
+            endGameWithoutResult()
+            return
+        }
+        gameplayStore.presentGameOver(
+            message: type == .perGuess
+                ? localized("alert.per_guess_timeout.message", answer)
+                : localized("alert.game_timeout.message", answer)
+        )
         SoundPlayer.shared.play(.lose, enabled: enableSoundEffects, volume: soundEffectsVolume)
-        isGameOver = true
     }
 
     private func restartPerGuessTimeLimit() {
-        perGuessRemainingSeconds = perGuessTimeLimitSeconds
+        gameSessionStore.restartPerGuessTimer(seconds: perGuessTimeLimitSeconds)
     }
 
     private func togglePause() {
         guard isAnyTimerActive, isWon == false, isGameOver == false else { return }
         if isPaused {
-            if let pauseStartedAt {
-                // Shift timestamps forward so paused time is excluded from durations/scoring.
-                let pauseDuration = Date().timeIntervalSince(pauseStartedAt)
-                gameStartTime = gameStartTime?.addingTimeInterval(pauseDuration)
-                lastGuessTime = lastGuessTime?.addingTimeInterval(pauseDuration)
-            }
-            pauseStartedAt = nil
-            isPaused = false
+            gameSessionStore.resume()
             resumeTimeLimitsAfterPause()
             focusGuessField()
         } else {
             stopAllTimers()
-            pauseStartedAt = Date()
-            isPaused = true
+            gameSessionStore.pause()
         }
     }
 
-    private func surrenderGame() {
+    private func pauseForWindowClose() {
+        guard isWon == false, isGameOver == false else { return }
         stopAllTimers()
-        gameEndTime = Date()
-        gameInProgress = false
-        timeoutEndReason = .surrender
-        gameOverMessage = localized("alert.surrender.message", answer)
+        gameSessionStore.pause(dueToWindowClose: true)
+    }
+
+    private func resumeAfterWindowCloseIfNeeded() {
+        guard gameSessionStore.resumeAfterWindowCloseIfNeeded() else { return }
+        if isAnyTimerActive {
+            resumeTimeLimitsAfterPause()
+        }
+        focusGuessField()
+    }
+
+    private func surrenderGame() {
+        guard gameInProgress, guesses.isEmpty == false, isWon == false, isGameOver == false else { return }
+        stopAllTimers()
+        gameSessionStore.markSurrender()
+        gameplayStore.presentGameOver(message: localized("alert.surrender.message", answer))
         SoundPlayer.shared.play(.lose, enabled: enableSoundEffects, volume: soundEffectsVolume)
-        isGameOver = true
+    }
+
+    private func endGameWithoutResult() {
+        stopAllTimers()
+        gameSessionStore.resetSession()
+        gameplayStore.reset()
+    }
+
+    private func profilePickerHelpText() -> String {
+        if gameInProgress && guesses.isEmpty == false {
+            return localized("profile.switch.disabled.in_progress")
+        }
+        if gameInProgress {
+            return localized("profile.switch.disabled.in_progress")
+        }
+        return ""
+    }
+
+    private func applyProfileSwitch(to profileId: String) {
+        profileStore.selectProfile(id: profileId)
+        lastSelectedProfileId = profileId
+        resetGameSession()
+    }
+
+    private func resetGameSession() {
+        hideVictoryCelebration()
+        stopAllTimers()
+        gameSessionStore.resetSession()
+        gameplayStore.reset()
+    }
+
+    private func surrenderForProfileSwitch() {
+        guard guesses.isEmpty == false else {
+            resetGameSession()
+            return
+        }
+        stopAllTimers()
+        gameSessionStore.markSurrender()
+        saveGameToHistory(finalState: false, score: 0, endReason: .surrender)
+        resetGameSession()
+    }
+
+    private func pauseGameForProfileSwitch() {
+        guard gameInProgress, isWon == false, isGameOver == false else { return }
+        stopAllTimers()
+        gameSessionStore.pause()
     }
 
     private func focusGuessField(selectAll: Bool = false) {
@@ -394,6 +411,51 @@ struct ContentView: View {
             isGuessFieldFocused = true
             if selectAll { NSApp.sendAction(#selector(NSText.selectAll(_:)), to: nil, from: nil) }
         }
+    }
+
+    private func playVictoryCelebration() {
+        let duration = VictoryCowOverlay.animationDuration
+        winAlertTask?.cancel()
+        victoryFrameTask?.cancel()
+        showWinAlert = false
+        victoryAnimationProgress = 0
+        victoryFrameIndex = 0
+        showVictoryCelebration = true
+        DispatchQueue.main.async {
+            withAnimation(.linear(duration: duration)) {
+                victoryAnimationProgress = 1
+            }
+        }
+        victoryFrameTask = Task {
+            while Task.isCancelled == false {
+                try? await Task.sleep(for: .seconds(0.10))
+                guard Task.isCancelled == false else { return }
+                await MainActor.run {
+                    victoryFrameIndex = (victoryFrameIndex + 1) % VictoryCowOverlay.assetCount
+                }
+            }
+        }
+        winAlertTask = Task {
+            try? await Task.sleep(for: .seconds(duration))
+            guard Task.isCancelled == false else { return }
+            await MainActor.run {
+                showVictoryCelebration = false
+                victoryAnimationProgress = 0
+                victoryFrameIndex = 0
+                isWon = true
+                showWinAlert = true
+            }
+        }
+    }
+
+    private func hideVictoryCelebration() {
+        winAlertTask?.cancel()
+        winAlertTask = nil
+        victoryFrameTask?.cancel()
+        victoryFrameTask = nil
+        showVictoryCelebration = false
+        victoryAnimationProgress = 0
+        victoryFrameIndex = 0
     }
 
     // MARK: - UI
@@ -406,23 +468,125 @@ struct ContentView: View {
         }
         .frame(minWidth: 450, idealWidth: 450)
         .frame(minHeight: 600, idealHeight: 600)
+        .onAppear {
+            if lastSelectedProfileId.isEmpty {
+                lastSelectedProfileId = profileStore.selectedProfileId
+            }
+        }
+        .background(
+            WindowCloseHandler(
+                shouldPromptOnClose: {
+                    gameInProgress && guesses.isEmpty == false && isWon == false && isGameOver == false
+                },
+                onPause: {
+                    pauseForWindowClose()
+                },
+                onGiveUp: {
+                    surrenderGame()
+                },
+                onResume: {
+                    resumeAfterWindowCloseIfNeeded()
+                }
+            )
+        )
+        .onChange(of: profileStore.selectedProfileId) {
+            lastSelectedProfileId = profileStore.selectedProfileId
+        }
+        .sheet(isPresented: $showNewProfileSheet) {
+            NewProfileSheet(
+                name: $newProfileName,
+                onCreate: { name in
+                    profileStore.createProfile(named: name)
+                    newProfileName = ""
+                    showNewProfileSheet = false
+                },
+                onCancel: {
+                    newProfileName = ""
+                    showNewProfileSheet = false
+                }
+            )
+        }
     }
 
     private var gameTab: some View {
         VStack(spacing: 0) {
-            headerSection
-            inputSection
-            guessesListSection
-            footerSection
+            VStack(spacing: 0) {
+                GameHeaderSection(
+                    profiles: profileStore.profiles,
+                    profileSelection: profileSelection,
+                    canChangeProfile: canChangeProfile,
+                    profilePickerHelpText: profilePickerHelpText(),
+                    gameModeMessage: gameModeMessage,
+                    averageSteps: stats.averageSteps,
+                    bestWinStreak: stats.bestWinStreak,
+                    selectedBullAssetName: selectedBullAssetName,
+                    selectedCowAssetName: selectedCowAssetName,
+                    isAnyTimerActive: isAnyTimerActive,
+                    isPerGuessLimitActive: isPerGuessLimitActive,
+                    isGameLimitActive: isGameLimitActive,
+                    perGuessRemainingSeconds: perGuessRemainingSeconds,
+                    gameRemainingSeconds: gameRemainingSeconds,
+                    isPaused: isPaused,
+                    onTogglePause: togglePause
+                )
+                GameInputSection(
+                    guessBinding: guessBinding,
+                    isPaused: isPaused,
+                    isDisabledSubmitButton: isDisabledSubmitButton,
+                    guessInputErrorMessage: guessInputErrorMessage,
+                    onSubmitGuess: submitGuess,
+                    focusBinding: $isGuessFieldFocused
+                )
+            }
+            .frame(maxWidth: .infinity)
+            .background(headerBackground)
+
+            GuessesListSection(
+                guesses: guesses,
+                guessDurations: guessDurations,
+                answer: answer,
+                selectedBullAssetName: selectedBullAssetName,
+                selectedCowAssetName: selectedCowAssetName
+            )
+
+            GameFooterSection(
+                showGuessCount: showGuessCount,
+                guessesCount: guesses.count,
+                maximumGuesses: maximumGuesses,
+                canSurrender: gameInProgress && !guesses.isEmpty && !isWon && !isGameOver,
+                onSurrender: {
+                    showSurrenderConfirmation = true
+                },
+                onRestart: startNewGame
+            )
+                .frame(maxWidth: .infinity)
         }
-        .onAppear { if answer.isEmpty { startNewGame() } }
-        .onChange(of: enablePerGuessTimeLimit) {
-            startNewGame()
+        .overlay {
+            if showVictoryCelebration {
+                VictoryCowOverlay(
+                    progress: victoryAnimationProgress,
+                    frameIndex: victoryFrameIndex
+                )
+                    .zIndex(10)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+                    .transition(.identity)
+            }
         }
-        .onChange(of: enableGameTimeLimit) {
-            startNewGame()
+        .onAppear {
+            if answer.isEmpty {
+                resetGameSession()
+            }
+        }
+        .onDisappear {
+            hideVictoryCelebration()
         }
         .onChange(of: guess) {
+            if gameInProgress == false, guess.isEmpty == false {
+                let pendingGuess = guess
+                startNewGame()
+                guess = pendingGuess
+            }
             updateLiveGuessValidation()
         }
         .confirmationDialog(localized("game.surrender.title"), isPresented: $showSurrenderConfirmation, titleVisibility: .visible) {
@@ -433,117 +597,360 @@ struct ContentView: View {
         } message: {
             Text(localized("game.surrender.message"))
         }
-        .alert(localized("game.alert.win.title"), isPresented: $isWon) {
+        .confirmationDialog(localized("profile.switch.confirm.title"), isPresented: $showProfileSwitchDialog, titleVisibility: .visible) {
+            Button(localized("profile.switch.confirm.surrender"), role: .destructive) {
+                surrenderForProfileSwitch()
+                if let pendingProfileSwitchId {
+                    applyProfileSwitch(to: pendingProfileSwitchId)
+                }
+                pendingProfileSwitchId = nil
+            }
+            .accessibilityIdentifier("profileSwitchSurrender")
+            Button(localized("profile.switch.confirm.pause")) {
+                pauseGameForProfileSwitch()
+                pendingProfileSwitchId = nil
+            }
+            .accessibilityIdentifier("profileSwitchPause")
+            Button(localized("common.action.cancel"), role: .cancel) {
+                pendingProfileSwitchId = nil
+            }
+            .accessibilityIdentifier("profileSwitchCancel")
+        } message: {
+            Text(localized("profile.switch.confirm.message"))
+        }
+        .alert(localized("game.alert.win.title"), isPresented: showWinAlertBinding) {
             Button(localized("common.action.play_again")) {
+                hideVictoryCelebration()
+                showWinAlert = false
                 saveGameToHistory(finalState: true, score: scoreValue, endReason: .completed)
                 startNewGame()
             }
             Button(localized("common.action.ok")) {
-                isDisabledSubmitButton = true
+                hideVictoryCelebration()
+                showWinAlert = false
+                gameplayStore.finalizeWin()
                 saveGameToHistory(finalState: true, score: scoreValue, endReason: .completed)
             }
         } message: { Text(localized("alert.win.message", guesses.count, scoreValue)) }
-        .alert(localized("game.alert.lose.title"), isPresented: $isGameOver) {
+        .alert(localized("game.alert.lose.title"), isPresented: isGameOverBinding) {
             Button(localized("common.action.play_again")) {
                 saveGameToHistory(finalState: false, score: 0, endReason: timeoutEndReason ?? .completed)
                 startNewGame()
             }
             Button(localized("common.action.ok")) {
-                isDisabledSubmitButton = true
-                showAnswer = localized("game.answer_was", answer)
+                gameplayStore.finalizeLoss()
                 saveGameToHistory(finalState: false, score: 0, endReason: timeoutEndReason ?? .completed)
             }
         } message: { Text(gameOverMessage.isEmpty ? localized("alert.lose.message", answer) : gameOverMessage) }
         .tabItem { Label(localized("tab.game"), systemImage: "gamecontroller") }
     }
 
-    private var headerSection: some View {
+    private var headerBackground: some View {
+        Image("background")
+            .resizable()
+            .scaledToFill()
+            .opacity(0.05)
+            .allowsHitTesting(false)
+            .clipped()
+    }
+
+}
+
+private struct GameHeaderSection: View {
+    let profiles: [PlayerProfile]
+    let profileSelection: Binding<String>
+    let canChangeProfile: Bool
+    let profilePickerHelpText: String
+    let gameModeMessage: String
+    let averageSteps: Double
+    let bestWinStreak: Int
+    let selectedBullAssetName: String
+    let selectedCowAssetName: String
+    let isAnyTimerActive: Bool
+    let isPerGuessLimitActive: Bool
+    let isGameLimitActive: Bool
+    let perGuessRemainingSeconds: Int
+    let gameRemainingSeconds: Int
+    let isPaused: Bool
+    let onTogglePause: () -> Void
+
+    var body: some View {
         VStack(spacing: 4) {
+            ProfilePickerRow(
+                profiles: profiles,
+                selection: profileSelection,
+                canChangeProfile: canChangeProfile,
+                helpText: profilePickerHelpText
+            )
+
             Text(gameModeMessage)
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .padding(.bottom, 4)
+
             HStack(spacing: 12) {
-                Text(localized("game.header.avg_steps", stats.averageSteps, ))
+                Text(localized("game.header.avg_steps", averageSteps))
                     .padding(.trailing, 10)
-                Text(localized("game.header.best_streak", stats.bestWinStreak))
+                Text(localized("game.header.best_streak", bestWinStreak))
             }
             .font(.caption2)
             .foregroundStyle(.secondary)
             .padding(.bottom, 4)
-            
+
             HStack(spacing: 12) {
                 Text(localized("settings.theme.label"))
-                Image(selectedBullAssetName).resizable().frame(width: 20, height: 20)
-                Image(selectedCowAssetName).resizable().frame(width: 20, height: 20)
+                Image(selectedBullAssetName)
+                    .resizable()
+                    .frame(width: 20, height: 20)
+                    .animalIconStyle(cornerRadius: 6)
+                Image(selectedCowAssetName)
+                    .resizable()
+                    .frame(width: 20, height: 20)
+                    .animalIconStyle(cornerRadius: 6)
             }
             .padding(.bottom, 4)
 
-            
             if isAnyTimerActive {
-                HStack(spacing: 12) {
-                    if isPerGuessLimitActive {
-                        Label(GameLogic.formatTime(perGuessRemainingSeconds), systemImage: "timer")
-                    }
-                    if isGameLimitActive {
-                        Label(GameLogic.formatTime(gameRemainingSeconds), systemImage: "hourglass")
-                    }
-                    Button(isPaused ? localized("game.timer.resume") : localized("game.timer.pause")) {
-                        togglePause()
-                    }
-                }
-                .font(.system(.body, design: .monospaced))
-                .foregroundStyle(.orange)
+                TimerStatusBar(
+                    isPerGuessLimitActive: isPerGuessLimitActive,
+                    isGameLimitActive: isGameLimitActive,
+                    perGuessRemainingSeconds: perGuessRemainingSeconds,
+                    gameRemainingSeconds: gameRemainingSeconds,
+                    isPaused: isPaused,
+                    onTogglePause: onTogglePause
+                )
             }
         }
         .padding(.top, 12)
     }
+}
 
-    private var inputSection: some View {
+private struct ProfilePickerRow: View {
+    let profiles: [PlayerProfile]
+    let selection: Binding<String>
+    let canChangeProfile: Bool
+    let helpText: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(localized("profile.label"))
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            Picker(localized("profile.label"), selection: selection) {
+                ForEach(profiles) { profile in
+                    Text(profile.name).tag(profile.id)
+                }
+                Divider()
+                Text(localized("profile.new.picker")).tag(ProfileStore.newProfileSelectionId)
+            }
+            .labelsHidden()
+            .pickerStyle(.menu)
+            .disabled(canChangeProfile == false)
+            .help(helpText)
+            .accessibilityIdentifier("profilePicker")
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("profilePickerRow")
+    }
+}
+
+private struct TimerStatusBar: View {
+    let isPerGuessLimitActive: Bool
+    let isGameLimitActive: Bool
+    let perGuessRemainingSeconds: Int
+    let gameRemainingSeconds: Int
+    let isPaused: Bool
+    let onTogglePause: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            if isPerGuessLimitActive {
+                Label(GameLogic.formatTime(perGuessRemainingSeconds), systemImage: "timer")
+            }
+            if isGameLimitActive {
+                Label(GameLogic.formatTime(gameRemainingSeconds), systemImage: "hourglass")
+            }
+            Button(isPaused ? localized("game.timer.resume") : localized("game.timer.pause")) {
+                onTogglePause()
+            }
+        }
+        .font(.system(.body, design: .monospaced))
+        .foregroundStyle(.orange)
+        .accessibilityIdentifier("timerStatusBar")
+    }
+}
+
+private struct GameInputSection: View {
+    let guessBinding: Binding<String>
+    let isPaused: Bool
+    let isDisabledSubmitButton: Bool
+    let guessInputErrorMessage: String
+    let onSubmitGuess: () -> Void
+    let focusBinding: FocusState<Bool>.Binding
+
+    var body: some View {
         VStack {
-            HStack {
-                TextField(localized("game.input.placeholder"), text: $guess)
-                    .focused($isGuessFieldFocused)
-                    .onSubmit(submitGuess)
+            HStack(spacing: 12) {
+                TextField(localized("game.input.placeholder"), text: guessBinding)
+                    .focused(focusBinding)
+                    .onSubmit(onSubmitGuess)
                     .textFieldStyle(.roundedBorder)
                     .disabled(isPaused)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityIdentifier("guessInputField")
 
-                Button(localized("game.input.submit"), action: submitGuess)
+                Button(localized("game.input.submit"), action: onSubmitGuess)
                     .disabled(isDisabledSubmitButton || isPaused)
-                   // .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("submitGuessButton")
             }
-            .padding(.horizontal, 60)
-            
+            .padding(.horizontal, 16)
+            .frame(maxWidth: 360)
+
             Text(guessInputErrorMessage)
                 .font(.caption)
                 .foregroundStyle(.red)
                 .frame(minHeight: 14, alignment: .top)
+                .accessibilityHidden(guessInputErrorMessage.isEmpty)
+                .accessibilityValue(guessInputErrorMessage)
+                .accessibilityIdentifier("guessInputError")
         }
-        .padding(.vertical, 10)
+        .padding(.top, 8)
+        .padding(.bottom, 10)
     }
+}
 
-    private var guessesListSection: some View {
+private struct GuessesListSection: View {
+    let guesses: [String]
+    let guessDurations: [Int]
+    let answer: String
+    let selectedBullAssetName: String
+    let selectedCowAssetName: String
+
+    var body: some View {
         List(0..<guesses.count, id: \.self) { index in
             let attempt = guesses[index]
             let duration = index < guessDurations.count ? guessDurations[index] : 0
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(attempt).monospaced()
+                    Text(formattedGuessDisplay(attempt))
+                        .font(.system(size: 20, weight: .semibold, design: .monospaced))
+                        .kerning(1)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                        .frame(width: guessDisplayWidth, alignment: .leading)
                     Text(GameLogic.formatDuration(TimeInterval(duration)))
                         .font(.system(size: 9))
                         .listStyle(.sidebar)
                 }
                 Spacer()
-                bullCowResultView(for: attempt)
+                GuessResultIconsView(
+                    guess: attempt,
+                    answer: answer,
+                    bullAssetName: selectedBullAssetName,
+                    cowAssetName: selectedCowAssetName
+                )
             }
         }
         .listStyle(.sidebar)
+        .background(Color(nsColor: .windowBackgroundColor))
+        .accessibilityIdentifier("guessesList")
     }
 
-    private var footerSection: some View {
+    private var guessDisplayWidth: CGFloat { 72 }
+
+    private func formattedGuessDisplay(_ guess: String) -> String {
+        guard guess.count > 4 else { return guess }
+        let splitIndex = guess.index(guess.startIndex, offsetBy: 4)
+        return String(guess[..<splitIndex]) + "\n" + String(guess[splitIndex...])
+    }
+}
+
+private struct GuessResultIconsView: View {
+    let guess: String
+    let answer: String
+    let bullAssetName: String
+    let cowAssetName: String
+
+    var body: some View {
+        let counts = GameLogic.bullCowCounts(guess: guess, answer: answer)
+        let iconNames = Array(repeating: bullAssetName, count: counts.bulls)
+            + Array(repeating: cowAssetName, count: counts.cows)
+
+        if iconNames.isEmpty {
+            Text("0").foregroundStyle(.secondary)
+        } else if guess.count > 4 {
+            VStack(alignment: .trailing, spacing: 4) {
+                iconRow(iconNames.prefix(4))
+                iconRow(iconNames.dropFirst(4))
+            }
+        } else {
+            iconRow(iconNames[...])
+        }
+    }
+
+    private func iconRow(_ icons: ArraySlice<String>) -> some View {
+        HStack(spacing: 6) {
+            ForEach(Array(icons.enumerated()), id: \.offset) { _, name in
+                Image(name)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 34, height: 34)
+                    .animalIconStyle(cornerRadius: 6)
+            }
+        }
+    }
+}
+
+private struct VictoryCowOverlay: View {
+    static let animationDuration: TimeInterval = 2.8
+    static let assetCount = 4
+
+    let progress: CGFloat
+    let frameIndex: Int
+    private let assetNames = [
+        "Walking Cow frame 1",
+        "Walking Cow frame 2",
+        "Walking Cow frame 3",
+        "Walking Cow frame 4",
+    ]
+
+    var body: some View {
+        GeometryReader { proxy in
+            let clampedProgress = min(max(progress, 0), 1)
+            let cowSize = min(max(proxy.size.width * 0.18, 110), 180)
+            let startX = -cowSize * 0.7
+            let endX = proxy.size.width + cowSize * 0.4
+            let x = startX + (endX - startX) * clampedProgress
+            let startY = proxy.size.height * 0.88
+            let endY = proxy.size.height * 0.18
+            let diagonalY = startY + (endY - startY) * clampedProgress
+            let arcLift = sin(clampedProgress * .pi) * proxy.size.height * 0.10
+            let bob = sin(clampedProgress * .pi * 8) * 5
+            let y = diagonalY - arcLift + bob
+
+            Image(assetNames[frameIndex % assetNames.count])
+                .resizable()
+                .scaledToFit()
+                .frame(width: cowSize, height: cowSize)
+                .shadow(color: .black.opacity(0.12), radius: 6, y: 4)
+                .position(x: x, y: y)
+                .zIndex(10)
+        }
+    }
+}
+
+private struct GameFooterSection: View {
+    let showGuessCount: Bool
+    let guessesCount: Int
+    let maximumGuesses: Int
+    let canSurrender: Bool
+    let onSurrender: () -> Void
+    let onRestart: () -> Void
+
+    var body: some View {
         VStack {
             if showGuessCount {
-                Text(localized("Guesses: %lld/%lld", guesses.count, maximumGuesses))
+                Text(localized("Guesses: %lld/%lld", guessesCount, maximumGuesses))
                     .foregroundStyle(.secondary)
                     .padding(.top, 10)
                     .padding(.bottom, 5)
@@ -551,26 +958,51 @@ struct ContentView: View {
 
             HStack(spacing: 12) {
                 Button(localized("game.action.surrender")) {
-                    showSurrenderConfirmation = true
+                    onSurrender()
                 }
                 .foregroundStyle(Color(red: 1.0, green: 0.27, blue: 0.0))
-                .disabled(isWon || isGameOver)
+                .disabled(canSurrender == false)
 
-                Button(localized("game.action.restart"), action: startNewGame)
+                Button(localized("game.action.restart"), action: onRestart)
                     .foregroundStyle(.blue)
             }
             .padding(.bottom, 20)
         }
     }
+}
 
-    @ViewBuilder
-    private func bullCowResultView(for guess: String) -> some View {
-        let counts = GameLogic.bullCowCounts(guess: guess, answer: answer)
-        HStack(spacing: 4) {
-            ForEach(0..<counts.bulls, id: \.self) { _ in Image(selectedBullAssetName).resizable().frame(width: 24, height: 24) }
-            ForEach(0..<counts.cows, id: \.self) { _ in Image(selectedCowAssetName).resizable().frame(width: 24, height: 24) }
-            if counts.bulls == 0 && counts.cows == 0 { Text("0").foregroundStyle(.secondary) }
+private struct NewProfileSheet: View {
+    @Binding var name: String
+    let onCreate: (String) -> Void
+    let onCancel: () -> Void
+
+    @FocusState private var isNameFocused: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(localized("profile.new.title"))
+                .font(.headline)
+
+            TextField(localized("profile.new.placeholder"), text: $name)
+                .textFieldStyle(.roundedBorder)
+                .focused($isNameFocused)
+                .accessibilityIdentifier("newProfileNameField")
+
+            HStack {
+                Spacer()
+                Button(localized("common.action.cancel"), role: .cancel, action: onCancel)
+                    .accessibilityIdentifier("newProfileCancel")
+                Button(localized("profile.new.action")) {
+                    onCreate(name)
+                }
+                .keyboardShortcut(.defaultAction)
+                .accessibilityIdentifier("newProfileCreate")
+            }
+        }
+        .padding()
+        .frame(width: 320)
+        .onAppear {
+            isNameFocused = true
         }
     }
-        
 }

@@ -45,7 +45,10 @@ struct GameLogic {
             ? pow(10.0, Double(codeLength))
             : permutation(10, codeLength)
         // Log scaling keeps score growth manageable when code length increases.
+        guard (3...8).contains(codeLength) else { return 0 }
+        guard combinations > 0 else { return 0 }
         let baseScore = log10(combinations) * 100.0
+        guard baseScore.isFinite else { return 0 }
 
         let standardGuesses = 3 * codeLength
 
@@ -71,11 +74,13 @@ struct GameLogic {
         )
 
         var finalScore = baseScore * difficulty * performanceMultiplier * timeMult
-            
+
         if usedGuesses == 1 {
             // First-guess jackpot is intentionally large to strongly reward perfect starts.
             finalScore += baseScore * 10.0
         }
+
+        guard finalScore.isFinite else { return 0 }
         return Int(finalScore.rounded())
     }
     
@@ -141,6 +146,11 @@ struct GameLogic {
     static func bullCowCounts(guess: String, answer: String) -> (bulls: Int, cows: Int) {
         let guessLetters = Array(guess)
         let answerLetters = Array(answer)
+
+        // Defensive check: mismatched lengths would otherwise crash when indexing.
+        guard guessLetters.count == answerLetters.count else {
+            return (0, 0)
+        }
 
         var bulls = 0
         var cows = 0
