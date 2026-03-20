@@ -112,9 +112,128 @@ final class CowsAndBullsUITests: XCTestCase {
         waitForExpectations(timeout: 5)
     }
 
+    func testSettingsGameplayControlsLockDuringActiveGame() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        let guessField = app.descendants(matching: .any).matching(identifier: "guessInputField").firstMatch
+        XCTAssertTrue(guessField.waitForExistence(timeout: 2))
+
+        guessField.click()
+        app.typeText("1")
+
+        openSettings(app: app)
+
+        let settingsRoot = app.descendants(matching: .any).matching(identifier: "settingsRoot").firstMatch
+        XCTAssertTrue(settingsRoot.waitForExistence(timeout: 2))
+
+        let gameTab = app.buttons["Game"]
+        XCTAssertTrue(gameTab.waitForExistence(timeout: 2))
+        gameTab.click()
+
+        let celebrationToggle = app.descendants(matching: .any).matching(identifier: "settingsEnableCelebrationToggle").firstMatch
+        XCTAssertTrue(celebrationToggle.waitForExistence(timeout: 2))
+        XCTAssertFalse(celebrationToggle.isEnabled)
+
+        let maximumGuessesField = app.descendants(matching: .any).matching(identifier: "settingsMaximumGuessesField").firstMatch
+        XCTAssertTrue(maximumGuessesField.waitForExistence(timeout: 2))
+        XCTAssertFalse(maximumGuessesField.isEnabled)
+
+        let soundTab = app.buttons["Sound"]
+        XCTAssertTrue(soundTab.waitForExistence(timeout: 2))
+        soundTab.click()
+
+        let soundToggle = app.descendants(matching: .any).matching(identifier: "settingsSoundEffectsToggle").firstMatch
+        XCTAssertTrue(soundToggle.waitForExistence(timeout: 2))
+        XCTAssertTrue(soundToggle.isEnabled)
+    }
+
+    func testSettingsProfilesControlsLockDuringActiveGame() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        let guessField = app.descendants(matching: .any).matching(identifier: "guessInputField").firstMatch
+        XCTAssertTrue(guessField.waitForExistence(timeout: 2))
+
+        guessField.click()
+        app.typeText("1")
+
+        openSettings(app: app)
+
+        let profilesTab = app.buttons["Profiles"]
+        XCTAssertTrue(profilesTab.waitForExistence(timeout: 2))
+        profilesTab.click()
+
+        let newProfileField = app.descendants(matching: .any).matching(identifier: "profilesNewNameField").firstMatch
+        XCTAssertTrue(newProfileField.waitForExistence(timeout: 2))
+        XCTAssertFalse(newProfileField.isEnabled)
+
+        let createButton = app.buttons["profilesCreateButton"]
+        XCTAssertTrue(createButton.waitForExistence(timeout: 2))
+        XCTAssertFalse(createButton.isEnabled)
+    }
+
+    func testSettingsLanguageChangeShowsRestartPrompt() throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["UITEST_FORCE_LANGUAGE"] = "system"
+        app.launch()
+
+        openSettings(app: app)
+
+        let settingsRoot = app.descendants(matching: .any).matching(identifier: "settingsRoot").firstMatch
+        XCTAssertTrue(settingsRoot.waitForExistence(timeout: 2))
+
+        let languageTab = app.buttons["Language"]
+        XCTAssertTrue(languageTab.waitForExistence(timeout: 2))
+        languageTab.click()
+
+        let englishOption = app.radioButtons["English"]
+        XCTAssertTrue(englishOption.waitForExistence(timeout: 2))
+        englishOption.click()
+
+        let restartDialog = app.sheets.firstMatch
+        XCTAssertTrue(restartDialog.waitForExistence(timeout: 2))
+
+        let laterButton = restartDialog.buttons["Later"]
+        XCTAssertTrue(laterButton.waitForExistence(timeout: 2))
+        laterButton.click()
+    }
+
+    func testSettingsThemeSelectionUpdatesSelectedRow() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        openSettings(app: app)
+
+        let settingsRoot = app.descendants(matching: .any).matching(identifier: "settingsRoot").firstMatch
+        XCTAssertTrue(settingsRoot.waitForExistence(timeout: 2))
+
+        let themeTab = app.buttons["Theme"]
+        XCTAssertTrue(themeTab.waitForExistence(timeout: 2))
+        themeTab.click()
+
+        let classicRow = app.descendants(matching: .any).matching(identifier: "settingsThemeRow_classic").firstMatch
+        let geometricRow = app.descendants(matching: .any).matching(identifier: "settingsThemeRow_geometric").firstMatch
+        XCTAssertTrue(classicRow.waitForExistence(timeout: 2))
+        XCTAssertTrue(geometricRow.waitForExistence(timeout: 2))
+
+        let classicWasSelected = (classicRow.value as? String) == "selected"
+        let targetRow = classicWasSelected ? geometricRow : classicRow
+        let otherRow = classicWasSelected ? classicRow : geometricRow
+
+        targetRow.click()
+
+        XCTAssertEqual(targetRow.value as? String, "selected")
+        XCTAssertEqual(otherRow.value as? String, "notSelected")
+    }
+
     private func typeAndReplace(app: XCUIApplication, text: String) {
         app.typeKey("a", modifierFlags: .command)
         app.typeKey(XCUIKeyboardKey.delete, modifierFlags: [])
         app.typeText(text)
+    }
+
+    private func openSettings(app: XCUIApplication) {
+        app.typeKey(",", modifierFlags: .command)
     }
 }
