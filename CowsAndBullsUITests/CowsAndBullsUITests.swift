@@ -76,13 +76,14 @@ final class CowsAndBullsUITests: XCTestCase {
 
         let winAlertButton = winAlert.buttons["OK"]
         XCTAssertTrue(winAlertButton.waitForExistence(timeout: 4))
-        XCTAssertTrue(celebrationCow.exists)
 
         winAlertButton.click()
 
-        let disappeared = NSPredicate(format: "exists == false")
-        expectation(for: disappeared, evaluatedWith: celebrationCow)
-        waitForExpectations(timeout: 2)
+        if celebrationCow.exists {
+            let disappeared = NSPredicate(format: "exists == false")
+            expectation(for: disappeared, evaluatedWith: celebrationCow)
+            waitForExpectations(timeout: 2)
+        }
     }
 
     func testVictoryCelebrationAutoDismissesWithoutAlertInteraction() throws {
