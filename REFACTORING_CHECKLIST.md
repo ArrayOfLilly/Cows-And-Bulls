@@ -24,8 +24,9 @@
 - [~] Tisztítsd a profiles helper logikát, ha még túl zajos.
   Már megvan:
   - [x] a profilsoronkénti döntések `ProfileRowState`-ba húzása
+  - [x] a profiles szerkesztési lokális state egy `ProfileEditorState`-be húzása
   Még hátra lehet:
-  - [ ] külön `ProfileEditorState` vagy további action-helper, ha ez a rész újra nő
+  - [ ] további action-helper vagy külön profile-domain file, ha ez a rész újra nő
 - [x] Döntsd el, hogy az `animalThemes` maradjon-e helyben vagy menjen külön fájlba.
   Megoldás:
   - [x] külön modellfájlba került: `Models/AnimalTheme.swift`
@@ -36,6 +37,8 @@
 - [x] teljes build
 - [ ] `CowsAndBullsUITests/testSmokeGameScreen()`
 - [x] célzott settings UI tesztek
+  - [x] `testSettingsProfilesControlsLockDuringActiveGame()`
+  - [x] `testSettingsThemeSelectionUpdatesSelectedRow()`
 
 ## Important Guardrails
 

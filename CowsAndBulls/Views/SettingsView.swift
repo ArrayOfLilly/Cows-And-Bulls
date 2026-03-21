@@ -22,10 +22,8 @@ struct SettingsView: View {
     
     @State private var previousLanguageCode = "system"
     @State private var showRestartPrompt = false
-    @State private var newProfileName = ""
+    @State private var profileEditorState = ProfileEditorState()
     @State private var profilePendingDelete: PlayerProfile?
-    @State private var profileNameDrafts: [String: String] = [:]
-    @State private var editingProfileIds: Set<String> = []
     @State private var answerLengthDraft = ""
 
     @FocusState private var isAnswerLengthFocused: Bool
@@ -188,19 +186,19 @@ struct SettingsView: View {
     private func draftBindingForProfileName(_ profile: PlayerProfile) -> Binding<String> {
         Binding(
             get: {
-                profileNameDrafts[profile.id] ?? profile.name
+                profileEditorState.draftName(for: profile)
             },
             set: { newValue in
-                profileNameDrafts[profile.id] = newValue
+                profileEditorState.setDraftName(newValue, for: profile)
             }
         )
     }
 
     private func commitProfileName(_ profile: PlayerProfile) {
-        let draft = profileNameDrafts[profile.id] ?? profile.name
+        let draft = profileEditorState.draftName(for: profile)
         profileStore.renameProfile(id: profile.id, name: draft)
         if let updated = profileStore.profiles.first(where: { $0.id == profile.id }) {
-            profileNameDrafts[profile.id] = updated.name
+            profileEditorState.setDraftName(updated.name, for: updated)
         }
     }
 
@@ -376,18 +374,18 @@ struct SettingsView: View {
         SettingsProfilesTab(
             profiles: profileStore.profiles,
             selectedProfileID: profileStore.selectedProfileId,
-            newProfileName: $newProfileName,
+            newProfileName: $profileEditorState.newProfileName,
             canEditSettings: canRenameProfiles,
             draftBindingForProfileName: draftBindingForProfileName,
             onCreateProfile: {
-                profileStore.createProfile(named: newProfileName)
-                newProfileName = ""
+                profileStore.createProfile(named: profileEditorState.newProfileName)
+                profileEditorState.newProfileName = ""
             },
             onBeginEditing: { profile in
-                editingProfileIds.insert(profile.id)
+                profileEditorState.beginEditing(profile)
             },
             onEndEditing: { profile in
-                editingProfileIds.remove(profile.id)
+                profileEditorState.endEditing(profile)
                 commitProfileName(profile)
             },
             onCommitProfileName: commitProfileName,
@@ -419,9 +417,7 @@ struct SettingsView: View {
         .padding(.top, 10)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .onChange(of: profileStore.profiles) { _, newProfiles in
-            for profile in newProfiles where editingProfileIds.contains(profile.id) == false {
-                profileNameDrafts[profile.id] = profile.name
-            }
+            profileEditorState.syncDrafts(with: newProfiles)
         }
         .tabItem {
             Label(localized("settings.tab.profiles"), systemImage: "person.2")

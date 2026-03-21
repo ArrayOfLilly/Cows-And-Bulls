@@ -7,6 +7,38 @@
 
 import SwiftUI
 
+struct ProfileEditorState {
+    var newProfileName = ""
+    var profileNameDrafts: [String: String] = [:]
+    var editingProfileIDs: Set<String> = []
+
+    func draftName(for profile: PlayerProfile) -> String {
+        profileNameDrafts[profile.id] ?? profile.name
+    }
+
+    mutating func setDraftName(_ name: String, for profile: PlayerProfile) {
+        profileNameDrafts[profile.id] = name
+    }
+
+    mutating func beginEditing(_ profile: PlayerProfile) {
+        editingProfileIDs.insert(profile.id)
+    }
+
+    mutating func endEditing(_ profile: PlayerProfile) {
+        editingProfileIDs.remove(profile.id)
+    }
+
+    func isEditing(_ profile: PlayerProfile) -> Bool {
+        editingProfileIDs.contains(profile.id)
+    }
+
+    mutating func syncDrafts(with profiles: [PlayerProfile]) {
+        for profile in profiles where isEditing(profile) == false {
+            profileNameDrafts[profile.id] = profile.name
+        }
+    }
+}
+
 struct SettingsProfilesTab: View {
     let profiles: [PlayerProfile]
     let selectedProfileID: String
@@ -35,10 +67,11 @@ struct SettingsProfilesTab: View {
             )
 
             List {
-                ForEach(profiles) { profile in
+                ForEach(Array(profiles.enumerated()), id: \.element.id) { index, profile in
                     let rowState = profileRowState(profile)
                     ProfileRowView(
                         profile: profile,
+                        rowIndex: index,
                         isSelected: profile.id == selectedProfileID,
                         nameBinding: draftBindingForProfileName(profile),
                         canEditSettings: canEditSettings,
@@ -106,6 +139,7 @@ struct ProfilesToolbarRow: View {
 
 struct ProfileRowView: View {
     let profile: PlayerProfile
+    let rowIndex: Int
     let isSelected: Bool
     let nameBinding: Binding<String>
     let canEditSettings: Bool
@@ -156,6 +190,7 @@ struct ProfileRowView: View {
             Spacer()
 
             ProfileActionButtons(
+                rowIndex: rowIndex,
                 canEditSettings: canEditSettings,
                 canDeleteProfiles: canDeleteProfiles,
                 canMakeActive: canMakeActive,
@@ -171,10 +206,12 @@ struct ProfileRowView: View {
                 onDelete: onDelete
             )
         }
+        .accessibilityIdentifier("profileRow_\(rowIndex)")
     }
 }
 
 struct ProfileActionButtons: View {
+    let rowIndex: Int
     let canEditSettings: Bool
     let canDeleteProfiles: Bool
     let canMakeActive: Bool
@@ -201,6 +238,7 @@ struct ProfileActionButtons: View {
         .foregroundStyle(.secondary)
         .disabled(canEditSettings == false || canMoveUp == false)
         .help(moveUpHelpText)
+        .accessibilityIdentifier("profileMoveUpButton_\(rowIndex)")
 
         Button(action: onMoveDown) {
             Image(systemName: "chevron.down")
@@ -209,6 +247,7 @@ struct ProfileActionButtons: View {
         .foregroundStyle(.secondary)
         .disabled(canEditSettings == false || canMoveDown == false)
         .help(moveDownHelpText)
+        .accessibilityIdentifier("profileMoveDownButton_\(rowIndex)")
 
         Button(role: .destructive, action: onDelete) {
             Image(systemName: "trash")

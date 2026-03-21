@@ -106,7 +106,8 @@ Current progress:
 - introduced `answerLengthHasValidationError`
 - introduced `selectedTheme`
 - introduced `ProfileRowState` so profile action booleans/help text are composed in one place
-- still worth propagating these names deeper into the extracted subviews
+- introduced `ProfileEditorState` so profile drafts, editing membership, and new-profile input live in one place
+- still worth shrinking the remaining `SettingsView` helper surface if profiles actions grow further
 
 Recommended properties:
 
@@ -265,6 +266,7 @@ Current progress:
 - implemented active-game profiles-create-lock test
 - implemented language restart prompt test
 - implemented theme selection semantic state test
+- reran targeted settings UI tests after `ProfileEditorState` extraction and kept them green
 
 ### Step 7: Consider File Splitting
 
