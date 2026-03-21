@@ -236,17 +236,17 @@ struct ThemeRowView: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            HStack(spacing: 8) {
+            HStack(spacing: 4) {
                 Image(theme.bullAsset)
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 28, height: 28)
+                    .frame(width: 36, height: 36)
                     .animalIconStyle(cornerRadius: 6)
 
                 Image(theme.cowAsset)
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 28, height: 28)
+                    .frame(width: 36, height: 36)
                     .animalIconStyle(cornerRadius: 6)
             }
             .padding(.horizontal, 8)

@@ -651,15 +651,15 @@ private struct GameHeaderSection: View {
             .foregroundStyle(.secondary)
             .padding(.bottom, 4)
 
-            HStack(spacing: 12) {
+            HStack(spacing: 2) {
                 Text(localized("settings.theme.label"))
                 Image(selectedBullAssetName)
                     .resizable()
-                    .frame(width: 20, height: 20)
+                    .frame(width: 24, height: 24)
                     .animalIconStyle(cornerRadius: 6)
                 Image(selectedCowAssetName)
                     .resizable()
-                    .frame(width: 20, height: 20)
+                    .frame(width: 24, height: 24)
                     .animalIconStyle(cornerRadius: 6)
             }
             .padding(.bottom, 4)
@@ -746,6 +746,8 @@ private struct GameInputSection: View {
         VStack {
             HStack(spacing: 12) {
                 TextField(localized("game.input.placeholder"), text: guessBinding)
+                    .padding(.top, 4)
+                    .padding(.bottom, 4)
                     .focused(focusBinding)
                     .onSubmit(onSubmitGuess)
                     .textFieldStyle(.roundedBorder)
@@ -754,6 +756,7 @@ private struct GameInputSection: View {
                     .accessibilityIdentifier("guessInputField")
 
                 Button(localized("game.input.submit"), action: onSubmitGuess)
+                    .padding(4)
                     .disabled(isDisabledSubmitButton || isPaused)
                     .accessibilityIdentifier("submitGuessButton")
             }
@@ -843,12 +846,12 @@ private struct GuessResultIconsView: View {
     }
 
     private func iconRow(_ icons: ArraySlice<String>) -> some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 0) {
             ForEach(Array(icons.enumerated()), id: \.offset) { _, name in
                 Image(name)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: 34, height: 34)
+                    .frame(width: 36, height: 36)
                     .animalIconStyle(cornerRadius: 6)
             }
         }

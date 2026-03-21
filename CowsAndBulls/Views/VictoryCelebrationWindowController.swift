@@ -13,7 +13,7 @@ final class VictoryCelebrationWindowController {
     // When the cow reaches the middle milestone, the win alert is shown.
     static let alertTriggerDuration: TimeInterval = 2.2
     // The full screen-level celebration keeps running a bit longer than the alert trigger.
-    static let fullAnimationDuration: TimeInterval = 3.8
+    static let fullAnimationDuration: TimeInterval = 4.5
     private static let cowAssetSets: [[String]] = [
         [
             "Walking Cow frame 1",
