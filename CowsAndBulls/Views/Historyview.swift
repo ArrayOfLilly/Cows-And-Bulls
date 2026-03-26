@@ -246,7 +246,7 @@ struct HistoryRow: View {
                                     bullAssetName: bullAssetName,
                                     cowAssetName: cowAssetName
                                 )
-                                .animalIconStyle(cornerRadius: 6)
+                                .animalIconStyle()
                                 let duration = index < item.guessDurations.count ? item.guessDurations[index] : 0
                                 Text(GameLogic.formatDuration(TimeInterval(duration)))
                             }

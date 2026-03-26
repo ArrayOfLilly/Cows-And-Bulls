@@ -77,6 +77,12 @@ struct CowsAndBullsApp: App {
         if let forcedLanguageCode = environment["UITEST_FORCE_LANGUAGE"] {
             appLanguageCode = forcedLanguageCode
         }
+        if let seededProfiles = environment["UITEST_PROFILE_NAMES"] {
+            let names = seededProfiles
+                .split(separator: "|")
+                .map(String.init)
+            profileStore.replaceProfilesForUITesting(names: names)
+        }
     }
 
     private func openLearnWindow() {

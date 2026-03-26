@@ -7,6 +7,101 @@
 
 import AppKit
 
+enum CelebrationDirection {
+    case leftToRight
+    case rightToLeft
+}
+
+struct CelebrationTrajectory {
+    static let startYRange: ClosedRange<CGFloat> = 0.72...0.94
+    static let endYRange: ClosedRange<CGFloat> = 0.08...0.28
+
+    let panelSize: CGSize
+    let centerPoint: CGPoint
+    let cowSize: CGFloat
+    let direction: CelebrationDirection
+    let startYRatio: CGFloat
+    let endYRatio: CGFloat
+
+    var startY: CGFloat { panelSize.height * startYRatio }
+    var endY: CGFloat { panelSize.height * endYRatio }
+
+    var startX: CGFloat {
+        switch direction {
+        case .leftToRight:
+            -cowSize * 0.7
+        case .rightToLeft:
+            panelSize.width + cowSize * 0.45
+        }
+    }
+
+    var endX: CGFloat {
+        switch direction {
+        case .leftToRight:
+            panelSize.width + cowSize * 0.45
+        case .rightToLeft:
+            -cowSize * 0.7
+        }
+    }
+
+    init(
+        panelSize: CGSize,
+        centerPoint: CGPoint,
+        cowSize: CGFloat,
+        direction: CelebrationDirection,
+        startYRatio: CGFloat,
+        endYRatio: CGFloat
+    ) {
+        self.panelSize = panelSize
+        self.centerPoint = centerPoint
+        self.cowSize = cowSize
+        self.direction = direction
+        self.startYRatio = startYRatio
+        self.endYRatio = endYRatio
+    }
+
+    static func random<R: RandomNumberGenerator>(
+        panelSize: CGSize,
+        centerPoint: CGPoint,
+        cowSize: CGFloat,
+        using generator: inout R
+    ) -> CelebrationTrajectory {
+        let direction: CelebrationDirection = Bool.random(using: &generator) ? .leftToRight : .rightToLeft
+        let startYRatio = CGFloat.random(in: startYRange, using: &generator)
+        let endYRatio = CGFloat.random(in: endYRange, using: &generator)
+        return CelebrationTrajectory(
+            panelSize: panelSize,
+            centerPoint: centerPoint,
+            cowSize: cowSize,
+            direction: direction,
+            startYRatio: startYRatio,
+            endYRatio: endYRatio
+        )
+    }
+
+    func position(for progress: CGFloat, centerProgress: CGFloat) -> CGPoint {
+        let x: CGFloat
+        if progress <= centerProgress {
+            let localProgress = progress / max(centerProgress, 0.001)
+            x = startX + (centerPoint.x - startX) * localProgress
+        } else {
+            let localProgress = (progress - centerProgress) / max(1 - centerProgress, 0.001)
+            x = centerPoint.x + (endX - centerPoint.x) * localProgress
+        }
+
+        let y: CGFloat
+        if progress <= centerProgress {
+            let localProgress = progress / max(centerProgress, 0.001)
+            y = startY + (centerPoint.y - startY) * localProgress
+        } else {
+            let localProgress = (progress - centerProgress) / max(1 - centerProgress, 0.001)
+            y = centerPoint.y + (endY - centerPoint.y) * localProgress
+        }
+
+        return CGPoint(x: x, y: y)
+    }
+}
+
 @MainActor
 final class VictoryCelebrationWindowController {
     static let shared = VictoryCelebrationWindowController()
@@ -167,11 +262,20 @@ private final class VictoryCelebrationViewController: NSViewController {
     private let centerPoint: CGPoint
     private let assetNames: [String]
     private let cowView = AccessibilityView()
+    private let trajectory: CelebrationTrajectory
 
     init(panelSize: CGSize, centerPoint: CGPoint, assetNames: [String]) {
         self.panelSize = panelSize
         self.centerPoint = centerPoint
         self.assetNames = assetNames
+        let cowSize = min(max(panelSize.width * 0.14, 160), 230)
+        var generator = SystemRandomNumberGenerator()
+        self.trajectory = CelebrationTrajectory.random(
+            panelSize: panelSize,
+            centerPoint: centerPoint,
+            cowSize: cowSize,
+            using: &generator
+        )
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -195,7 +299,7 @@ private final class VictoryCelebrationViewController: NSViewController {
     }
 
     private func configureImageView() {
-        let cowSize = min(max(panelSize.width * 0.14, 160), 230)
+        let cowSize = trajectory.cowSize
         cowView.frame = CGRect(x: 0, y: 0, width: cowSize, height: cowSize)
         cowView.wantsLayer = true
         cowView.layer?.contentsGravity = .resizeAspect
@@ -205,7 +309,10 @@ private final class VictoryCelebrationViewController: NSViewController {
         cowView.layer?.shadowRadius = 10
         cowView.layer?.shadowOffset = CGSize(width: 0, height: -6)
         cowView.layer?.anchorPoint = CGPoint(x: 0.5, y: 0.5)
-        cowView.layer?.position = startPoint(for: cowSize)
+        cowView.layer?.position = startPoint()
+        cowView.layer?.transform = trajectory.direction == .leftToRight
+            ? CATransform3DMakeScale(-1, 1, 1)
+            : CATransform3DIdentity
         cowView.setAccessibilityIdentifier("victoryCelebrationCow")
         view.addSubview(cowView)
     }
@@ -214,7 +321,7 @@ private final class VictoryCelebrationViewController: NSViewController {
         guard let layer = cowView.layer else { return }
 
         let motion = CAKeyframeAnimation(keyPath: "position")
-        motion.path = animationPath(for: cowView.bounds.width)
+        motion.path = animationPath()
         motion.duration = VictoryCelebrationWindowController.fullAnimationDuration
         motion.timingFunction = CAMediaTimingFunction(name: .linear)
         motion.isRemovedOnCompletion = false
@@ -237,19 +344,17 @@ private final class VictoryCelebrationViewController: NSViewController {
         layer.add(frameAnimation, forKey: "victoryCowFrames")
     }
 
-    private func startPoint(for cowSize: CGFloat) -> CGPoint {
-        let startX = -cowSize * 0.7
-        let startY = panelSize.height * 0.94
-        return CGPoint(x: startX, y: flippedY(startY))
+    private func startPoint() -> CGPoint {
+        CGPoint(x: trajectory.startX, y: flippedY(trajectory.startY))
     }
 
-    private func animationPath(for cowSize: CGFloat) -> CGMutablePath {
+    private func animationPath() -> CGMutablePath {
         let path = CGMutablePath()
         let sampleCount = 120
 
         for step in 0...sampleCount {
             let progress = CGFloat(step) / CGFloat(sampleCount)
-            let point = position(for: progress, cowSize: cowSize)
+            let point = position(for: progress)
             if step == 0 {
                 path.move(to: point)
             } else {
@@ -260,22 +365,17 @@ private final class VictoryCelebrationViewController: NSViewController {
         return path
     }
 
-    private func position(for progress: CGFloat, cowSize: CGFloat) -> CGPoint {
-        let startX = -cowSize * 0.7
-        let endX = panelSize.width + cowSize * 0.45
-        let x = startX + (endX - startX) * progress
-
-        let diagonalY = pathY(progress: progress)
+    private func position(for progress: CGFloat) -> CGPoint {
+        let diagonalPoint = trajectory.position(for: progress, centerProgress: centerProgress)
         let arcLift = sin(progress * .pi) * panelSize.height * 0.18
         let bob = sin(progress * .pi * 8) * 6
-        let y = diagonalY - arcLift + bob
+        let y = diagonalPoint.y - arcLift + bob
 
-        return CGPoint(x: x, y: flippedY(y))
+        return CGPoint(x: diagonalPoint.x, y: flippedY(y))
     }
 
-    private func pathY(progress: CGFloat) -> CGFloat {
-        let startY = panelSize.height * 0.94
-        let centerProgress = CGFloat(
+    private var centerProgress: CGFloat {
+        CGFloat(
             min(
                 max(
                     VictoryCelebrationWindowController.alertTriggerDuration
@@ -285,15 +385,6 @@ private final class VictoryCelebrationViewController: NSViewController {
                 1
             )
         )
-        let endY = panelSize.height * 0.08
-
-        if progress <= centerProgress {
-            let localProgress = progress / max(centerProgress, 0.001)
-            return startY + (centerPoint.y - startY) * localProgress
-        }
-
-        let localProgress = (progress - centerProgress) / max(1 - centerProgress, 0.001)
-        return centerPoint.y + (endY - centerPoint.y) * localProgress
     }
 
     private func flippedY(_ y: CGFloat) -> CGFloat {

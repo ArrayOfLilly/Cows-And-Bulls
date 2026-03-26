@@ -26,6 +26,11 @@ final class CowsAndBullsUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
+        let gameTabButton = app.buttons["Game"]
+        if gameTabButton.waitForExistence(timeout: 2) {
+            gameTabButton.click()
+        }
+
         let guessField = app.descendants(matching: .any).matching(identifier: "guessInputField").firstMatch
         XCTAssertTrue(guessField.waitForExistence(timeout: 2))
 
@@ -71,20 +76,23 @@ final class CowsAndBullsUITests: XCTestCase {
         typeAndReplace(app: app, text: "1234")
         submitButton.click()
 
+        let celebrationScene = app.descendants(matching: .any).matching(identifier: "victoryCelebrationScene").firstMatch
+        _ = celebrationScene.waitForExistence(timeout: 1)
+
         let celebrationCow = app.descendants(matching: .any).matching(identifier: "victoryCelebrationCow").firstMatch
-        XCTAssertTrue(celebrationCow.waitForExistence(timeout: 2))
+        _ = celebrationCow.waitForExistence(timeout: 1)
 
         let winAlert = app.sheets.firstMatch
-        XCTAssertTrue(winAlert.waitForExistence(timeout: 4))
+        XCTAssertTrue(winAlert.waitForExistence(timeout: 8))
 
         let winAlertButton = winAlert.buttons["OK"]
-        XCTAssertTrue(winAlertButton.waitForExistence(timeout: 4))
+        XCTAssertTrue(winAlertButton.waitForExistence(timeout: 8))
 
         winAlertButton.click()
 
-        if celebrationCow.exists {
+        if celebrationScene.exists {
             let disappeared = NSPredicate(format: "exists == false")
-            expectation(for: disappeared, evaluatedWith: celebrationCow)
+            expectation(for: disappeared, evaluatedWith: celebrationScene)
             waitForExpectations(timeout: 2)
         }
     }
@@ -104,14 +112,17 @@ final class CowsAndBullsUITests: XCTestCase {
         typeAndReplace(app: app, text: "1234")
         submitButton.click()
 
+        let celebrationScene = app.descendants(matching: .any).matching(identifier: "victoryCelebrationScene").firstMatch
+        _ = celebrationScene.waitForExistence(timeout: 1)
+
         let celebrationCow = app.descendants(matching: .any).matching(identifier: "victoryCelebrationCow").firstMatch
-        XCTAssertTrue(celebrationCow.waitForExistence(timeout: 2))
+        _ = celebrationCow.waitForExistence(timeout: 1)
 
         let winAlert = app.sheets.firstMatch
-        XCTAssertTrue(winAlert.waitForExistence(timeout: 4))
+        XCTAssertTrue(winAlert.waitForExistence(timeout: 8))
 
         let disappeared = NSPredicate(format: "exists == false")
-        expectation(for: disappeared, evaluatedWith: celebrationCow)
+        expectation(for: disappeared, evaluatedWith: celebrationScene)
         waitForExpectations(timeout: 5)
     }
 

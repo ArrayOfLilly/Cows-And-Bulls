@@ -9,19 +9,24 @@ import SwiftUI
 
 private struct AnimalIconStyle: ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
-    let cornerRadius: CGFloat
 
     func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: 6, style: .continuous)
         let isLight = colorScheme == .light
-        let shadowColor = isLight ? Color.black.opacity(0.35) : Color.white.opacity(0.01)
+        let borderColor = isLight ? Color.black.opacity(0.10) : Color.white.opacity(0.10)
+        let backgroundColor = isLight ? Color.white.opacity(0.35) : Color.white.opacity(0.06)
+        let shadowColor = isLight ? Color.black.opacity(0.18) : Color.black.opacity(0.22)
 
         return content
-            .shadow(color: shadowColor, radius: isLight ? 2 : 0, x: 0, y: 2)
+            .clipShape(shape)
+            .background(shape.fill(backgroundColor))
+            .overlay(shape.strokeBorder(borderColor, lineWidth: 0.8))
+            .shadow(color: shadowColor, radius: 2, x: 0, y: 1)
     }
 }
 
 extension View {
-    func animalIconStyle(cornerRadius: CGFloat = 4) -> some View {
-        modifier(AnimalIconStyle(cornerRadius: cornerRadius))
+    func animalIconStyle() -> some View {
+        modifier(AnimalIconStyle())
     }
 }

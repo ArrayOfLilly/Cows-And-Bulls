@@ -45,6 +45,31 @@ struct SettingsView: View {
         ProcessInfo.processInfo.environment["UITEST_SETTINGS_TAB_SHORTCUTS"] == "1"
     }
 
+    private var initialUITestTab: SettingsTab? {
+        guard let value = ProcessInfo.processInfo.environment["UITEST_SETTINGS_INITIAL_TAB"] else {
+            return nil
+        }
+
+        switch value {
+        case "game":
+            return .game
+        case "advanced":
+            return .advanced
+        case "sound":
+            return .sound
+        case "music":
+            return .music
+        case "profiles":
+            return .profiles
+        case "language":
+            return .language
+        case "theme":
+            return .theme
+        default:
+            return nil
+        }
+    }
+
     private var canEditGameplaySettings: Bool {
         gameSessionStore.canEditGameplaySettings
     }
@@ -54,14 +79,18 @@ struct SettingsView: View {
     }
 
     private var settings: ProfileSettings { settingsStore.settings }
-    
-    private var canCreateProfiles: Bool { gameInProgress == false }
-    
-    private var canRenameProfiles: Bool { gameInProgress == false }
-    
-    private var canReorderProfiles: Bool { gameInProgress == false }
-    
-    private var canDeleteProfiles: Bool { gameInProgress == false && profileStore.profiles.count > 1 }
+    private var profileRules: ProfileSettingsRules {
+        ProfileSettingsRules(
+            profiles: profileStore.profiles,
+            selectedProfileID: profileStore.selectedProfileId,
+            gameInProgress: gameInProgress
+        )
+    }
+
+    private var canCreateProfiles: Bool { profileRules.canCreateProfiles }
+    private var canRenameProfiles: Bool { profileRules.canRenameProfiles }
+    private var canReorderProfiles: Bool { profileRules.canReorderProfiles }
+    private var canDeleteProfiles: Bool { profileRules.canDeleteProfiles }
     
     private var answerLengthHasValidationError: Bool {
         guard let draftValue = Int(answerLengthDraft) else { return false }
@@ -70,6 +99,40 @@ struct SettingsView: View {
     
     private var selectedTheme: AnimalTheme? {
         animalThemes.first { $0.id == settings.selectedAnimalThemeID }
+    }
+
+    private func profilesReorderState(for index: Int) -> String? {
+        guard profileStore.profiles.indices.contains(index) else { return nil }
+        let rowState = profileRules.rowState(for: profileStore.profiles[index])
+        let moveUpState = rowState.canMoveUp ? "enabled" : "disabled"
+        let moveDownState = rowState.canMoveDown ? "enabled" : "disabled"
+        return "up:\(moveUpState),down:\(moveDownState)"
+    }
+
+    private var profilesEditabilityAccessibilityValue: String {
+        let editability = canRenameProfiles ? "editable" : "locked"
+        let reorderSummary = (0..<3)
+            .compactMap { index in
+                profilesReorderState(for: index).map { "row\(index):\($0)" }
+            }
+            .joined(separator: "|")
+
+        guard reorderSummary.isEmpty == false else { return editability }
+        return "\(editability)|\(reorderSummary)"
+    }
+
+    private var profilesOrderAccessibilityValue: String {
+        profileStore.profiles
+            .map(\.name)
+            .joined(separator: "|")
+    }
+
+    private var selectedThemeAccessibilityValue: String {
+        settings.selectedAnimalThemeID
+    }
+
+    private var profilesUITestStateValue: String {
+        "\(profilesEditabilityAccessibilityValue)||order:\(profilesOrderAccessibilityValue)"
     }
 
     private func binding<T>(_ keyPath: WritableKeyPath<ProfileSettings, T>) -> Binding<T> {
@@ -99,18 +162,29 @@ struct SettingsView: View {
             .frame(minWidth: 440, minHeight: 480)
             .overlay(alignment: .topTrailing) {
                 if showsUITestTabShortcuts {
-                    HStack(spacing: 6) {
-                        settingsUITestTabButton(id: "settingsOpenGameTab", tab: .game)
-                        settingsUITestTabButton(id: "settingsOpenSoundTab", tab: .sound)
-                        settingsUITestTabButton(id: "settingsOpenProfilesTab", tab: .profiles)
-                        settingsUITestTabButton(id: "settingsOpenLanguageTab", tab: .language)
-                        settingsUITestTabButton(id: "settingsOpenThemeTab", tab: .theme)
+                    VStack(alignment: .trailing, spacing: 6) {
+                        HStack(spacing: 6) {
+                            settingsUITestTabButton(id: "settingsOpenGameTab", tab: .game)
+                            settingsUITestTabButton(id: "settingsOpenSoundTab", tab: .sound)
+                            settingsUITestTabButton(id: "settingsOpenProfilesTab", tab: .profiles)
+                            settingsUITestTabButton(id: "settingsOpenLanguageTab", tab: .language)
+                            settingsUITestTabButton(id: "settingsOpenThemeTab", tab: .theme)
+                        }
+                        Text(selectedTabAccessibilityValue)
+                            .font(.caption2)
+                            .accessibilityIdentifier("settingsSelectedTabState")
+                            .accessibilityValue(selectedTabAccessibilityValue)
+
+                        settingsUITestHooks
                     }
                     .padding(8)
                 }
             }
-            .onAppear {
+        .onAppear {
             previousLanguageCode = appLanguageCode
+            if let initialUITestTab {
+                selectedTab = initialUITestTab
+            }
             if animalThemes.contains(where: { $0.id == settings.selectedAnimalThemeID }) == false {
                 if let matchedTheme = animalThemes.first(where: {
                     $0.bullAsset == settings.selectedBullAssetName && $0.cowAsset == settings.selectedCowAssetName
@@ -191,6 +265,74 @@ struct SettingsView: View {
         .accessibilityIdentifier(id)
     }
 
+    private var selectedTabAccessibilityValue: String {
+        switch selectedTab {
+        case .game: "game"
+        case .advanced: "advanced"
+        case .sound: "sound"
+        case .music: "music"
+        case .profiles: "profiles"
+        case .language: "language"
+        case .theme: "theme"
+        }
+    }
+
+    @ViewBuilder
+    private var settingsUITestHooks: some View {
+        Text("seedProfiles")
+            .contentShape(Rectangle())
+            .onTapGesture {
+                profileStore.replaceProfilesForUITesting(
+                    names: ["UI Reorder Alpha", "UI Reorder Bravo", "UI Reorder Charlie"]
+                )
+            }
+            .font(.caption2)
+            .accessibilityIdentifier("settingsSeedProfilesForReorderTest")
+
+        Text("moveSecondProfileUp")
+            .contentShape(Rectangle())
+            .onTapGesture {
+                guard profileStore.profiles.indices.contains(1) else { return }
+                let profile = profileStore.profiles[1]
+                profileStore.moveProfile(id: profile.id, direction: -1)
+            }
+            .font(.caption2)
+            .accessibilityIdentifier("settingsMoveSecondProfileUpForTest")
+
+        Text(canRenameProfiles ? "editable" : "locked")
+            .font(.caption2)
+            .accessibilityIdentifier("settingsProfilesEditabilityState")
+            .accessibilityValue(profilesEditabilityAccessibilityValue)
+
+        Text(profilesUITestStateValue)
+            .font(.caption2)
+            .accessibilityIdentifier("settingsProfilesState")
+            .accessibilityValue(profilesUITestStateValue)
+
+        Text("selectEnglishLanguage")
+            .contentShape(Rectangle())
+            .onTapGesture {
+                appLanguageCode = "en"
+            }
+            .font(.caption2)
+            .accessibilityIdentifier("settingsSelectEnglishLanguageForTest")
+
+        if let geometricTheme = animalThemes.first(where: { $0.id == "geometric" }) {
+            Text("selectGeometricTheme")
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    applyTheme(geometricTheme)
+                }
+                .font(.caption2)
+                .accessibilityIdentifier("settingsSelectGeometricThemeForTest")
+        }
+
+        Text(selectedThemeAccessibilityValue)
+            .font(.caption2)
+            .accessibilityIdentifier("settingsSelectedThemeState")
+            .accessibilityValue(selectedThemeAccessibilityValue)
+    }
+
     /// Persists the selected bull/cow asset pair as the active theme.
     private func applyTheme(_ theme: AnimalTheme) {
         var updated = settingsStore.settings
@@ -237,63 +379,6 @@ struct SettingsView: View {
         }
     }
 
-    private func profileHelpText(defaultKey: String, disabledKey: String, isDisabled: Bool) -> String {
-        isDisabled ? localized(disabledKey) : localized(defaultKey)
-    }
-
-    private func profileRowState(for profile: PlayerProfile) -> ProfileRowState {
-        let canMakeActive = profile.id != profileStore.selectedProfileId
-        let canMoveUp = isFirstProfile(profile) == false
-        let canMoveDown = isLastProfile(profile) == false
-
-        let makeActiveHelpText: String
-        if canRenameProfiles == false {
-            makeActiveHelpText = localized("profiles.disabled.during_game")
-        } else if canMakeActive == false {
-            makeActiveHelpText = localized("profiles.make_active.disabled.already")
-        } else {
-            makeActiveHelpText = localized("profiles.make_active.help")
-        }
-
-        let moveUpHelpText: String
-        if canReorderProfiles == false {
-            moveUpHelpText = localized("profiles.disabled.during_game")
-        } else if canMoveUp == false {
-            moveUpHelpText = localized("profiles.reorder.disabled.top")
-        } else {
-            moveUpHelpText = localized("profiles.reorder.up")
-        }
-
-        let moveDownHelpText: String
-        if canReorderProfiles == false {
-            moveDownHelpText = localized("profiles.disabled.during_game")
-        } else if canMoveDown == false {
-            moveDownHelpText = localized("profiles.reorder.disabled.bottom")
-        } else {
-            moveDownHelpText = localized("profiles.reorder.down")
-        }
-
-        let deleteHelpText: String
-        if gameInProgress {
-            deleteHelpText = localized("profiles.disabled.during_game")
-        } else if canDeleteProfiles == false {
-            deleteHelpText = localized("profiles.delete.disabled.single")
-        } else {
-            deleteHelpText = localized("profiles.delete.help")
-        }
-
-        return ProfileRowState(
-            canMakeActive: canMakeActive,
-            canMoveUp: canMoveUp,
-            canMoveDown: canMoveDown,
-            canDeleteProfiles: canDeleteProfiles,
-            makeActiveHelpText: makeActiveHelpText,
-            moveUpHelpText: moveUpHelpText,
-            moveDownHelpText: moveDownHelpText,
-            deleteHelpText: deleteHelpText
-        )
-    }
-
     private func updateAnswerLength(_ value: Int) {
         var updated = settingsStore.settings
         updated.answerLength = value
@@ -306,14 +391,6 @@ struct SettingsView: View {
         } else {
             answerLengthDraft = String(settings.answerLength)
         }
-    }
-
-    private func isFirstProfile(_ profile: PlayerProfile) -> Bool {
-        profileStore.profiles.first?.id == profile.id
-    }
-
-    private func isLastProfile(_ profile: PlayerProfile) -> Bool {
-        profileStore.profiles.last?.id == profile.id
     }
 
     private var gameTab: some View {
@@ -440,17 +517,9 @@ struct SettingsView: View {
             onDelete: { profile in
                 profilePendingDelete = profile
             },
-            createProfileHelpText: profileHelpText(
-                defaultKey: "profiles.new.help",
-                disabledKey: "profiles.disabled.during_game",
-                isDisabled: canCreateProfiles == false
-            ),
-            editProfileHelpText: profileHelpText(
-                defaultKey: "profiles.name.help",
-                disabledKey: "profiles.disabled.during_game",
-                isDisabled: canRenameProfiles == false
-            ),
-            profileRowState: profileRowState
+            createProfileHelpText: profileRules.createProfileHelpText(),
+            editProfileHelpText: profileRules.editProfileHelpText(),
+            profileRowState: profileRules.rowState
         )
         .padding()
         .padding(.top, 10)
@@ -459,15 +528,6 @@ struct SettingsView: View {
             profileEditorState.syncDrafts(with: newProfiles)
         }
         .accessibilityIdentifier("settingsProfilesTabContent")
-        .overlay(alignment: .bottomTrailing) {
-            if showsUITestTabShortcuts {
-                Text(canRenameProfiles ? "editable" : "locked")
-                    .font(.caption2)
-                    .accessibilityIdentifier("settingsProfilesEditabilityState")
-                    .accessibilityValue(canRenameProfiles ? "editable" : "locked")
-                    .padding(8)
-            }
-        }
         .tag(SettingsTab.profiles)
         .tabItem {
             Label(localized("settings.tab.profiles"), systemImage: "person.2")

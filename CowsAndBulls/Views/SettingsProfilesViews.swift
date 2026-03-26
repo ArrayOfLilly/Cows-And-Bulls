@@ -98,17 +98,6 @@ struct SettingsProfilesTab: View {
     }
 }
 
-struct ProfileRowState {
-    let canMakeActive: Bool
-    let canMoveUp: Bool
-    let canMoveDown: Bool
-    let canDeleteProfiles: Bool
-    let makeActiveHelpText: String
-    let moveUpHelpText: String
-    let moveDownHelpText: String
-    let deleteHelpText: String
-}
-
 struct ProfilesToolbarRow: View {
     let newProfileName: Binding<String>
     let canEditSettings: Bool
@@ -207,6 +196,7 @@ struct ProfileRowView: View {
             )
         }
         .accessibilityIdentifier("profileRow_\(rowIndex)")
+        .accessibilityValue("moveUp:\(canMoveUp ? "enabled" : "disabled"),moveDown:\(canMoveDown ? "enabled" : "disabled")")
     }
 }
 
@@ -238,6 +228,7 @@ struct ProfileActionButtons: View {
         .foregroundStyle(.secondary)
         .disabled(canEditSettings == false || canMoveUp == false)
         .help(moveUpHelpText)
+        .accessibilityLabel("Move Profile Up")
         .accessibilityIdentifier("profileMoveUpButton_\(rowIndex)")
 
         Button(action: onMoveDown) {
@@ -247,6 +238,7 @@ struct ProfileActionButtons: View {
         .foregroundStyle(.secondary)
         .disabled(canEditSettings == false || canMoveDown == false)
         .help(moveDownHelpText)
+        .accessibilityLabel("Move Profile Down")
         .accessibilityIdentifier("profileMoveDownButton_\(rowIndex)")
 
         Button(role: .destructive, action: onDelete) {

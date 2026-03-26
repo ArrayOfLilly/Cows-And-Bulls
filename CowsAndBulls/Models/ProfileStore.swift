@@ -92,6 +92,21 @@ final class ProfileStore: ObservableObject {
         return newProfile
     }
 
+    func replaceProfilesForUITesting(names: [String]) {
+        let trimmedNames = names
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { $0.isEmpty == false }
+
+        guard trimmedNames.isEmpty == false else { return }
+
+        profiles = trimmedNames.map { name in
+            PlayerProfile(id: UUID().uuidString, name: name, createdAt: Date())
+        }
+        selectedProfileId = profiles[0].id
+        saveProfiles()
+        saveSelection()
+    }
+
     private func ensureDefaultProfile() {
         guard profiles.isEmpty else { return }
         let defaultProfile = PlayerProfile(

@@ -92,4 +92,157 @@ struct GamePresentationRulesTests {
         #expect(rules.canChangeProfile == false)
         #expect(rules.canSurrender)
     }
+
+    @Test("Game mode message and profile picker help text are derived outside the view")
+    func gameModeMessageAndProfilePickerHelpText() {
+        var settings = ProfileSettings.default
+        settings.answerLength = 5
+        settings.enableHardMode = true
+        settings.enableRepeats = true
+
+        let rules = GamePresentationRules(
+            settings: settings,
+            startedSettingsSnapshot: nil,
+            guessesCount: 0,
+            gameInProgress: true,
+            hasGuesses: false,
+            isWon: false,
+            isGameOver: false
+        )
+
+        let expectedMessage =
+            localized("game.mode.title") + " " +
+            String(localized: "game.mode.hard") + " " +
+            String(localized: "game.mode.format") + " 5 " +
+            String(localized: "game.mode.repeats")
+
+        #expect(rules.gameModeMessage == expectedMessage)
+        #expect(rules.profilePickerHelpText == localized("profile.switch.disabled.in_progress"))
+    }
+
+    @Test("Profile selection decision is derived outside the view")
+    func profileSelectionDecision() {
+        let idleRules = GamePresentationRules(
+            settings: .default,
+            startedSettingsSnapshot: nil,
+            guessesCount: 0,
+            gameInProgress: false,
+            hasGuesses: false,
+            isWon: false,
+            isGameOver: false
+        )
+
+        let activeRules = GamePresentationRules(
+            settings: .default,
+            startedSettingsSnapshot: nil,
+            guessesCount: 2,
+            gameInProgress: true,
+            hasGuesses: true,
+            isWon: false,
+            isGameOver: false
+        )
+
+        #expect(idleRules.decisionForProfileSelection(ProfileStore.newProfileSelectionId, newProfileSelectionId: ProfileStore.newProfileSelectionId) == .showNewProfileSheet)
+        #expect(idleRules.decisionForProfileSelection("profile-b", newProfileSelectionId: ProfileStore.newProfileSelectionId) == .switchDirectly(profileId: "profile-b"))
+        #expect(activeRules.decisionForProfileSelection("profile-c", newProfileSelectionId: ProfileStore.newProfileSelectionId) == .confirmInProgressSwitch(profileId: "profile-c"))
+    }
+
+    @Test("Pause and window-close guards are derived outside the view")
+    func pauseAndWindowCloseGuards() {
+        var timedSettings = ProfileSettings.default
+        timedSettings.enablePerGuessTimeLimit = true
+        timedSettings.perGuessTimeLimitSeconds = 15
+
+        let activeRules = GamePresentationRules(
+            settings: timedSettings,
+            startedSettingsSnapshot: nil,
+            guessesCount: 2,
+            gameInProgress: true,
+            hasGuesses: true,
+            isWon: false,
+            isGameOver: false
+        )
+
+        let wonRules = GamePresentationRules(
+            settings: timedSettings,
+            startedSettingsSnapshot: nil,
+            guessesCount: 2,
+            gameInProgress: true,
+            hasGuesses: true,
+            isWon: true,
+            isGameOver: false
+        )
+
+        let noGuessRules = GamePresentationRules(
+            settings: timedSettings,
+            startedSettingsSnapshot: nil,
+            guessesCount: 0,
+            gameInProgress: true,
+            hasGuesses: false,
+            isWon: false,
+            isGameOver: false
+        )
+
+        #expect(activeRules.canTogglePause)
+        #expect(activeRules.canPauseForWindowClose)
+        #expect(activeRules.shouldPromptOnClose)
+
+        #expect(wonRules.canTogglePause == false)
+        #expect(wonRules.canPauseForWindowClose == false)
+        #expect(wonRules.shouldPromptOnClose == false)
+
+        #expect(noGuessRules.canTogglePause)
+        #expect(noGuessRules.canPauseForWindowClose)
+        #expect(noGuessRules.shouldPromptOnClose == false)
+    }
+
+    @Test("Timeout, surrender, and loss alert texts are derived outside the view")
+    func timeoutSurrenderAndLossMessages() {
+        let rules = GamePresentationRules(
+            settings: .default,
+            startedSettingsSnapshot: nil,
+            guessesCount: 2,
+            gameInProgress: true,
+            hasGuesses: true,
+            isWon: false,
+            isGameOver: false
+        )
+
+        #expect(
+            rules.timeoutGameOverMessage(for: .perGuess, answer: "1234")
+            == localized("alert.per_guess_timeout.message", "1234")
+        )
+        #expect(
+            rules.timeoutGameOverMessage(for: .game, answer: "1234")
+            == localized("alert.game_timeout.message", "1234")
+        )
+        #expect(
+            rules.surrenderGameOverMessage(answer: "1234")
+            == localized("alert.surrender.message", "1234")
+        )
+        #expect(
+            rules.lossAlertMessage(answer: "1234", gameOverMessage: "")
+            == localized("alert.lose.message", "1234")
+        )
+        #expect(
+            rules.lossAlertMessage(answer: "1234", gameOverMessage: "Custom loss")
+            == "Custom loss"
+        )
+    }
+
+    @Test("Loss end reason defaults to completed when no timeout was recorded")
+    func lossEndReasonFallback() {
+        let rules = GamePresentationRules(
+            settings: .default,
+            startedSettingsSnapshot: nil,
+            guessesCount: 2,
+            gameInProgress: true,
+            hasGuesses: true,
+            isWon: false,
+            isGameOver: true
+        )
+
+        #expect(rules.lossEndReason(timeoutEndReason: nil) == .completed)
+        #expect(rules.lossEndReason(timeoutEndReason: .timeoutGame) == .timeoutGame)
+    }
 }

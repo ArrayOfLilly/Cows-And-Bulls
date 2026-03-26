@@ -77,6 +77,16 @@ Push any non-trivial decision logic out of `View` files unless it is purely loca
   - `ProfilesToolbarRow`
   - `ProfileRowView`
   - `ProfileActionButtons`
+- `LearnView` split into:
+  - `LearnContentView`
+  - `LearnSection`
+  - `LearnObjectiveSection`
+  - `LearnSkillsSection`
+  - `LearnHowToPlaySection`
+  - `LearnGuessExplanationSection`
+  - `LearnStrategySection`
+  - `LearnScoringSection`
+  - `LearnOptionsSection`
 - victory celebration moved out of `ContentView` into a dedicated AppKit-backed controller
 - gameplay settings include an `enableCelebration` toggle
 - UI tests cover:
@@ -94,6 +104,7 @@ Push any non-trivial decision logic out of `View` files unless it is purely loca
 - continue extracting remaining `ContentView` decision logic into store/helper types
 - consider moving theme definitions out of the view file
 - standardize settings row visuals
+- consider adding a left-side table of contents to `LearnView` after the content structure is stable
 - add more accessibility identifiers to settings controls if new controls appear
 - add targeted UI tests for disabled-state behavior if more settings flows are added
 - decide whether celebration timing/path should become user-configurable or remain hard-coded
@@ -131,6 +142,13 @@ Current progress beyond settings:
 
 - added `GamePresentationRules` for game-screen derived state
 - moved score fairness, timer-active flags, profile-switch availability, and surrender availability out of `ContentView`
+- moved game-mode text, profile-switch help text, and profile-selection branching out of `ContentView`
+- moved pause/window-close guard decisions out of `ContentView`
+- moved timeout, surrender, and loss-alert derived messaging/end-reason fallback out of `ContentView`
+- introduced `GameCoordinator` for the first round of multi-store action orchestration
+- introduced `GameTimerController` so timer tasks are no longer owned directly by `ContentView`
+- simplified `AnimalIconStyle` into a fuller icon presentation style without an unused corner-radius parameter
+- reduced `ContentView` game tab parameter noise with small context adapter structs for header/input/list/footer
 - added targeted unit coverage in `GamePresentationRulesTests`
 
 ### Step 2: Introduce Small Shared UI Building Blocks

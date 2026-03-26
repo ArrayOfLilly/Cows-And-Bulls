@@ -36,6 +36,10 @@
 - [x] `SettingsView.swift` diagnosztika
 - [x] teljes build
 - [x] `CowsAndBullsUITests/testSmokeGameScreen()`
+- [x] célzott unit teszt az action orchestration rétegre
+  - [x] `GameCoordinatorTests/startNewGameBeginsSession()`
+  - [x] `GameCoordinatorTests/resetGameSessionClearsStores()`
+- [x] LearnView szekciós bontás build-validációja
 - [x] célzott settings UI tesztek
   - [x] `testSettingsProfilesControlsLockDuringActiveGame()`
   - [x] `testSettingsThemeSelectionUpdatesSelectedRow()`
@@ -44,6 +48,11 @@
 - [x] célzott unit teszt a view-ból kiemelt game-screen szabályokra
   - [x] `GamePresentationRulesTests/scoreUsesLowerOfStartedAndCurrentTimerConfigurations()`
   - [x] `GamePresentationRulesTests/timerFlagsAndSurrenderAvailability()`
+  - [x] `GamePresentationRulesTests/gameModeMessageAndProfilePickerHelpText()`
+  - [x] `GamePresentationRulesTests/profileSelectionDecision()`
+  - [x] `GamePresentationRulesTests/pauseAndWindowCloseGuards()`
+  - [x] `GamePresentationRulesTests/timeoutSurrenderAndLossMessages()`
+  - [x] `GamePresentationRulesTests/lossEndReasonFallback()`
 
 ## Important Guardrails
 
@@ -69,6 +78,17 @@
   - [x] `Views/SettingsTabViews.swift`
   - [x] `Views/SettingsProfilesViews.swift`
   - [x] `SettingsView.swift` kompozíciós réteggé tisztítva
+- [x] LearnView szekciós bontása külön view-kra
+  Megoldás:
+  - [x] `Views/LearnSection.swift`
+  - [x] `Views/LearnContentView.swift`
+  - [x] `Views/LearnObjectiveSection.swift`
+  - [x] `Views/LearnSkillsSection.swift`
+  - [x] `Views/LearnHowToPlaySection.swift`
+  - [x] `Views/LearnGuessExplanationSection.swift`
+  - [x] `Views/LearnStrategySection.swift`
+  - [x] `Views/LearnScoringSection.swift`
+  - [x] `Views/LearnOptionsSection.swift`
 - [ ] `ProfileEditorState` bevezetése, ha a profiles szerkesztési állapot tovább nő
 - [~] A `View` rétegben csak megjelenítés és UI wiring maradjon
   Már megvan:
@@ -76,5 +96,12 @@
   - [x] `ProfileEditorState`
   - [x] több ismétlődő döntés helper/property szintre húzva
   - [x] `ContentView` game-screen szabályainak első köre `GamePresentationRules` helperbe húzva
+  - [x] `ContentView` game mode / profile picker / profile selection döntések helperbe húzva
+  - [x] `ContentView` pause / window-close guardok helperbe húzva
+  - [x] `ContentView` timeout / surrender / loss-alert döntések helperbe húzva
+  - [x] `ContentView` action orchestration első köre `GameCoordinator`-ba húzva
+  - [x] `ContentView` timer task kezelés `GameTimerController`-be húzva
+  - [x] `AnimalIconStyle` egyszerűsítve, a felesleges `cornerRadius` paraméter nélkül
+  - [x] `ContentView` game tab paraméterezése context adapterekkel rövidítve
   Még hátra van:
   - [ ] a maradék view-oldali döntések további store/helper irányba tolása a következő körökben

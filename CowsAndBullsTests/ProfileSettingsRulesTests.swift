@@ -1,4 +1,5 @@
 import Testing
+import Foundation
 @testable import Cows___Bulls
 
 @Suite("Profile Settings Rules Tests")

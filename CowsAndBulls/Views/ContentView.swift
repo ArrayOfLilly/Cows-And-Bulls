@@ -15,8 +15,7 @@ struct ContentView: View {
     @EnvironmentObject private var settingsStore: ProfileSettingsStore
     @EnvironmentObject private var gameSessionStore: GameSessionStore
     @EnvironmentObject private var gameplayStore: GameplayStore
-    @State private var perGuessTimerTask: Task<Void, Never>?
-    @State private var gameTimerTask: Task<Void, Never>?
+    @State private var timerController = GameTimerController()
     
     
     @State private var showSurrenderConfirmation = false
@@ -94,22 +93,72 @@ struct ContentView: View {
     private var isAnyTimerActive: Bool { presentationRules.isAnyTimerActive }
     private var canChangeProfile: Bool { presentationRules.canChangeProfile }
 
+    private var gameHeaderContext: GameHeaderContext {
+        GameHeaderContext(
+            profiles: profileStore.profiles,
+            profileSelection: profileSelection,
+            canChangeProfile: canChangeProfile,
+            profilePickerHelpText: presentationRules.profilePickerHelpText,
+            gameModeMessage: gameModeMessage,
+            averageSteps: stats.averageSteps,
+            bestWinStreak: stats.bestWinStreak,
+            selectedBullAssetName: selectedBullAssetName,
+            selectedCowAssetName: selectedCowAssetName,
+            isAnyTimerActive: isAnyTimerActive,
+            isPerGuessLimitActive: isPerGuessLimitActive,
+            isGameLimitActive: isGameLimitActive,
+            perGuessRemainingSeconds: perGuessRemainingSeconds,
+            gameRemainingSeconds: gameRemainingSeconds,
+            isPaused: isPaused
+        )
+    }
+
+    private var gameInputContext: GameInputContext {
+        GameInputContext(
+            guessBinding: guessBinding,
+            isPaused: isPaused,
+            isDisabledSubmitButton: isDisabledSubmitButton,
+            guessInputErrorMessage: guessInputErrorMessage
+        )
+    }
+
+    private var guessesListContext: GuessesListContext {
+        GuessesListContext(
+            guesses: guesses,
+            guessDurations: guessDurations,
+            answer: answer,
+            selectedBullAssetName: selectedBullAssetName,
+            selectedCowAssetName: selectedCowAssetName
+        )
+    }
+
+    private var gameFooterContext: GameFooterContext {
+        GameFooterContext(
+            showGuessCount: showGuessCount,
+            guessesCount: guesses.count,
+            maximumGuesses: maximumGuesses,
+            canSurrender: presentationRules.canSurrender
+        )
+    }
+
     private var profileSelection: Binding<String> {
         Binding(
             get: { profileStore.selectedProfileId },
             set: { newValue in
-                if newValue == ProfileStore.newProfileSelectionId {
+                switch presentationRules.decisionForProfileSelection(
+                    newValue,
+                    newProfileSelectionId: ProfileStore.newProfileSelectionId
+                ) {
+                case .showNewProfileSheet:
                     showNewProfileSheet = true
                     profileStore.selectProfile(id: lastSelectedProfileId)
-                    return
-                }
-                if canChangeProfile == false {
-                    pendingProfileSwitchId = newValue
+                case let .confirmInProgressSwitch(profileId):
+                    pendingProfileSwitchId = profileId
                     showProfileSwitchDialog = true
                     profileStore.selectProfile(id: lastSelectedProfileId)
-                    return
+                case let .switchDirectly(profileId):
+                    applyProfileSwitch(to: profileId)
                 }
-                applyProfileSwitch(to: newValue)
             }
         )
     }
@@ -142,31 +191,19 @@ struct ContentView: View {
         )
     }
     
-    private var gameModeMessage: String {
-        var message = localized("game.mode.title") + " "
-        if enableHardMode {
-            message += String(localized: "game.mode.hard") + " "
-        } else {
-            message += String(localized: "game.mode.normal") + " "
-        }
-        message += String(localized: "game.mode.format") + " " + String(self.answerLength) + " "
-        if enableRepeats {
-            message += String(localized: "game.mode.repeats")
-        } else {
-            message += String(localized: "game.mode.unique")
-        }
-            return message
-    }
+    private var gameModeMessage: String { presentationRules.gameModeMessage }
 
     // MARK: - Lifecycle
     
     private func startNewGame() {
-        hideVictoryCelebration()
-        stopAllTimers()
-        gameSessionStore.resetSession()
-        gameplayStore.startNewGame(settings: settings)
+        GameCoordinator.startNewGame(
+            settings: settings,
+            gameplayStore: gameplayStore,
+            gameSessionStore: gameSessionStore,
+            timerController: timerController,
+            hideVictoryCelebration: hideVictoryCelebration
+        )
         guard gameplayStore.answer.isEmpty == false else { return }
-        gameSessionStore.beginGame(with: settings)
         startTimeLimits()
         focusGuessField()
     }
@@ -224,60 +261,28 @@ struct ContentView: View {
 
     // MARK: - Timers
 
-    private func stopAllTimers() {
-        perGuessTimerTask?.cancel()
-        perGuessTimerTask = nil
-        gameTimerTask?.cancel()
-        gameTimerTask = nil
-    }
+    private func stopAllTimers() { timerController.stopAll() }
 
     private func startTimeLimits() {
-        if isPerGuessLimitActive {
-            startPerGuessTimer()
-        }
-        if isGameLimitActive {
-            startGameTimer()
-        }
+        timerController.startTimers(
+            perGuessActive: isPerGuessLimitActive,
+            gameActive: isGameLimitActive,
+            onPerGuessTick: { [gameSessionStore] in
+                if gameSessionStore.tickPerGuessSecond() {
+                    handleTimeLimitExpired(.perGuess)
+                }
+            },
+            onGameTick: { [gameSessionStore] in
+                if gameSessionStore.tickGameSecond() {
+                    handleTimeLimitExpired(.game)
+                }
+            }
+        )
     }
 
     private func resumeTimeLimitsAfterPause() {
         // Resume from remaining seconds instead of resetting limits.
-        if isPerGuessLimitActive {
-            startPerGuessTimer()
-        }
-        if isGameLimitActive {
-            startGameTimer()
-        }
-    }
-
-    private func startPerGuessTimer() {
-        perGuessTimerTask?.cancel()
-        perGuessTimerTask = Task {
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(1))
-                if Task.isCancelled { return }
-                await MainActor.run {
-                    if gameSessionStore.tickPerGuessSecond() {
-                        handleTimeLimitExpired(.perGuess)
-                    }
-                }
-            }
-        }
-    }
-
-    private func startGameTimer() {
-        gameTimerTask?.cancel()
-        gameTimerTask = Task {
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(1))
-                if Task.isCancelled { return }
-                await MainActor.run {
-                    if gameSessionStore.tickGameSecond() {
-                        handleTimeLimitExpired(.game)
-                    }
-                }
-            }
-        }
+        startTimeLimits()
     }
 
     private enum TimeLimitType { case perGuess, game }
@@ -290,19 +295,28 @@ struct ContentView: View {
             return
         }
         gameplayStore.presentGameOver(
-            message: type == .perGuess
-                ? localized("alert.per_guess_timeout.message", answer)
-                : localized("alert.game_timeout.message", answer)
+            message: presentationRules.timeoutGameOverMessage(
+                for: type == .perGuess ? .perGuess : .game,
+                answer: answer
+            )
         )
         SoundPlayer.shared.play(.lose, enabled: enableSoundEffects, volume: soundEffectsVolume)
     }
 
     private func restartPerGuessTimeLimit() {
         gameSessionStore.restartPerGuessTimer(seconds: perGuessTimeLimitSeconds)
+        timerController.restartPerGuessTimerIfNeeded(
+            isActive: isPerGuessLimitActive,
+            onPerGuessTick: { [gameSessionStore] in
+                if gameSessionStore.tickPerGuessSecond() {
+                    handleTimeLimitExpired(.perGuess)
+                }
+            }
+        )
     }
 
     private func togglePause() {
-        guard isAnyTimerActive, isWon == false, isGameOver == false else { return }
+        guard presentationRules.canTogglePause else { return }
         if isPaused {
             gameSessionStore.resume()
             resumeTimeLimitsAfterPause()
@@ -314,7 +328,7 @@ struct ContentView: View {
     }
 
     private func pauseForWindowClose() {
-        guard isWon == false, isGameOver == false else { return }
+        guard presentationRules.canPauseForWindowClose else { return }
         stopAllTimers()
         gameSessionStore.pause(dueToWindowClose: true)
     }
@@ -331,7 +345,7 @@ struct ContentView: View {
         guard gameInProgress, guesses.isEmpty == false, isWon == false, isGameOver == false else { return }
         stopAllTimers()
         gameSessionStore.markSurrender()
-        gameplayStore.presentGameOver(message: localized("alert.surrender.message", answer))
+        gameplayStore.presentGameOver(message: presentationRules.surrenderGameOverMessage(answer: answer))
         SoundPlayer.shared.play(.lose, enabled: enableSoundEffects, volume: soundEffectsVolume)
     }
 
@@ -341,16 +355,6 @@ struct ContentView: View {
         gameplayStore.reset()
     }
 
-    private func profilePickerHelpText() -> String {
-        if gameInProgress && guesses.isEmpty == false {
-            return localized("profile.switch.disabled.in_progress")
-        }
-        if gameInProgress {
-            return localized("profile.switch.disabled.in_progress")
-        }
-        return ""
-    }
-
     private func applyProfileSwitch(to profileId: String) {
         profileStore.selectProfile(id: profileId)
         lastSelectedProfileId = profileId
@@ -358,27 +362,32 @@ struct ContentView: View {
     }
 
     private func resetGameSession() {
-        hideVictoryCelebration()
-        stopAllTimers()
-        gameSessionStore.resetSession()
-        gameplayStore.reset()
+        GameCoordinator.resetGameSession(
+            gameplayStore: gameplayStore,
+            gameSessionStore: gameSessionStore,
+            timerController: timerController,
+            hideVictoryCelebration: hideVictoryCelebration
+        )
     }
 
     private func surrenderForProfileSwitch() {
-        guard guesses.isEmpty == false else {
-            resetGameSession()
-            return
-        }
-        stopAllTimers()
-        gameSessionStore.markSurrender()
-        saveGameToHistory(finalState: false, score: 0, endReason: .surrender)
-        resetGameSession()
+        GameCoordinator.surrenderForProfileSwitch(
+            hasGuesses: guesses.isEmpty == false,
+            gameSessionStore: gameSessionStore,
+            timerController: timerController,
+            saveSurrenderedGame: {
+                saveGameToHistory(finalState: false, score: 0, endReason: .surrender)
+            },
+            resetGameSession: resetGameSession
+        )
     }
 
     private func pauseGameForProfileSwitch() {
-        guard gameInProgress, isWon == false, isGameOver == false else { return }
-        stopAllTimers()
-        gameSessionStore.pause()
+        GameCoordinator.pauseGameForProfileSwitch(
+            canPause: gameInProgress && isWon == false && isGameOver == false,
+            gameSessionStore: gameSessionStore,
+            timerController: timerController
+        )
     }
 
     private func focusGuessField(selectAll: Bool = false) {
@@ -418,7 +427,7 @@ struct ContentView: View {
         .background(
             WindowCloseHandler(
                 shouldPromptOnClose: {
-                    gameInProgress && guesses.isEmpty == false && isWon == false && isGameOver == false
+                    presentationRules.shouldPromptOnClose
                 },
                 onPause: {
                     pauseForWindowClose()
@@ -453,52 +462,17 @@ struct ContentView: View {
     private var gameTab: some View {
         VStack(spacing: 0) {
             VStack(spacing: 0) {
-                GameHeaderSection(
-                    profiles: profileStore.profiles,
-                    profileSelection: profileSelection,
-                    canChangeProfile: canChangeProfile,
-                    profilePickerHelpText: profilePickerHelpText(),
-                    gameModeMessage: gameModeMessage,
-                    averageSteps: stats.averageSteps,
-                    bestWinStreak: stats.bestWinStreak,
-                    selectedBullAssetName: selectedBullAssetName,
-                    selectedCowAssetName: selectedCowAssetName,
-                    isAnyTimerActive: isAnyTimerActive,
-                    isPerGuessLimitActive: isPerGuessLimitActive,
-                    isGameLimitActive: isGameLimitActive,
-                    perGuessRemainingSeconds: perGuessRemainingSeconds,
-                    gameRemainingSeconds: gameRemainingSeconds,
-                    isPaused: isPaused,
-                    onTogglePause: togglePause
-                )
-                GameInputSection(
-                    guessBinding: guessBinding,
-                    isPaused: isPaused,
-                    isDisabledSubmitButton: isDisabledSubmitButton,
-                    guessInputErrorMessage: guessInputErrorMessage,
-                    onSubmitGuess: submitGuess,
-                    focusBinding: $isGuessFieldFocused
-                )
+                GameHeaderSection(context: gameHeaderContext, onTogglePause: togglePause)
+                GameInputSection(context: gameInputContext, onSubmitGuess: submitGuess, focusBinding: $isGuessFieldFocused)
             }
             .frame(maxWidth: .infinity)
             .background(headerBackground)
 
-            GuessesListSection(
-                guesses: guesses,
-                guessDurations: guessDurations,
-                answer: answer,
-                selectedBullAssetName: selectedBullAssetName,
-                selectedCowAssetName: selectedCowAssetName
-            )
+            GuessesListSection(context: guessesListContext)
 
             GameFooterSection(
-                showGuessCount: showGuessCount,
-                guessesCount: guesses.count,
-                maximumGuesses: maximumGuesses,
-                canSurrender: presentationRules.canSurrender,
-                onSurrender: {
-                    showSurrenderConfirmation = true
-                },
+                context: gameFooterContext,
+                onSurrender: { showSurrenderConfirmation = true },
                 onRestart: startNewGame
             )
                 .frame(maxWidth: .infinity)
@@ -562,14 +536,14 @@ struct ContentView: View {
         } message: { Text(localized("alert.win.message", guesses.count, scoreValue)) }
         .alert(localized("game.alert.lose.title"), isPresented: isGameOverBinding) {
             Button(localized("common.action.play_again")) {
-                saveGameToHistory(finalState: false, score: 0, endReason: timeoutEndReason ?? .completed)
+                saveGameToHistory(finalState: false, score: 0, endReason: presentationRules.lossEndReason(timeoutEndReason: timeoutEndReason))
                 startNewGame()
             }
             Button(localized("common.action.ok")) {
                 gameplayStore.finalizeLoss()
-                saveGameToHistory(finalState: false, score: 0, endReason: timeoutEndReason ?? .completed)
+                saveGameToHistory(finalState: false, score: 0, endReason: presentationRules.lossEndReason(timeoutEndReason: timeoutEndReason))
             }
-        } message: { Text(gameOverMessage.isEmpty ? localized("alert.lose.message", answer) : gameOverMessage) }
+        } message: { Text(presentationRules.lossAlertMessage(answer: answer, gameOverMessage: gameOverMessage)) }
         .tabItem { Label(localized("tab.game"), systemImage: "gamecontroller") }
     }
 
@@ -585,41 +559,27 @@ struct ContentView: View {
 }
 
 private struct GameHeaderSection: View {
-    let profiles: [PlayerProfile]
-    let profileSelection: Binding<String>
-    let canChangeProfile: Bool
-    let profilePickerHelpText: String
-    let gameModeMessage: String
-    let averageSteps: Double
-    let bestWinStreak: Int
-    let selectedBullAssetName: String
-    let selectedCowAssetName: String
-    let isAnyTimerActive: Bool
-    let isPerGuessLimitActive: Bool
-    let isGameLimitActive: Bool
-    let perGuessRemainingSeconds: Int
-    let gameRemainingSeconds: Int
-    let isPaused: Bool
+    let context: GameHeaderContext
     let onTogglePause: () -> Void
 
     var body: some View {
         VStack(spacing: 4) {
             ProfilePickerRow(
-                profiles: profiles,
-                selection: profileSelection,
-                canChangeProfile: canChangeProfile,
-                helpText: profilePickerHelpText
+                profiles: context.profiles,
+                selection: context.profileSelection,
+                canChangeProfile: context.canChangeProfile,
+                helpText: context.profilePickerHelpText
             )
 
-            Text(gameModeMessage)
+            Text(context.gameModeMessage)
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .padding(.bottom, 4)
 
             HStack(spacing: 12) {
-                Text(localized("game.header.avg_steps", averageSteps))
+                Text(localized("game.header.avg_steps", context.averageSteps))
                     .padding(.trailing, 10)
-                Text(localized("game.header.best_streak", bestWinStreak))
+                Text(localized("game.header.best_streak", context.bestWinStreak))
             }
             .font(.caption2)
             .foregroundStyle(.secondary)
@@ -627,24 +587,24 @@ private struct GameHeaderSection: View {
 
             HStack(spacing: 2) {
                 Text(localized("settings.theme.label"))
-                Image(selectedBullAssetName)
+                Image(context.selectedBullAssetName)
                     .resizable()
                     .frame(width: 24, height: 24)
-                    .animalIconStyle(cornerRadius: 6)
-                Image(selectedCowAssetName)
+                    .animalIconStyle()
+                Image(context.selectedCowAssetName)
                     .resizable()
                     .frame(width: 24, height: 24)
-                    .animalIconStyle(cornerRadius: 6)
+                    .animalIconStyle()
             }
             .padding(.bottom, 4)
 
-            if isAnyTimerActive {
+            if context.isAnyTimerActive {
                 TimerStatusBar(
-                    isPerGuessLimitActive: isPerGuessLimitActive,
-                    isGameLimitActive: isGameLimitActive,
-                    perGuessRemainingSeconds: perGuessRemainingSeconds,
-                    gameRemainingSeconds: gameRemainingSeconds,
-                    isPaused: isPaused,
+                    isPerGuessLimitActive: context.isPerGuessLimitActive,
+                    isGameLimitActive: context.isGameLimitActive,
+                    perGuessRemainingSeconds: context.perGuessRemainingSeconds,
+                    gameRemainingSeconds: context.gameRemainingSeconds,
+                    isPaused: context.isPaused,
                     onTogglePause: onTogglePause
                 )
             }
@@ -709,40 +669,37 @@ private struct TimerStatusBar: View {
 }
 
 private struct GameInputSection: View {
-    let guessBinding: Binding<String>
-    let isPaused: Bool
-    let isDisabledSubmitButton: Bool
-    let guessInputErrorMessage: String
+    let context: GameInputContext
     let onSubmitGuess: () -> Void
     let focusBinding: FocusState<Bool>.Binding
 
     var body: some View {
         VStack {
             HStack(spacing: 12) {
-                TextField(localized("game.input.placeholder"), text: guessBinding)
+                TextField(localized("game.input.placeholder"), text: context.guessBinding)
                     .padding(.top, 4)
                     .padding(.bottom, 4)
                     .focused(focusBinding)
                     .onSubmit(onSubmitGuess)
                     .textFieldStyle(.roundedBorder)
-                    .disabled(isPaused)
+                    .disabled(context.isPaused)
                     .frame(maxWidth: .infinity)
                     .accessibilityIdentifier("guessInputField")
 
                 Button(localized("game.input.submit"), action: onSubmitGuess)
                     .padding(4)
-                    .disabled(isDisabledSubmitButton || isPaused)
+                    .disabled(context.isDisabledSubmitButton || context.isPaused)
                     .accessibilityIdentifier("submitGuessButton")
             }
             .padding(.horizontal, 16)
             .frame(maxWidth: 360)
 
-            Text(guessInputErrorMessage)
+            Text(context.guessInputErrorMessage)
                 .font(.caption)
                 .foregroundStyle(.red)
                 .frame(minHeight: 14, alignment: .top)
-                .accessibilityHidden(guessInputErrorMessage.isEmpty)
-                .accessibilityValue(guessInputErrorMessage)
+                .accessibilityHidden(context.guessInputErrorMessage.isEmpty)
+                .accessibilityValue(context.guessInputErrorMessage)
                 .accessibilityIdentifier("guessInputError")
         }
         .padding(.top, 8)
@@ -751,20 +708,16 @@ private struct GameInputSection: View {
 }
 
 private struct GuessesListSection: View {
-    let guesses: [String]
-    let guessDurations: [Int]
-    let answer: String
-    let selectedBullAssetName: String
-    let selectedCowAssetName: String
+    let context: GuessesListContext
 
     private var guessesAccessibilityValue: String {
-        guesses.joined(separator: "|")
+        context.guesses.joined(separator: "|")
     }
 
     var body: some View {
-        List(0..<guesses.count, id: \.self) { index in
-            let attempt = guesses[index]
-            let duration = index < guessDurations.count ? guessDurations[index] : 0
+        List(0..<context.guesses.count, id: \.self) { index in
+            let attempt = context.guesses[index]
+            let duration = index < context.guessDurations.count ? context.guessDurations[index] : 0
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(formattedGuessDisplay(attempt))
@@ -780,9 +733,9 @@ private struct GuessesListSection: View {
                 Spacer()
                 GuessResultIconsView(
                     guess: attempt,
-                    answer: answer,
-                    bullAssetName: selectedBullAssetName,
-                    cowAssetName: selectedCowAssetName
+                    answer: context.answer,
+                    bullAssetName: context.selectedBullAssetName,
+                    cowAssetName: context.selectedCowAssetName
                 )
             }
         }
@@ -831,40 +784,37 @@ private struct GuessResultIconsView: View {
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 36, height: 36)
-                    .animalIconStyle(cornerRadius: 6)
+                    .animalIconStyle()
             }
         }
     }
 }
 
 private struct GameFooterSection: View {
-    let showGuessCount: Bool
-    let guessesCount: Int
-    let maximumGuesses: Int
-    let canSurrender: Bool
+    let context: GameFooterContext
     let onSurrender: () -> Void
     let onRestart: () -> Void
 
     var body: some View {
         VStack {
-            if showGuessCount {
-                Text(localized("Guesses: %lld/%lld", guessesCount, maximumGuesses))
+            if context.showGuessCount {
+                Text(localized("Guesses: %lld/%lld", context.guessesCount, context.maximumGuesses))
                     .foregroundStyle(.secondary)
                     .padding(.top, 10)
                     .padding(.bottom, 5)
             }
 
-            Text(String(guessesCount))
+            Text(String(context.guessesCount))
                 .font(.caption2)
                 .accessibilityIdentifier("gameGuessCountState")
-                .accessibilityValue(String(guessesCount))
+                .accessibilityValue(String(context.guessesCount))
 
             HStack(spacing: 12) {
                 Button(localized("game.action.surrender")) {
                     onSurrender()
                 }
                 .foregroundStyle(Color(red: 1.0, green: 0.27, blue: 0.0))
-                .disabled(canSurrender == false)
+                .disabled(context.canSurrender == false)
 
                 Button(localized("game.action.restart"), action: onRestart)
                     .foregroundStyle(.blue)
@@ -908,4 +858,44 @@ private struct NewProfileSheet: View {
             isNameFocused = true
         }
     }
+}
+
+private struct GameHeaderContext {
+    let profiles: [PlayerProfile]
+    let profileSelection: Binding<String>
+    let canChangeProfile: Bool
+    let profilePickerHelpText: String
+    let gameModeMessage: String
+    let averageSteps: Double
+    let bestWinStreak: Int
+    let selectedBullAssetName: String
+    let selectedCowAssetName: String
+    let isAnyTimerActive: Bool
+    let isPerGuessLimitActive: Bool
+    let isGameLimitActive: Bool
+    let perGuessRemainingSeconds: Int
+    let gameRemainingSeconds: Int
+    let isPaused: Bool
+}
+
+private struct GameInputContext {
+    let guessBinding: Binding<String>
+    let isPaused: Bool
+    let isDisabledSubmitButton: Bool
+    let guessInputErrorMessage: String
+}
+
+private struct GuessesListContext {
+    let guesses: [String]
+    let guessDurations: [Int]
+    let answer: String
+    let selectedBullAssetName: String
+    let selectedCowAssetName: String
+}
+
+private struct GameFooterContext {
+    let showGuessCount: Bool
+    let guessesCount: Int
+    let maximumGuesses: Int
+    let canSurrender: Bool
 }

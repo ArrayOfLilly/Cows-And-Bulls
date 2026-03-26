@@ -30,6 +30,16 @@ struct SettingsHelpCaption: View {
     }
 }
 
+struct SettingsSectionTitle: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.headline)
+            .foregroundStyle(.primary)
+    }
+}
+
 struct SettingsLockedNotice: View {
     let text: String
 

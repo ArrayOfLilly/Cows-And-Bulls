@@ -66,28 +66,32 @@ struct SettingsAdvancedTab: View {
     let gameInProgress: Bool
 
     var body: some View {
-        Toggle("Enable repeating", isOn: enableRepeats)
-            .help(localized("help.settings.enable_repeating"))
-            .disabled(canEditSettings == false)
-            .accessibilityIdentifier("settingsEnableRepeatsToggle")
-            .padding(.bottom, 5)
-
-        Toggle("Enable hard mode", isOn: enableHardMode)
-            .help(localized("help.settings.enable_hard_mode"))
-            .disabled(canEditSettings == false)
-            .accessibilityIdentifier("settingsEnableHardModeToggle")
-            .padding(.bottom, 5)
-
-        Toggle("Show guess count", isOn: showGuessCount)
-            .help(localized("help.settings.show_guess_count"))
-            .disabled(canEditSettings == false)
-            .accessibilityIdentifier("settingsShowGuessCountToggle")
-            .padding(.bottom, 10)
-
-        Divider()
-            .padding(.vertical, 20)
-
         VStack(alignment: .leading, spacing: 5) {
+            SettingsSectionTitle(text: "Rules")
+
+            Toggle("Enable repeating", isOn: enableRepeats)
+                .help(localized("help.settings.enable_repeating"))
+                .disabled(canEditSettings == false)
+                .accessibilityIdentifier("settingsEnableRepeatsToggle")
+                .padding(.bottom, 5)
+
+            Toggle("Enable hard mode", isOn: enableHardMode)
+                .help(localized("help.settings.enable_hard_mode"))
+                .disabled(canEditSettings == false)
+                .accessibilityIdentifier("settingsEnableHardModeToggle")
+                .padding(.bottom, 5)
+
+            Toggle("Show guess count", isOn: showGuessCount)
+                .help(localized("help.settings.show_guess_count"))
+                .disabled(canEditSettings == false)
+                .accessibilityIdentifier("settingsShowGuessCountToggle")
+                .padding(.bottom, 10)
+
+            Divider()
+                .padding(.vertical, 20)
+
+            SettingsSectionTitle(text: "Timers")
+
             Toggle(localized("settings.timer.per_guess.enable"), isOn: enablePerGuessTimeLimit)
                 .help(localized("help.settings.enable_per_guess_time_limit"))
                 .disabled(canEditSettings == false)
@@ -133,6 +137,8 @@ struct SettingsSoundTab: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
+            SettingsSectionTitle(text: "Sound Effects")
+
             Toggle("Enable sound effects", isOn: enableSoundEffects)
                 .help(localized("help.settings.sound_effects"))
                 .accessibilityIdentifier("settingsSoundEffectsToggle")
@@ -153,19 +159,23 @@ struct SettingsLanguageTab: View {
     let appLanguageCode: Binding<String>
 
     var body: some View {
-        Picker("App Language", selection: appLanguageCode) {
-            Text("Follow System").tag("system")
-                .padding(.bottom, 2)
-            Text("English").tag("en")
-                .padding(.bottom, 2)
-            Text("Magyar").tag("hu")
-                .padding(.bottom, 2)
-        }
-        .pickerStyle(.radioGroup)
-        .accessibilityIdentifier("settingsLanguagePicker")
+        VStack(alignment: .leading, spacing: 12) {
+            SettingsSectionTitle(text: "App Language")
 
-        SettingsHelpCaption(text: "Some language changes require restart.")
-            .padding(.top, 10)
+            Picker("App Language", selection: appLanguageCode) {
+                Text("Follow System").tag("system")
+                    .padding(.bottom, 2)
+                Text("English").tag("en")
+                    .padding(.bottom, 2)
+                Text("Magyar").tag("hu")
+                    .padding(.bottom, 2)
+            }
+            .pickerStyle(.radioGroup)
+            .accessibilityIdentifier("settingsLanguagePicker")
+
+            SettingsHelpCaption(text: "Some language changes require restart.")
+                .padding(.top, 10)
+        }
     }
 }
 
@@ -176,6 +186,8 @@ struct SettingsMusicTab: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
+            SettingsSectionTitle(text: "Background Music")
+
             Toggle(localized("settings.music.enable"), isOn: enableBackgroundMusic)
                 .accessibilityIdentifier("settingsBackgroundMusicToggle")
 
@@ -207,8 +219,7 @@ struct SettingsThemeTab: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Animal Theme")
-                    .font(.headline)
+                SettingsSectionTitle(text: "Animal Theme")
 
                 ForEach(animalThemes) { theme in
                     ThemeRowView(
@@ -241,13 +252,13 @@ struct ThemeRowView: View {
                     .resizable()
                     .scaledToFit()
                     .frame(width: 36, height: 36)
-                    .animalIconStyle(cornerRadius: 6)
+                    .animalIconStyle()
 
                 Image(theme.cowAsset)
                     .resizable()
                     .scaledToFit()
                     .frame(width: 36, height: 36)
-                    .animalIconStyle(cornerRadius: 6)
+                    .animalIconStyle()
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 6)
