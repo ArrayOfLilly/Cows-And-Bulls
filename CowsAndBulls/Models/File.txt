@@ -1,0 +1,146 @@
+# Refactoring Plan
+
+## Current Status
+
+The project already has a cleaner separation than the original version:
+
+- `ContentView` has been split into smaller subviews.
+- Gameplay state is managed by `GameplayStore`.
+- Session and timing state is managed by `GameSessionStore`.
+- `SettingsView` has started to move toward a compositional structure.
+
+This document is the continuation plan if the ongoing refactor needs to be finished manually.
+
+## Main Goal
+
+Keep views focused on presentation and user interaction wiring.
+Keep business rules and mutable state in stores or small action helpers.
+Prefer small subviews with explicit inputs over large views that reach into multiple stores directly.
+
+## Architectural Direction
+
+### What should live in stores
+
+- gameplay state
+- session state
+- timer state
+- profile list mutation
+- profile settings persistence
+- history persistence
+- statistics calculation
+
+### What should live in views
+
+- layout
+- bindings
+- accessibility identifiers
+- short UI-specific validation state
+- dialog presentation state
+
+### What should not stay in large view bodies
+
+- repeated `disabled(...)` logic
+- repeated help-text decision trees
+- repeated asset-preview rows
+- timer configuration binding boilerplate
+- large inline row definitions
+
+## Current Refactor Progress
+
+### Already done
+
+- `ContentView` split into:
+  - `GameHeaderSection`
+  - `ProfilePickerRow`
+  - `TimerStatusBar`
+  - `GameInputSection`
+  - `GuessesListSection`
+  - `GuessResultIconsView`
+  - `GameFooterSection`
+- `SettingsView` split into:
+  - `SettingsFormContainer`
+  - `SettingsGameTab`
+  - `SettingsAdvancedTab`
+  - `SettingsSoundTab`
+  - `SettingsMusicTab`
+  - `SettingsLanguageTab`
+  - `SettingsThemeTab`
+  - `ThemeRowView`
+  - `SettingsProfilesTab`
+  - `ProfilesToolbarRow`
+  - `ProfileRowView`
+  - `ProfileActionButtons`
+
+### Still worth doing
+
+- extract more rule computation out of `SettingsView`
+- consider moving theme definitions out of the view file
+- standardize settings row visuals
+- add more accessibility identifiers to settings controls
+- add targeted UI tests for disabled-state behavior
+
+## Recommended Next Steps
+
+### Step 1: Normalize Settings Rules
+
+Create computed properties in `SettingsView` for repeated decision logic.
+
+Recommended properties:
+
+- `canCreateProfiles`
+- `canRenameProfiles`
+- `canReorderProfiles`
+- `canDeleteProfiles`
+- `canEditTimerSettings`
+- `canEditGameplaySettings`
+- `answerLengthHasValidationError`
+- `selectedTheme`
+
+Goal:
+reduce inline booleans and make the body read like composition, not logic.
+
+### Step 2: Introduce Small Shared UI Building Blocks
+
+Create reusable view helpers inside `SettingsView.swift` first.
+Only move them to separate files if they stay broadly reusable.
+
+Recommended small components:
+
+- `SettingsHelpCaption`
+- `SettingsSliderRow`
+- `SettingsPercentLabel`
+- `SettingsSectionTitle`
+- `SettingsLockedNotice`
+
+Goal:
+reduce repeated formatting and tighten visual consistency.
+
+### Step 3: Decide Whether Theme Metadata Leaves the View
+
+Right now `animalThemes` lives in `SettingsView`.
+That is acceptable, but if more theme metadata appears, move it into one of:
+
+- `Models/AnimalTheme.swift`
+- `Logic/ThemeCatalog.swift`
+
+Use a separate file if:
+
+- theme list grows
+- theme filtering or grouping is added
+- preview metadata becomes richer
+
+Keep it local if:
+
+- it stays as a small, static lookup table
+
+### Step 4: Reduce `SettingsView` Local Mutation Surface
+
+The view still owns:
+
+- `previousLanguageCode`
+- `showRestartPrompt`
+- `newProfileName`
+- `profilePendingDelete`
+- `profileNameDrafts`
+- `editingProfileIds`
+- `answerLengthDraft`

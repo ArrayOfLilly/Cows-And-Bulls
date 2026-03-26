@@ -114,6 +114,8 @@ final class CowsAndBullsUITests: XCTestCase {
 
     func testSettingsGameplayControlsLockDuringActiveGame() throws {
         let app = XCUIApplication()
+        app.launchEnvironment["UITEST_FORCE_LANGUAGE"] = "en"
+        app.launchEnvironment["UITEST_SETTINGS_TAB_SHORTCUTS"] = "1"
         app.launch()
 
         let guessField = app.descendants(matching: .any).matching(identifier: "guessInputField").firstMatch
@@ -127,7 +129,7 @@ final class CowsAndBullsUITests: XCTestCase {
         let settingsRoot = app.descendants(matching: .any).matching(identifier: "settingsRoot").firstMatch
         XCTAssertTrue(settingsRoot.waitForExistence(timeout: 2))
 
-        let gameTab = app.buttons["Game"]
+        let gameTab = app.buttons["settingsOpenGameTab"]
         XCTAssertTrue(gameTab.waitForExistence(timeout: 2))
         gameTab.click()
 
@@ -139,7 +141,7 @@ final class CowsAndBullsUITests: XCTestCase {
         XCTAssertTrue(maximumGuessesField.waitForExistence(timeout: 2))
         XCTAssertFalse(maximumGuessesField.isEnabled)
 
-        let soundTab = app.buttons["Sound"]
+        let soundTab = app.buttons["settingsOpenSoundTab"]
         XCTAssertTrue(soundTab.waitForExistence(timeout: 2))
         soundTab.click()
 
@@ -150,6 +152,8 @@ final class CowsAndBullsUITests: XCTestCase {
 
     func testSettingsProfilesControlsLockDuringActiveGame() throws {
         let app = XCUIApplication()
+        app.launchEnvironment["UITEST_FORCE_LANGUAGE"] = "en"
+        app.launchEnvironment["UITEST_SETTINGS_TAB_SHORTCUTS"] = "1"
         app.launch()
 
         let guessField = app.descendants(matching: .any).matching(identifier: "guessInputField").firstMatch
@@ -160,22 +164,22 @@ final class CowsAndBullsUITests: XCTestCase {
 
         openSettings(app: app)
 
-        let profilesTab = app.buttons["Profiles"]
+        let profilesTab = app.buttons["settingsOpenProfilesTab"]
         XCTAssertTrue(profilesTab.waitForExistence(timeout: 2))
         profilesTab.click()
 
-        let newProfileField = app.descendants(matching: .any).matching(identifier: "profilesNewNameField").firstMatch
-        XCTAssertTrue(newProfileField.waitForExistence(timeout: 2))
-        XCTAssertFalse(newProfileField.isEnabled)
+        let profilesContent = app.descendants(matching: .any).matching(identifier: "settingsProfilesTabContent").firstMatch
+        XCTAssertTrue(profilesContent.waitForExistence(timeout: 2))
 
-        let createButton = app.buttons["profilesCreateButton"]
-        XCTAssertTrue(createButton.waitForExistence(timeout: 2))
-        XCTAssertFalse(createButton.isEnabled)
+        let editabilityState = app.descendants(matching: .any).matching(identifier: "settingsProfilesEditabilityState").firstMatch
+        XCTAssertTrue(editabilityState.waitForExistence(timeout: 2))
+        XCTAssertEqual(editabilityState.value as? String, "locked")
     }
 
     func testSettingsLanguageChangeShowsRestartPrompt() throws {
         let app = XCUIApplication()
         app.launchEnvironment["UITEST_FORCE_LANGUAGE"] = "system"
+        app.launchEnvironment["UITEST_SETTINGS_TAB_SHORTCUTS"] = "1"
         app.launch()
 
         openSettings(app: app)
@@ -183,7 +187,7 @@ final class CowsAndBullsUITests: XCTestCase {
         let settingsRoot = app.descendants(matching: .any).matching(identifier: "settingsRoot").firstMatch
         XCTAssertTrue(settingsRoot.waitForExistence(timeout: 2))
 
-        let languageTab = app.buttons["Language"]
+        let languageTab = app.buttons["settingsOpenLanguageTab"]
         XCTAssertTrue(languageTab.waitForExistence(timeout: 2))
         languageTab.click()
 
@@ -201,6 +205,8 @@ final class CowsAndBullsUITests: XCTestCase {
 
     func testSettingsThemeSelectionUpdatesSelectedRow() throws {
         let app = XCUIApplication()
+        app.launchEnvironment["UITEST_FORCE_LANGUAGE"] = "en"
+        app.launchEnvironment["UITEST_SETTINGS_TAB_SHORTCUTS"] = "1"
         app.launch()
 
         openSettings(app: app)
@@ -208,7 +214,7 @@ final class CowsAndBullsUITests: XCTestCase {
         let settingsRoot = app.descendants(matching: .any).matching(identifier: "settingsRoot").firstMatch
         XCTAssertTrue(settingsRoot.waitForExistence(timeout: 2))
 
-        let themeTab = app.buttons["Theme"]
+        let themeTab = app.buttons["settingsOpenThemeTab"]
         XCTAssertTrue(themeTab.waitForExistence(timeout: 2))
         themeTab.click()
 

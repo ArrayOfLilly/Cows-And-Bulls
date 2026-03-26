@@ -10,6 +10,16 @@ import AppKit
 
 /// Central settings UI for gameplay rules, audio, language, and visual themes.
 struct SettingsView: View {
+    private enum SettingsTab: Hashable {
+        case game
+        case advanced
+        case sound
+        case music
+        case profiles
+        case language
+        case theme
+    }
+
     @AppStorage("enableBackgroundMusic") private var enableBackgroundMusic = false
     @AppStorage("backgroundMusicTrackID") private var backgroundMusicTrackID = "Mushroom Background Music"
     @AppStorage("backgroundMusicVolume") private var backgroundMusicVolume = 0.35
@@ -25,10 +35,15 @@ struct SettingsView: View {
     @State private var profileEditorState = ProfileEditorState()
     @State private var profilePendingDelete: PlayerProfile?
     @State private var answerLengthDraft = ""
+    @State private var selectedTab: SettingsTab = .game
 
     @FocusState private var isAnswerLengthFocused: Bool
 
     private let animalThemes = AnimalTheme.all
+
+    private var showsUITestTabShortcuts: Bool {
+        ProcessInfo.processInfo.environment["UITEST_SETTINGS_TAB_SHORTCUTS"] == "1"
+    }
 
     private var canEditGameplaySettings: Bool {
         gameSessionStore.canEditGameplaySettings
@@ -71,7 +86,7 @@ struct SettingsView: View {
     var body: some View {
         // TabView is used as a settings-page switcher.
         // This keeps each settings category isolated and easier to maintain.
-        TabView {
+        TabView(selection: $selectedTab) {
             gameTab
             advancedTab
             soundTab
@@ -82,6 +97,18 @@ struct SettingsView: View {
         }
             .accessibilityIdentifier("settingsRoot")
             .frame(minWidth: 440, minHeight: 480)
+            .overlay(alignment: .topTrailing) {
+                if showsUITestTabShortcuts {
+                    HStack(spacing: 6) {
+                        settingsUITestTabButton(id: "settingsOpenGameTab", tab: .game)
+                        settingsUITestTabButton(id: "settingsOpenSoundTab", tab: .sound)
+                        settingsUITestTabButton(id: "settingsOpenProfilesTab", tab: .profiles)
+                        settingsUITestTabButton(id: "settingsOpenLanguageTab", tab: .language)
+                        settingsUITestTabButton(id: "settingsOpenThemeTab", tab: .theme)
+                    }
+                    .padding(8)
+                }
+            }
             .onAppear {
             previousLanguageCode = appLanguageCode
             if animalThemes.contains(where: { $0.id == settings.selectedAnimalThemeID }) == false {
@@ -154,6 +181,14 @@ struct SettingsView: View {
             .onChange(of: backgroundMusicVolume) {
             applyMusicSettings()
         }
+    }
+
+    private func settingsUITestTabButton(id: String, tab: SettingsTab) -> some View {
+        Button(id) {
+            selectedTab = tab
+        }
+        .font(.caption2)
+        .accessibilityIdentifier(id)
     }
 
     /// Persists the selected bull/cow asset pair as the active theme.
@@ -303,6 +338,7 @@ struct SettingsView: View {
             )
         }
         .navigationTitle("Settings")
+        .tag(SettingsTab.game)
         .tabItem {
             Label("Game", image: "Cow")
         }
@@ -338,6 +374,7 @@ struct SettingsView: View {
                 gameInProgress: gameInProgress
             )
         }
+        .tag(SettingsTab.advanced)
         .tabItem {
             Label("Advanced", systemImage: "gearshape.2")
         }
@@ -351,6 +388,7 @@ struct SettingsView: View {
                 soundEffectsVolumeValue: settings.soundEffectsVolume
             )
         }
+        .tag(SettingsTab.sound)
         .tabItem {
             Label("Sound", systemImage: "speaker.wave.2")
         }
@@ -365,6 +403,7 @@ struct SettingsView: View {
                     showRestartPrompt = true
                 }
         }
+        .tag(SettingsTab.language)
         .tabItem {
             Label("Language", systemImage: "globe")
         }
@@ -419,6 +458,17 @@ struct SettingsView: View {
         .onChange(of: profileStore.profiles) { _, newProfiles in
             profileEditorState.syncDrafts(with: newProfiles)
         }
+        .accessibilityIdentifier("settingsProfilesTabContent")
+        .overlay(alignment: .bottomTrailing) {
+            if showsUITestTabShortcuts {
+                Text(canRenameProfiles ? "editable" : "locked")
+                    .font(.caption2)
+                    .accessibilityIdentifier("settingsProfilesEditabilityState")
+                    .accessibilityValue(canRenameProfiles ? "editable" : "locked")
+                    .padding(8)
+            }
+        }
+        .tag(SettingsTab.profiles)
         .tabItem {
             Label(localized("settings.tab.profiles"), systemImage: "person.2")
         }
@@ -432,6 +482,7 @@ struct SettingsView: View {
                 backgroundMusicVolume: $backgroundMusicVolume
             )
         }
+        .tag(SettingsTab.music)
         .tabItem {
             Label(localized("settings.tab.music"), systemImage: "music.note")
         }
@@ -442,6 +493,7 @@ struct SettingsView: View {
             selectedThemeID: selectedTheme?.id ?? settings.selectedAnimalThemeID,
             onSelectTheme: applyTheme
         )
+        .tag(SettingsTab.theme)
         .tabItem {
             Label("Theme", systemImage: "paintpalette")
         }
