@@ -219,10 +219,49 @@ class HistoryStore: ObservableObject {
         }
     }
 
+    func exportedHistory(for profileIDs: [String]) -> [String: [HistoryItem]] {
+        Dictionary(uniqueKeysWithValues: profileIDs.map { profileID in
+            let key = "history.\(profileID)"
+            let value: [HistoryItem]
+            if let data = userDefaults.data(forKey: key),
+               let decoded = try? JSONDecoder().decode([HistoryItem].self, from: data) {
+                value = decoded
+            } else {
+                value = []
+            }
+            return (profileID, value)
+        })
+    }
+
+    func replaceAllHistory(_ importedHistory: [String: [HistoryItem]], activeProfileId: String) {
+        removeAllStoredHistory()
+
+        for (profileID, items) in importedHistory {
+            let key = "history.\(profileID)"
+            if let encoded = try? JSONEncoder().encode(items) {
+                userDefaults.set(encoded, forKey: key)
+            }
+            userDefaults.set(false, forKey: "history.\(profileID).modified")
+        }
+
+        storageKey = "history.\(activeProfileId)"
+        modifiedKey = "history.\(activeProfileId).modified"
+        load()
+    }
+
     private func markHistoryModified() {
         guard isHistoryModified == false else { return }
         isHistoryModified = true
         userDefaults.set(true, forKey: modifiedKey)
+    }
+
+    private func removeAllStoredHistory() {
+        let keys = userDefaults.dictionaryRepresentation().keys.filter {
+            $0.hasPrefix("history.")
+        }
+        for key in keys {
+            userDefaults.removeObject(forKey: key)
+        }
     }
 
     private func migrateLegacyHistoryIfNeeded(to profileId: String) {

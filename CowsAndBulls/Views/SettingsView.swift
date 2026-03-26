@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AppKit
+import UniformTypeIdentifiers
 
 /// Central settings UI for gameplay rules, audio, language, and visual themes.
 struct SettingsView: View {
@@ -36,6 +37,10 @@ struct SettingsView: View {
     @State private var profilePendingDelete: PlayerProfile?
     @State private var answerLengthDraft = ""
     @State private var selectedTab: SettingsTab = .game
+    @State private var backupDocument: AppBackupDocument?
+    @State private var isExportingBackup = false
+    @State private var isImportingBackup = false
+    @State private var backupStatusMessage: String?
 
     @FocusState private var isAnswerLengthFocused: Bool
 
@@ -99,6 +104,30 @@ struct SettingsView: View {
     
     private var selectedTheme: AnimalTheme? {
         animalThemes.first { $0.id == settings.selectedAnimalThemeID }
+    }
+
+    private var backupController: AppBackupController {
+        AppBackupController(
+            profileStore: profileStore,
+            settingsStore: settingsStore,
+            historyStore: historyStore,
+            gameSessionStore: gameSessionStore
+        )
+    }
+
+    private var appPreferencesSnapshot: AppPreferencesSnapshot {
+        AppPreferencesSnapshot(
+            appLanguageCode: appLanguageCode,
+            enableBackgroundMusic: enableBackgroundMusic,
+            backgroundMusicTrackID: backgroundMusicTrackID,
+            backgroundMusicVolume: backgroundMusicVolume
+        )
+    }
+
+    private var appVersionDescription: String {
+        let shortVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
+        let buildVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
+        return "\(shortVersion) (\(buildVersion))"
     }
 
     private func profilesReorderState(for index: Int) -> String? {
@@ -243,6 +272,25 @@ struct SettingsView: View {
             let name = profilePendingDelete?.name ?? ""
             Text(localized("profiles.delete.message", name))
         }
+        .fileExporter(
+            isPresented: $isExportingBackup,
+            document: backupDocument,
+            contentType: .json,
+            defaultFilename: "cows-and-bulls-backup"
+        ) { result in
+            switch result {
+            case .success:
+                backupStatusMessage = "Backup exported successfully."
+            case .failure(let error):
+                backupStatusMessage = error.localizedDescription
+            }
+        }
+        .fileImporter(
+            isPresented: $isImportingBackup,
+            allowedContentTypes: [.json]
+        ) { result in
+            handleImportResult(result)
+        }
             .onAppear {
             applyMusicSettings()
         }
@@ -308,6 +356,11 @@ struct SettingsView: View {
             .font(.caption2)
             .accessibilityIdentifier("settingsProfilesState")
             .accessibilityValue(profilesUITestStateValue)
+
+        Text(backupController.canTransferBackup ? "enabled" : "disabled")
+            .font(.caption2)
+            .accessibilityIdentifier("settingsBackupTransferState")
+            .accessibilityValue(backupController.canTransferBackup ? "enabled" : "disabled")
 
         Text("selectEnglishLanguage")
             .contentShape(Rectangle())
@@ -517,6 +570,10 @@ struct SettingsView: View {
             onDelete: { profile in
                 profilePendingDelete = profile
             },
+            canTransferBackup: backupController.canTransferBackup,
+            backupStatusMessage: backupStatusMessage,
+            onExportBackup: prepareBackupExport,
+            onImportBackup: { isImportingBackup = true },
             createProfileHelpText: profileRules.createProfileHelpText(),
             editProfileHelpText: profileRules.editProfileHelpText(),
             profileRowState: profileRules.rowState
@@ -556,6 +613,43 @@ struct SettingsView: View {
         .tag(SettingsTab.theme)
         .tabItem {
             Label("Theme", systemImage: "paintpalette")
+        }
+    }
+
+    private func prepareBackupExport() {
+        do {
+            let backup = try backupController.makeBackup(
+                appPreferences: appPreferencesSnapshot,
+                appVersion: appVersionDescription
+            )
+            backupDocument = AppBackupDocument(backup: backup)
+            isExportingBackup = true
+            backupStatusMessage = nil
+        } catch {
+            backupStatusMessage = error.localizedDescription
+        }
+    }
+
+    private func handleImportResult(_ result: Result<URL, Error>) {
+        do {
+            let url = try result.get()
+            let hasSecurityScope = url.startAccessingSecurityScopedResource()
+            defer {
+                if hasSecurityScope {
+                    url.stopAccessingSecurityScopedResource()
+                }
+            }
+            let data = try Data(contentsOf: url)
+            let backup = try AppBackupController.decodeBackup(from: data)
+            try backupController.importBackup(backup) { appPreferences in
+                appLanguageCode = appPreferences.appLanguageCode
+                enableBackgroundMusic = appPreferences.enableBackgroundMusic
+                backgroundMusicTrackID = appPreferences.backgroundMusicTrackID
+                backgroundMusicVolume = appPreferences.backgroundMusicVolume
+            }
+            backupStatusMessage = "Backup imported successfully."
+        } catch {
+            backupStatusMessage = error.localizedDescription
         }
     }
 }

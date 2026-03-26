@@ -244,6 +244,25 @@ final class CowsAndBullsUITests: XCTestCase {
         XCTAssertEqual(selectedThemeState.value as? String, "geometric")
     }
 
+    func testBackupButtonsDisableDuringActiveGame() throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["UITEST_FORCE_LANGUAGE"] = "en"
+        app.launchEnvironment["UITEST_SETTINGS_TAB_SHORTCUTS"] = "1"
+        app.launchEnvironment["UITEST_SETTINGS_INITIAL_TAB"] = "profiles"
+        app.launch()
+
+        let guessField = app.descendants(matching: .any).matching(identifier: "guessInputField").firstMatch
+        XCTAssertTrue(guessField.waitForExistence(timeout: 2))
+        guessField.click()
+        app.typeText("1")
+
+        openSettings(app: app)
+
+        let backupState = app.descendants(matching: .any).matching(identifier: "settingsBackupTransferState").firstMatch
+        XCTAssertTrue(backupState.waitForExistence(timeout: 2))
+        XCTAssertEqual(backupState.value as? String, "disabled")
+    }
+
     func testSettingsProfileReorderButtonsReflectBoundaryState() throws {
         let app = XCUIApplication()
         app.launchEnvironment["UITEST_FORCE_LANGUAGE"] = "en"

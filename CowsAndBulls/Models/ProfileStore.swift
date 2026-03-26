@@ -107,6 +107,22 @@ final class ProfileStore: ObservableObject {
         saveSelection()
     }
 
+    func replaceAllProfiles(_ importedProfiles: [PlayerProfile], selectedProfileId importedSelectedProfileId: String?) {
+        guard importedProfiles.isEmpty == false else { return }
+
+        profiles = importedProfiles
+
+        if let importedSelectedProfileId,
+           importedProfiles.contains(where: { $0.id == importedSelectedProfileId }) {
+            selectedProfileId = importedSelectedProfileId
+        } else if let firstProfile = importedProfiles.first {
+            selectedProfileId = firstProfile.id
+        }
+
+        saveProfiles()
+        saveSelection()
+    }
+
     private func ensureDefaultProfile() {
         guard profiles.isEmpty else { return }
         let defaultProfile = PlayerProfile(

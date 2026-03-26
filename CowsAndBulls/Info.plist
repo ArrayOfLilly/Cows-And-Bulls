@@ -15,9 +15,9 @@
 	<key>CFBundleHelpBookName</key>
 	<string>CowsAndBullsHelp</string>
 	<key>CFBundleVersion</key>
-	<string>4</string>
+	<string>5</string>
 	<key>CFBundleShortVersionString</key>
-	<string>2.2</string>
+	<string>2.3</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>ArrayOfLilly</string>
 </dict>

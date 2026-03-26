@@ -53,6 +53,10 @@ struct SettingsProfilesTab: View {
     let onMoveUp: (PlayerProfile) -> Void
     let onMoveDown: (PlayerProfile) -> Void
     let onDelete: (PlayerProfile) -> Void
+    let canTransferBackup: Bool
+    let backupStatusMessage: String?
+    let onExportBackup: () -> Void
+    let onImportBackup: () -> Void
     let createProfileHelpText: String
     let editProfileHelpText: String
     let profileRowState: (PlayerProfile) -> ProfileRowState
@@ -93,6 +97,46 @@ struct SettingsProfilesTab: View {
                         onDelete: { onDelete(profile) }
                     )
                 }
+            }
+
+            BackupTransferSection(
+                canTransferBackup: canTransferBackup,
+                backupStatusMessage: backupStatusMessage,
+                onExportBackup: onExportBackup,
+                onImportBackup: onImportBackup
+            )
+        }
+    }
+}
+
+struct BackupTransferSection: View {
+    let canTransferBackup: Bool
+    let backupStatusMessage: String?
+    let onExportBackup: () -> Void
+    let onImportBackup: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Divider()
+            SettingsSectionTitle(text: "Backup")
+
+            HStack(spacing: 10) {
+                Button("Export Backup", action: onExportBackup)
+                    .disabled(canTransferBackup == false)
+                    .accessibilityIdentifier("settingsExportBackupButton")
+
+                Button("Import Backup", action: onImportBackup)
+                    .disabled(canTransferBackup == false)
+                    .accessibilityIdentifier("settingsImportBackupButton")
+            }
+
+            if canTransferBackup == false {
+                SettingsLockedNotice(text: "Backups are only available when no game is in progress.")
+            }
+
+            if let backupStatusMessage, backupStatusMessage.isEmpty == false {
+                SettingsHelpCaption(text: backupStatusMessage)
+                    .accessibilityIdentifier("settingsBackupStatusMessage")
             }
         }
     }

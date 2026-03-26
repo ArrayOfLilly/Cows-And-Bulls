@@ -98,6 +98,34 @@ final class ProfileSettingsStore: ObservableObject {
         }
     }
 
+    func exportedSettings(for profileIDs: [String]) -> [String: ProfileSettings] {
+        Dictionary(uniqueKeysWithValues: profileIDs.map { profileID in
+            let key = storageKey(for: profileID)
+            let value: ProfileSettings
+            if let data = userDefaults.data(forKey: key),
+               let decoded = try? JSONDecoder().decode(ProfileSettings.self, from: data) {
+                value = decoded
+            } else {
+                value = .default
+            }
+            return (profileID, value)
+        })
+    }
+
+    func replaceAllSettings(_ importedSettings: [String: ProfileSettings], activeProfileId: String) {
+        removeAllStoredSettings()
+
+        for (profileID, settings) in importedSettings {
+            let key = storageKey(for: profileID)
+            if let encoded = try? JSONEncoder().encode(settings) {
+                userDefaults.set(encoded, forKey: key)
+            }
+        }
+
+        storageKey = storageKey(for: activeProfileId)
+        load()
+    }
+
     private func load() {
         isLoading = true
         defer { isLoading = false }
@@ -112,6 +140,18 @@ final class ProfileSettingsStore: ObservableObject {
         } else {
             settings = ProfileSettings.fromLegacyDefaults(userDefaults)
             save()
+        }
+    }
+
+    private func storageKey(for profileId: String) -> String {
+        "profile.settings.\(profileId)"
+    }
+
+    private func removeAllStoredSettings() {
+        let keys = userDefaults.dictionaryRepresentation().keys
+            .filter { $0.hasPrefix("profile.settings.") }
+        for key in keys {
+            userDefaults.removeObject(forKey: key)
         }
     }
 
