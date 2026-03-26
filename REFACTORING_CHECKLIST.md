@@ -18,7 +18,7 @@
 - [~] Vezesd be a közös kis UI elemeket:
   - [x] `SettingsHelpCaption`
   - [x] `SettingsSliderRow`
-  - [ ] `SettingsSectionTitle`
+  - [x] `SettingsSectionTitle`
   - [x] `SettingsLockedNotice`
   - [x] `SettingsPercentSliderRow`
 - [~] Tisztítsd a profiles helper logikát, ha még túl zajos.
@@ -35,10 +35,15 @@
 
 - [x] `SettingsView.swift` diagnosztika
 - [x] teljes build
-- [ ] `CowsAndBullsUITests/testSmokeGameScreen()`
+- [x] `CowsAndBullsUITests/testSmokeGameScreen()`
 - [x] célzott settings UI tesztek
   - [x] `testSettingsProfilesControlsLockDuringActiveGame()`
   - [x] `testSettingsThemeSelectionUpdatesSelectedRow()`
+  - [x] `testSettingsProfileReorderButtonsReflectBoundaryState()`
+  - [x] `testSettingsProfileReorderInteractionUpdatesOrder()`
+- [x] célzott unit teszt a view-ból kiemelt game-screen szabályokra
+  - [x] `GamePresentationRulesTests/scoreUsesLowerOfStartedAndCurrentTimerConfigurations()`
+  - [x] `GamePresentationRulesTests/timerFlagsAndSurrenderAvailability()`
 
 ## Important Guardrails
 
@@ -56,8 +61,8 @@
   - [x] profile create lock active game alatt
   - [x] language change restart prompt
   - [x] theme selection semantic state update
-  Még hátra lehet:
-  - [ ] profile reorder buttons explicit disabled-state tesztje
+  - [x] profile reorder boundary-state teszt
+  - [x] profile reorder interaction teszt
 - [x] külön fájlokba bontani a settings nézeteket, ha még mindig túl nagy a fájl
   Megoldás:
   - [x] `Views/SettingsSupportViews.swift`
@@ -65,3 +70,11 @@
   - [x] `Views/SettingsProfilesViews.swift`
   - [x] `SettingsView.swift` kompozíciós réteggé tisztítva
 - [ ] `ProfileEditorState` bevezetése, ha a profiles szerkesztési állapot tovább nő
+- [~] A `View` rétegben csak megjelenítés és UI wiring maradjon
+  Már megvan:
+  - [x] settings tabok fizikai bontása
+  - [x] `ProfileEditorState`
+  - [x] több ismétlődő döntés helper/property szintre húzva
+  - [x] `ContentView` game-screen szabályainak első köre `GamePresentationRules` helperbe húzva
+  Még hátra van:
+  - [ ] a maradék view-oldali döntések további store/helper irányba tolása a következő körökben

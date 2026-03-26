@@ -36,8 +36,11 @@ final class CowsAndBullsUITests: XCTestCase {
         typeAndReplace(app: app, text: "1234")
         submitButton.click()
 
-        let guessText = app.staticTexts["1234"]
-        XCTAssertTrue(guessText.waitForExistence(timeout: 2))
+        let guessCountState = app.descendants(matching: .any).matching(identifier: "gameGuessCountState").firstMatch
+        XCTAssertTrue(guessCountState.waitForExistence(timeout: 2))
+        let guessesRecorded = NSPredicate(format: "value == %@", "1")
+        expectation(for: guessesRecorded, evaluatedWith: guessCountState)
+        waitForExpectations(timeout: 5)
 
         typeAndReplace(app: app, text: "11")
         submitButton.click()
@@ -154,6 +157,7 @@ final class CowsAndBullsUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchEnvironment["UITEST_FORCE_LANGUAGE"] = "en"
         app.launchEnvironment["UITEST_SETTINGS_TAB_SHORTCUTS"] = "1"
+        app.launchEnvironment["UITEST_SETTINGS_INITIAL_TAB"] = "profiles"
         app.launch()
 
         let guessField = app.descendants(matching: .any).matching(identifier: "guessInputField").firstMatch
@@ -164,22 +168,22 @@ final class CowsAndBullsUITests: XCTestCase {
 
         openSettings(app: app)
 
-        let profilesTab = app.buttons["settingsOpenProfilesTab"]
-        XCTAssertTrue(profilesTab.waitForExistence(timeout: 2))
-        profilesTab.click()
+        let selectedTabState = app.descendants(matching: .any).matching(identifier: "settingsSelectedTabState").firstMatch
+        XCTAssertTrue(selectedTabState.waitForExistence(timeout: 2))
+        XCTAssertEqual(selectedTabState.value as? String, "profiles")
 
-        let profilesContent = app.descendants(matching: .any).matching(identifier: "settingsProfilesTabContent").firstMatch
-        XCTAssertTrue(profilesContent.waitForExistence(timeout: 2))
-
-        let editabilityState = app.descendants(matching: .any).matching(identifier: "settingsProfilesEditabilityState").firstMatch
-        XCTAssertTrue(editabilityState.waitForExistence(timeout: 2))
-        XCTAssertEqual(editabilityState.value as? String, "locked")
+        let profilesState = app.descendants(matching: .any).matching(identifier: "settingsProfilesState").firstMatch
+        XCTAssertTrue(profilesState.waitForExistence(timeout: 2))
+        let lockedState = NSPredicate(format: "value BEGINSWITH %@", "locked")
+        expectation(for: lockedState, evaluatedWith: profilesState)
+        waitForExpectations(timeout: 2)
     }
 
     func testSettingsLanguageChangeShowsRestartPrompt() throws {
         let app = XCUIApplication()
         app.launchEnvironment["UITEST_FORCE_LANGUAGE"] = "system"
         app.launchEnvironment["UITEST_SETTINGS_TAB_SHORTCUTS"] = "1"
+        app.launchEnvironment["UITEST_SETTINGS_INITIAL_TAB"] = "language"
         app.launch()
 
         openSettings(app: app)
@@ -187,13 +191,13 @@ final class CowsAndBullsUITests: XCTestCase {
         let settingsRoot = app.descendants(matching: .any).matching(identifier: "settingsRoot").firstMatch
         XCTAssertTrue(settingsRoot.waitForExistence(timeout: 2))
 
-        let languageTab = app.buttons["settingsOpenLanguageTab"]
-        XCTAssertTrue(languageTab.waitForExistence(timeout: 2))
-        languageTab.click()
+        let selectedTabState = app.descendants(matching: .any).matching(identifier: "settingsSelectedTabState").firstMatch
+        XCTAssertTrue(selectedTabState.waitForExistence(timeout: 2))
+        XCTAssertEqual(selectedTabState.value as? String, "language")
 
-        let englishOption = app.radioButtons["English"]
-        XCTAssertTrue(englishOption.waitForExistence(timeout: 2))
-        englishOption.click()
+        let englishButton = app.descendants(matching: .any).matching(identifier: "settingsSelectEnglishLanguageForTest").firstMatch
+        XCTAssertTrue(englishButton.waitForExistence(timeout: 2))
+        englishButton.click()
 
         let restartDialog = app.sheets.firstMatch
         XCTAssertTrue(restartDialog.waitForExistence(timeout: 2))
@@ -207,6 +211,7 @@ final class CowsAndBullsUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchEnvironment["UITEST_FORCE_LANGUAGE"] = "en"
         app.launchEnvironment["UITEST_SETTINGS_TAB_SHORTCUTS"] = "1"
+        app.launchEnvironment["UITEST_SETTINGS_INITIAL_TAB"] = "theme"
         app.launch()
 
         openSettings(app: app)
@@ -214,23 +219,75 @@ final class CowsAndBullsUITests: XCTestCase {
         let settingsRoot = app.descendants(matching: .any).matching(identifier: "settingsRoot").firstMatch
         XCTAssertTrue(settingsRoot.waitForExistence(timeout: 2))
 
-        let themeTab = app.buttons["settingsOpenThemeTab"]
-        XCTAssertTrue(themeTab.waitForExistence(timeout: 2))
-        themeTab.click()
+        let selectedTabState = app.descendants(matching: .any).matching(identifier: "settingsSelectedTabState").firstMatch
+        XCTAssertTrue(selectedTabState.waitForExistence(timeout: 2))
+        XCTAssertEqual(selectedTabState.value as? String, "theme")
 
-        let classicRow = app.descendants(matching: .any).matching(identifier: "settingsThemeRow_classic").firstMatch
-        let geometricRow = app.descendants(matching: .any).matching(identifier: "settingsThemeRow_geometric").firstMatch
-        XCTAssertTrue(classicRow.waitForExistence(timeout: 2))
-        XCTAssertTrue(geometricRow.waitForExistence(timeout: 2))
+        let selectedThemeState = app.descendants(matching: .any).matching(identifier: "settingsSelectedThemeState").firstMatch
+        XCTAssertTrue(selectedThemeState.waitForExistence(timeout: 2))
 
-        let classicWasSelected = (classicRow.value as? String) == "selected"
-        let targetRow = classicWasSelected ? geometricRow : classicRow
-        let otherRow = classicWasSelected ? classicRow : geometricRow
+        let geometricButton = app.descendants(matching: .any).matching(identifier: "settingsSelectGeometricThemeForTest").firstMatch
+        XCTAssertTrue(geometricButton.waitForExistence(timeout: 2))
+        geometricButton.click()
 
-        targetRow.click()
+        XCTAssertEqual(selectedThemeState.value as? String, "geometric")
+    }
 
-        XCTAssertEqual(targetRow.value as? String, "selected")
-        XCTAssertEqual(otherRow.value as? String, "notSelected")
+    func testSettingsProfileReorderButtonsReflectBoundaryState() throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["UITEST_FORCE_LANGUAGE"] = "en"
+        app.launchEnvironment["UITEST_SETTINGS_TAB_SHORTCUTS"] = "1"
+        app.launchEnvironment["UITEST_SETTINGS_INITIAL_TAB"] = "profiles"
+        app.launchEnvironment["UITEST_PROFILE_NAMES"] = "UI Reorder Alpha|UI Reorder Bravo|UI Reorder Charlie"
+        app.launch()
+
+        openSettings(app: app)
+
+        let settingsRoot = app.descendants(matching: .any).matching(identifier: "settingsRoot").firstMatch
+        XCTAssertTrue(settingsRoot.waitForExistence(timeout: 2))
+
+        let selectedTabState = app.descendants(matching: .any).matching(identifier: "settingsSelectedTabState").firstMatch
+        XCTAssertTrue(selectedTabState.waitForExistence(timeout: 2))
+        XCTAssertEqual(selectedTabState.value as? String, "profiles")
+
+        let profilesState = app.descendants(matching: .any).matching(identifier: "settingsProfilesState").firstMatch
+        XCTAssertTrue(profilesState.waitForExistence(timeout: 2))
+        XCTAssertEqual(
+            profilesState.value as? String,
+            "editable|row0:up:disabled,down:enabled|row1:up:enabled,down:enabled|row2:up:enabled,down:disabled||order:UI Reorder Alpha|UI Reorder Bravo|UI Reorder Charlie"
+        )
+    }
+
+    func testSettingsProfileReorderInteractionUpdatesOrder() throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["UITEST_FORCE_LANGUAGE"] = "en"
+        app.launchEnvironment["UITEST_SETTINGS_TAB_SHORTCUTS"] = "1"
+        app.launchEnvironment["UITEST_SETTINGS_INITIAL_TAB"] = "profiles"
+        app.launchEnvironment["UITEST_PROFILE_NAMES"] = "UI Reorder Alpha|UI Reorder Bravo|UI Reorder Charlie"
+        app.launch()
+
+        openSettings(app: app)
+
+        let selectedTabState = app.descendants(matching: .any).matching(identifier: "settingsSelectedTabState").firstMatch
+        XCTAssertTrue(selectedTabState.waitForExistence(timeout: 2))
+        XCTAssertEqual(selectedTabState.value as? String, "profiles")
+
+        let profilesState = app.descendants(matching: .any).matching(identifier: "settingsProfilesState").firstMatch
+        XCTAssertTrue(profilesState.waitForExistence(timeout: 2))
+        XCTAssertEqual(
+            profilesState.value as? String,
+            "editable|row0:up:disabled,down:enabled|row1:up:enabled,down:enabled|row2:up:enabled,down:disabled||order:UI Reorder Alpha|UI Reorder Bravo|UI Reorder Charlie"
+        )
+
+        let moveUpButton = app.descendants(matching: .any).matching(identifier: "settingsMoveSecondProfileUpForTest").firstMatch
+        XCTAssertTrue(moveUpButton.waitForExistence(timeout: 2))
+        XCTAssertTrue(moveUpButton.isEnabled)
+        moveUpButton.click()
+
+        XCTAssertEqual(
+            profilesState.value as? String,
+            "editable|row0:up:disabled,down:enabled|row1:up:enabled,down:enabled|row2:up:enabled,down:disabled||order:UI Reorder Bravo|UI Reorder Alpha|UI Reorder Charlie"
+        )
     }
 
     private func typeAndReplace(app: XCUIApplication, text: String) {

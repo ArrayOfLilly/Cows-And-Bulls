@@ -76,49 +76,23 @@ struct ContentView: View {
         StatisticsLogic(items: historyStore.items)
     }
 
-    private func scoreForTimers(
-        enablePerGuess: Bool,
-        perGuessSeconds: Int,
-        enableGame: Bool,
-        gameSeconds: Int
-    ) -> Int {
-        let perMoveLimit = (enablePerGuess && perGuessSeconds > 0) ? TimeInterval(perGuessSeconds) : 0
-        let totalLimit = (enableGame && gameSeconds > 0) ? TimeInterval(gameSeconds) : 0
-        return GameLogic.score(
-            codeLength: answerLength,
-            allowRepeats: enableRepeats,
-            hardMode: enableHardMode,
-            hidesRemainingGuesses: showGuessCount == false,
-            maxGuesses: maximumGuesses,
-            usedGuesses: guesses.count,
-            perMoveTimeLimit: perMoveLimit,
-            totalTimeLimit: totalLimit
+    private var presentationRules: GamePresentationRules {
+        GamePresentationRules(
+            settings: settings,
+            startedSettingsSnapshot: gameSessionStore.startedSettingsSnapshot,
+            guessesCount: guesses.count,
+            gameInProgress: gameInProgress,
+            hasGuesses: guesses.isEmpty == false,
+            isWon: isWon,
+            isGameOver: isGameOver
         )
     }
 
-    private var scoreValue: Int {
-        let startedSnapshot = gameSessionStore.startedSettingsSnapshot ?? settings.gameplaySettingsSnapshot
-        // Fairness rule: if timer settings were changed mid-game, use the lower score
-        // between "started configuration" and "current configuration".
-        let currentScore = scoreForTimers(
-            enablePerGuess: enablePerGuessTimeLimit,
-            perGuessSeconds: perGuessTimeLimitSeconds,
-            enableGame: enableGameTimeLimit,
-            gameSeconds: gameTimeLimitSeconds
-        )
-        let startedScore = scoreForTimers(
-            enablePerGuess: startedSnapshot.enablePerGuessTimeLimit,
-            perGuessSeconds: startedSnapshot.perGuessTimeLimitSeconds,
-            enableGame: startedSnapshot.enableGameTimeLimit,
-            gameSeconds: startedSnapshot.gameTimeLimitSeconds
-        )
-        return min(currentScore, startedScore)
-    }
-
-    private var isPerGuessLimitActive: Bool { enablePerGuessTimeLimit && perGuessTimeLimitSeconds > 0 }
-    private var isGameLimitActive: Bool { enableGameTimeLimit && gameTimeLimitSeconds > 0 }
-    private var isAnyTimerActive: Bool { isPerGuessLimitActive || isGameLimitActive }
-    private var canChangeProfile: Bool { gameInProgress == false }
+    private var scoreValue: Int { presentationRules.scoreValue }
+    private var isPerGuessLimitActive: Bool { presentationRules.isPerGuessLimitActive }
+    private var isGameLimitActive: Bool { presentationRules.isGameLimitActive }
+    private var isAnyTimerActive: Bool { presentationRules.isAnyTimerActive }
+    private var canChangeProfile: Bool { presentationRules.canChangeProfile }
 
     private var profileSelection: Binding<String> {
         Binding(
@@ -521,7 +495,7 @@ struct ContentView: View {
                 showGuessCount: showGuessCount,
                 guessesCount: guesses.count,
                 maximumGuesses: maximumGuesses,
-                canSurrender: gameInProgress && !guesses.isEmpty && !isWon && !isGameOver,
+                canSurrender: presentationRules.canSurrender,
                 onSurrender: {
                     showSurrenderConfirmation = true
                 },
@@ -783,6 +757,10 @@ private struct GuessesListSection: View {
     let selectedBullAssetName: String
     let selectedCowAssetName: String
 
+    private var guessesAccessibilityValue: String {
+        guesses.joined(separator: "|")
+    }
+
     var body: some View {
         List(0..<guesses.count, id: \.self) { index in
             let attempt = guesses[index]
@@ -811,6 +789,7 @@ private struct GuessesListSection: View {
         .listStyle(.sidebar)
         .background(Color(nsColor: .windowBackgroundColor))
         .accessibilityIdentifier("guessesList")
+        .accessibilityValue(guessesAccessibilityValue)
     }
 
     private var guessDisplayWidth: CGFloat { 72 }
@@ -874,6 +853,11 @@ private struct GameFooterSection: View {
                     .padding(.top, 10)
                     .padding(.bottom, 5)
             }
+
+            Text(String(guessesCount))
+                .font(.caption2)
+                .accessibilityIdentifier("gameGuessCountState")
+                .accessibilityValue(String(guessesCount))
 
             HStack(spacing: 12) {
                 Button(localized("game.action.surrender")) {

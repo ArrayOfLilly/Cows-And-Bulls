@@ -20,6 +20,7 @@ This document is the continuation plan if the ongoing refactor needs to be finis
 Keep views focused on presentation and user interaction wiring.
 Keep business rules and mutable state in stores or small action helpers.
 Prefer small subviews with explicit inputs over large views that reach into multiple stores directly.
+Push any non-trivial decision logic out of `View` files unless it is purely local UI presentation state.
 
 ## Architectural Direction
 
@@ -61,6 +62,8 @@ Prefer small subviews with explicit inputs over large views that reach into mult
   - `GuessesListSection`
   - `GuessResultIconsView`
   - `GameFooterSection`
+- `ContentView` game-screen rule computation started moving out of the view into:
+  - `Models/GamePresentationRules.swift`
 - `SettingsView` split into:
   - `SettingsFormContainer`
   - `SettingsGameTab`
@@ -88,6 +91,7 @@ Prefer small subviews with explicit inputs over large views that reach into mult
 ### Still worth doing
 
 - finish extracting repeated rule computation out of `SettingsView`
+- continue extracting remaining `ContentView` decision logic into store/helper types
 - consider moving theme definitions out of the view file
 - standardize settings row visuals
 - add more accessibility identifiers to settings controls if new controls appear
@@ -123,6 +127,12 @@ Recommended properties:
 Goal:
 reduce inline booleans and make the body read like composition, not logic.
 
+Current progress beyond settings:
+
+- added `GamePresentationRules` for game-screen derived state
+- moved score fairness, timer-active flags, profile-switch availability, and surrender availability out of `ContentView`
+- added targeted unit coverage in `GamePresentationRulesTests`
+
 ### Step 2: Introduce Small Shared UI Building Blocks
 
 Create reusable view helpers inside `SettingsView.swift` first.
@@ -146,7 +156,7 @@ Current progress:
 - introduced `SettingsSliderRow`
 - introduced `SettingsPercentSliderRow`
 - improved theme preview contrast with adaptive light/dark background fills
-- `SettingsSectionTitle` still optional if section headers keep growing
+- `SettingsSectionTitle` added to normalize section headers across settings tabs
 
 ### Step 3: Decide Whether Theme Metadata Leaves the View
 
@@ -266,6 +276,10 @@ Current progress:
 - implemented active-game profiles-create-lock test
 - implemented language restart prompt test
 - implemented theme selection semantic state test
+- implemented profile reorder boundary-state UI test
+- implemented profile reorder interaction test via a dedicated UI-test hook that exercises the reorder action end-to-end
+- introduced small UI-test hooks that avoid relying on localized tab titles
+- stabilized the settings UI-test hook layer by exposing compact per-tab hook actions/state at the settings root overlay
 - reran targeted settings UI tests after `ProfileEditorState` extraction and kept them green
 
 ### Step 7: Consider File Splitting
