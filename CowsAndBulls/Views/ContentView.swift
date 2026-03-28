@@ -806,6 +806,9 @@ private struct GameFooterSection: View {
 
             Text(String(context.guessesCount))
                 .font(.caption2)
+                .foregroundStyle(.clear)
+                .frame(height: 0)
+                .clipped()
                 .accessibilityIdentifier("gameGuessCountState")
                 .accessibilityValue(String(context.guessesCount))
 

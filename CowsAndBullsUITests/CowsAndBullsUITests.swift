@@ -34,7 +34,7 @@ final class CowsAndBullsUITests: XCTestCase {
         let guessField = app.descendants(matching: .any).matching(identifier: "guessInputField").firstMatch
         XCTAssertTrue(guessField.waitForExistence(timeout: 2))
 
-        let submitButton = app.buttons["submitGuessButton"]
+        let submitButton = app.descendants(matching: .any).matching(identifier: "submitGuessButton").firstMatch
         XCTAssertTrue(submitButton.waitForExistence(timeout: 2))
 
         guessField.click()

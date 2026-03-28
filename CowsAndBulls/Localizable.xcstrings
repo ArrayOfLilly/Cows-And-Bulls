@@ -252,6 +252,227 @@
         }
       }
     },
+    "backup.action.export" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export Backup"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Biztonsági mentés exportálása"
+          }
+        }
+      }
+    },
+    "backup.action.export.ellipsis" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export Backup…"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Biztonsági mentés exportálása…"
+          }
+        }
+      }
+    },
+    "backup.action.import" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import Backup"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Biztonsági mentés importálása"
+          }
+        }
+      }
+    },
+    "backup.action.import.ellipsis" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import Backup…"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Biztonsági mentés importálása…"
+          }
+        }
+      }
+    },
+    "backup.alert.export_failed.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export Failed"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Az exportálás sikertelen"
+          }
+        }
+      }
+    },
+    "backup.alert.exported.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backup Exported"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A biztonsági mentés elkészült"
+          }
+        }
+      }
+    },
+    "backup.alert.import_failed.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import Failed"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Az importálás sikertelen"
+          }
+        }
+      }
+    },
+    "backup.alert.imported.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backup Imported"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A biztonsági mentés importálva"
+          }
+        }
+      }
+    },
+    "backup.alert.ok" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        }
+      }
+    },
+    "backup.notice.idle_only" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backups are only available when no game is in progress."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Biztonsági mentés csak akkor érhető el, ha nincs folyamatban játék."
+          }
+        }
+      }
+    },
+    "backup.section.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backup"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Biztonsági mentés"
+          }
+        }
+      }
+    },
+    "backup.status.exported" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backup exported to %@."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A biztonsági mentés exportálva ide: %@."
+          }
+        }
+      }
+    },
+    "backup.status.imported" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Imported %@."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importálva: %@."
+          }
+        }
+      }
+    },
     "common.action.cancel" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -390,10 +611,6 @@
           }
         }
       }
-    },
-    "Export Backup" : {
-      "comment" : "A button that exports a backup of the user's game data.",
-      "isCommentAutoGenerated" : true
     },
     "Follow System" : {
       "comment" : "A language option that allows the app to use the user's device language settings.",
@@ -1404,10 +1621,6 @@
         }
       }
     },
-    "Import Backup" : {
-      "comment" : "A button that imports a backup of a game.",
-      "isCommentAutoGenerated" : true
-    },
     "Language" : {
       "comment" : "The title of the tab in the settings view that navigates to the language settings.",
       "extractionState" : "manual",
@@ -1593,6 +1806,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Háttérzene"
+          }
+        }
+      }
+    },
+    "learn.options.backup.desc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export a versioned backup when no game is in progress. Import lets you choose a backup file and restores profiles, settings, history, language, and music preferences."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Futó játék nélkül verziózott biztonsági mentés exportálható. Importáláskor kiválasztható a mentésfájl, és abból visszaállnak a profilok, beállítások, előzmények, a nyelv és a zenei beállítások."
+          }
+        }
+      }
+    },
+    "learn.options.backup.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backup"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Biztonsági mentés"
           }
         }
       }

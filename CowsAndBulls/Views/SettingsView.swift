@@ -30,16 +30,13 @@ struct SettingsView: View {
     @EnvironmentObject private var historyStore: HistoryStore
     @EnvironmentObject private var settingsStore: ProfileSettingsStore
     @EnvironmentObject private var gameSessionStore: GameSessionStore
-    
+
     @State private var previousLanguageCode = "system"
     @State private var showRestartPrompt = false
     @State private var profileEditorState = ProfileEditorState()
     @State private var profilePendingDelete: PlayerProfile?
     @State private var answerLengthDraft = ""
     @State private var selectedTab: SettingsTab = .game
-    @State private var backupDocument: AppBackupDocument?
-    @State private var isExportingBackup = false
-    @State private var isImportingBackup = false
     @State private var backupStatusMessage: String?
 
     @FocusState private var isAnswerLengthFocused: Bool
@@ -54,36 +51,22 @@ struct SettingsView: View {
         guard let value = ProcessInfo.processInfo.environment["UITEST_SETTINGS_INITIAL_TAB"] else {
             return nil
         }
-
         switch value {
-        case "game":
-            return .game
-        case "advanced":
-            return .advanced
-        case "sound":
-            return .sound
-        case "music":
-            return .music
-        case "profiles":
-            return .profiles
-        case "language":
-            return .language
-        case "theme":
-            return .theme
-        default:
-            return nil
+        case "game": return .game
+        case "advanced": return .advanced
+        case "sound": return .sound
+        case "music": return .music
+        case "profiles": return .profiles
+        case "language": return .language
+        case "theme": return .theme
+        default: return nil
         }
     }
 
-    private var canEditGameplaySettings: Bool {
-        gameSessionStore.canEditGameplaySettings
-    }
-
-    private var gameInProgress: Bool {
-        gameSessionStore.gameInProgress
-    }
-
+    private var canEditGameplaySettings: Bool { gameSessionStore.canEditGameplaySettings }
+    private var gameInProgress: Bool { gameSessionStore.gameInProgress }
     private var settings: ProfileSettings { settingsStore.settings }
+
     private var profileRules: ProfileSettingsRules {
         ProfileSettingsRules(
             profiles: profileStore.profiles,
@@ -96,12 +79,12 @@ struct SettingsView: View {
     private var canRenameProfiles: Bool { profileRules.canRenameProfiles }
     private var canReorderProfiles: Bool { profileRules.canReorderProfiles }
     private var canDeleteProfiles: Bool { profileRules.canDeleteProfiles }
-    
+
     private var answerLengthHasValidationError: Bool {
         guard let draftValue = Int(answerLengthDraft) else { return false }
         return draftValue < 3 || draftValue > 8
     }
-    
+
     private var selectedTheme: AnimalTheme? {
         animalThemes.first { $0.id == settings.selectedAnimalThemeID }
     }
@@ -145,15 +128,12 @@ struct SettingsView: View {
                 profilesReorderState(for: index).map { "row\(index):\($0)" }
             }
             .joined(separator: "|")
-
         guard reorderSummary.isEmpty == false else { return editability }
         return "\(editability)|\(reorderSummary)"
     }
 
     private var profilesOrderAccessibilityValue: String {
-        profileStore.profiles
-            .map(\.name)
-            .joined(separator: "|")
+        profileStore.profiles.map(\.name).joined(separator: "|")
     }
 
     private var selectedThemeAccessibilityValue: String {
@@ -176,8 +156,6 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        // TabView is used as a settings-page switcher.
-        // This keeps each settings category isolated and easier to maintain.
         TabView(selection: $selectedTab) {
             gameTab
             advancedTab
@@ -187,28 +165,27 @@ struct SettingsView: View {
             languageTab
             themeTab
         }
-            .accessibilityIdentifier("settingsRoot")
-            .frame(minWidth: 440, minHeight: 480)
-            .overlay(alignment: .topTrailing) {
-                if showsUITestTabShortcuts {
-                    VStack(alignment: .trailing, spacing: 6) {
-                        HStack(spacing: 6) {
-                            settingsUITestTabButton(id: "settingsOpenGameTab", tab: .game)
-                            settingsUITestTabButton(id: "settingsOpenSoundTab", tab: .sound)
-                            settingsUITestTabButton(id: "settingsOpenProfilesTab", tab: .profiles)
-                            settingsUITestTabButton(id: "settingsOpenLanguageTab", tab: .language)
-                            settingsUITestTabButton(id: "settingsOpenThemeTab", tab: .theme)
-                        }
-                        Text(selectedTabAccessibilityValue)
-                            .font(.caption2)
-                            .accessibilityIdentifier("settingsSelectedTabState")
-                            .accessibilityValue(selectedTabAccessibilityValue)
-
-                        settingsUITestHooks
+        .accessibilityIdentifier("settingsRoot")
+        .frame(minWidth: 440, minHeight: 480)
+        .overlay(alignment: .topTrailing) {
+            if showsUITestTabShortcuts {
+                VStack(alignment: .trailing, spacing: 6) {
+                    HStack(spacing: 6) {
+                        settingsUITestTabButton(id: "settingsOpenGameTab", tab: .game)
+                        settingsUITestTabButton(id: "settingsOpenSoundTab", tab: .sound)
+                        settingsUITestTabButton(id: "settingsOpenProfilesTab", tab: .profiles)
+                        settingsUITestTabButton(id: "settingsOpenLanguageTab", tab: .language)
+                        settingsUITestTabButton(id: "settingsOpenThemeTab", tab: .theme)
                     }
-                    .padding(8)
+                    Text(selectedTabAccessibilityValue)
+                        .font(.caption2)
+                        .accessibilityIdentifier("settingsSelectedTabState")
+                        .accessibilityValue(selectedTabAccessibilityValue)
+                    settingsUITestHooks
                 }
+                .padding(8)
             }
+        }
         .onAppear {
             previousLanguageCode = appLanguageCode
             if let initialUITestTab {
@@ -226,7 +203,6 @@ struct SettingsView: View {
                 }
             }
         }
-        // confirmationDialog is more lightweight than a full modal sheet for one decision.
         .onAppear {
             if answerLengthDraft.isEmpty {
                 answerLengthDraft = String(settings.answerLength)
@@ -272,35 +248,16 @@ struct SettingsView: View {
             let name = profilePendingDelete?.name ?? ""
             Text(localized("profiles.delete.message", name))
         }
-        .fileExporter(
-            isPresented: $isExportingBackup,
-            document: backupDocument,
-            contentType: .json,
-            defaultFilename: "cows-and-bulls-backup"
-        ) { result in
-            switch result {
-            case .success:
-                backupStatusMessage = "Backup exported successfully."
-            case .failure(let error):
-                backupStatusMessage = error.localizedDescription
-            }
-        }
-        .fileImporter(
-            isPresented: $isImportingBackup,
-            allowedContentTypes: [.json]
-        ) { result in
-            handleImportResult(result)
-        }
-            .onAppear {
+        .onAppear {
             applyMusicSettings()
         }
-            .onChange(of: enableBackgroundMusic) {
+        .onChange(of: enableBackgroundMusic) {
             applyMusicSettings()
         }
-            .onChange(of: backgroundMusicTrackID) {
+        .onChange(of: backgroundMusicTrackID) {
             applyMusicSettings()
         }
-            .onChange(of: backgroundMusicVolume) {
+        .onChange(of: backgroundMusicVolume) {
             applyMusicSettings()
         }
     }
@@ -386,7 +343,6 @@ struct SettingsView: View {
             .accessibilityValue(selectedThemeAccessibilityValue)
     }
 
-    /// Persists the selected bull/cow asset pair as the active theme.
     private func applyTheme(_ theme: AnimalTheme) {
         var updated = settingsStore.settings
         updated.selectedAnimalThemeID = theme.id
@@ -396,15 +352,11 @@ struct SettingsView: View {
     }
 
     private func restartApplication() {
-        // AppKit-only restart approach:
-        // 1) reopen current app bundle URL
-        // 2) terminate current process
         let appURL = Bundle.main.bundleURL
         NSWorkspace.shared.open(appURL)
         NSApp.terminate(nil)
     }
 
-    /// Pushes music-related settings to the audio service immediately.
     private func applyMusicSettings() {
         SoundPlayer.shared.updateBackgroundMusic(
             enabled: enableBackgroundMusic,
@@ -415,12 +367,8 @@ struct SettingsView: View {
 
     private func draftBindingForProfileName(_ profile: PlayerProfile) -> Binding<String> {
         Binding(
-            get: {
-                profileEditorState.draftName(for: profile)
-            },
-            set: { newValue in
-                profileEditorState.setDraftName(newValue, for: profile)
-            }
+            get: { profileEditorState.draftName(for: profile) },
+            set: { newValue in profileEditorState.setDraftName(newValue, for: profile) }
         )
     }
 
@@ -573,7 +521,7 @@ struct SettingsView: View {
             canTransferBackup: backupController.canTransferBackup,
             backupStatusMessage: backupStatusMessage,
             onExportBackup: prepareBackupExport,
-            onImportBackup: { isImportingBackup = true },
+            onImportBackup: importBackupFromPanel,
             createProfileHelpText: profileRules.createProfileHelpText(),
             editProfileHelpText: profileRules.editProfileHelpText(),
             profileRowState: profileRules.rowState
@@ -604,6 +552,7 @@ struct SettingsView: View {
             Label(localized("settings.tab.music"), systemImage: "music.note")
         }
     }
+
     private var themeTab: some View {
         SettingsThemeTab(
             animalThemes: animalThemes,
@@ -616,40 +565,41 @@ struct SettingsView: View {
         }
     }
 
+    // MARK: - Backup
+
     private func prepareBackupExport() {
-        do {
-            let backup = try backupController.makeBackup(
-                appPreferences: appPreferencesSnapshot,
-                appVersion: appVersionDescription
-            )
-            backupDocument = AppBackupDocument(backup: backup)
-            isExportingBackup = true
-            backupStatusMessage = nil
-        } catch {
-            backupStatusMessage = error.localizedDescription
+        Task { @MainActor in
+            do {
+                backupStatusMessage = nil
+                if let fileURL = try await AppBackupPanelController.exportBackup(
+                    backupController: backupController,
+                    appPreferences: appPreferencesSnapshot,
+                    appVersion: appVersionDescription
+                ) {
+                    backupStatusMessage = localized("backup.status.exported", fileURL.lastPathComponent)
+                }
+            } catch {
+                backupStatusMessage = error.localizedDescription
+            }
         }
     }
 
-    private func handleImportResult(_ result: Result<URL, Error>) {
-        do {
-            let url = try result.get()
-            let hasSecurityScope = url.startAccessingSecurityScopedResource()
-            defer {
-                if hasSecurityScope {
-                    url.stopAccessingSecurityScopedResource()
-                }
+    private func importBackupFromPanel() {
+        Task { @MainActor in
+            do {
+                guard let fileURL = try await AppBackupPanelController.importBackup(
+                    backupController: backupController,
+                    applyAppPreferences: { appPreferences in
+                        appLanguageCode = appPreferences.appLanguageCode
+                        enableBackgroundMusic = appPreferences.enableBackgroundMusic
+                        backgroundMusicTrackID = appPreferences.backgroundMusicTrackID
+                        backgroundMusicVolume = appPreferences.backgroundMusicVolume
+                    }
+                ) else { return }
+                backupStatusMessage = localized("backup.status.imported", fileURL.lastPathComponent)
+            } catch {
+                backupStatusMessage = error.localizedDescription
             }
-            let data = try Data(contentsOf: url)
-            let backup = try AppBackupController.decodeBackup(from: data)
-            try backupController.importBackup(backup) { appPreferences in
-                appLanguageCode = appPreferences.appLanguageCode
-                enableBackgroundMusic = appPreferences.enableBackgroundMusic
-                backgroundMusicTrackID = appPreferences.backgroundMusicTrackID
-                backgroundMusicVolume = appPreferences.backgroundMusicVolume
-            }
-            backupStatusMessage = "Backup imported successfully."
-        } catch {
-            backupStatusMessage = error.localizedDescription
         }
     }
 }

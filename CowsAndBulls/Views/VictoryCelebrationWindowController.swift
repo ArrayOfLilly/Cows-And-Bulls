@@ -25,22 +25,24 @@ struct CelebrationTrajectory {
 
     var startY: CGFloat { panelSize.height * startYRatio }
     var endY: CGFloat { panelSize.height * endYRatio }
+    let enterMargin: CGFloat = 0.7   // enter from fully outside
+    let exitMargin: CGFloat  = 0.45  // exit from partially visible state
 
     var startX: CGFloat {
         switch direction {
         case .leftToRight:
-            -cowSize * 0.7
+            return -cowSize * enterMargin
         case .rightToLeft:
-            panelSize.width + cowSize * 0.45
+            return panelSize.width + cowSize * enterMargin
         }
     }
 
     var endX: CGFloat {
         switch direction {
         case .leftToRight:
-            panelSize.width + cowSize * 0.45
+            return panelSize.width + cowSize * exitMargin
         case .rightToLeft:
-            -cowSize * 0.7
+            return -cowSize * exitMargin
         }
     }
 
@@ -110,12 +112,6 @@ final class VictoryCelebrationWindowController {
     // The full screen-level celebration keeps running a bit longer than the alert trigger.
     static let fullAnimationDuration: TimeInterval = 4.5
     private static let cowAssetSets: [[String]] = [
-        [
-            "Walking Cow frame 1",
-            "Walking Cow frame 2",
-            "Walking Cow frame 3",
-            "Walking Cow frame 4",
-        ],
         [
             "Walking Cow Black - Frame 1",
             "Walking Cow Black - Frame 2",
@@ -263,6 +259,10 @@ private final class VictoryCelebrationViewController: NSViewController {
     private let assetNames: [String]
     private let cowView = AccessibilityView()
     private let trajectory: CelebrationTrajectory
+    // Sublayer that holds the image frames and the horizontal flip transform.
+    // Keeping it separate from cowView.layer means the CAKeyframeAnimation that
+    // drives position is never affected by the scale(-1,1,1) flip.
+    private var imageLayer: CALayer?
 
     init(panelSize: CGSize, centerPoint: CGPoint, assetNames: [String]) {
         self.panelSize = panelSize
@@ -300,34 +300,50 @@ private final class VictoryCelebrationViewController: NSViewController {
 
     private func configureImageView() {
         let cowSize = trajectory.cowSize
+
+        // cowView.layer is responsible ONLY for position animation.
+        // It must have no transform of its own so the CAKeyframeAnimation
+        // path is applied cleanly in the superlayer's coordinate space.
         cowView.frame = CGRect(x: 0, y: 0, width: cowSize, height: cowSize)
         cowView.wantsLayer = true
-        cowView.layer?.contentsGravity = .resizeAspect
-        cowView.layer?.contents = NSImage(named: assetNames[0])?.cgImage(forProposedRect: nil, context: nil, hints: nil)
-        cowView.layer?.shadowColor = NSColor.black.withAlphaComponent(0.18).cgColor
-        cowView.layer?.shadowOpacity = 1
-        cowView.layer?.shadowRadius = 10
-        cowView.layer?.shadowOffset = CGSize(width: 0, height: -6)
         cowView.layer?.anchorPoint = CGPoint(x: 0.5, y: 0.5)
         cowView.layer?.position = startPoint()
-        cowView.layer?.transform = trajectory.direction == .leftToRight
-            ? CATransform3DMakeScale(-1, 1, 1)
-            : CATransform3DIdentity
+        // No transform on the outer layer.
         cowView.setAccessibilityIdentifier("victoryCelebrationCow")
         view.addSubview(cowView)
+
+        // imageLayer sits inside cowView.layer and owns the visual appearance:
+        // image contents, shadow, and the horizontal flip for rightToLeft runs.
+        let imgLayer = CALayer()
+        imgLayer.frame = CGRect(origin: .zero, size: CGSize(width: cowSize, height: cowSize))
+        imgLayer.contentsGravity = .resizeAspect
+        imgLayer.contents = NSImage(named: assetNames[0])?.cgImage(forProposedRect: nil, context: nil, hints: nil)
+        imgLayer.shadowColor = NSColor.black.withAlphaComponent(0.18).cgColor
+        imgLayer.shadowOpacity = 1
+        imgLayer.shadowRadius = 10
+        imgLayer.shadowOffset = CGSize(width: 0, height: -6)
+
+        if trajectory.direction == .rightToLeft {
+            imgLayer.transform = CATransform3DMakeScale(-1, 1, 1)
+        }
+
+        cowView.layer?.addSublayer(imgLayer)
+        imageLayer = imgLayer
     }
 
     private func startAnimations() {
-        guard let layer = cowView.layer else { return }
+        guard let positionLayer = cowView.layer, let imgLayer = imageLayer else { return }
 
+        // Position animation targets the outer layer (no transform = no interference).
         let motion = CAKeyframeAnimation(keyPath: "position")
         motion.path = animationPath()
         motion.duration = VictoryCelebrationWindowController.fullAnimationDuration
         motion.timingFunction = CAMediaTimingFunction(name: .linear)
         motion.isRemovedOnCompletion = false
         motion.fillMode = .forwards
-        layer.add(motion, forKey: "victoryCowPosition")
+        positionLayer.add(motion, forKey: "victoryCowPosition")
 
+        // Frame animation targets the inner image layer.
         let images = assetNames.compactMap { name in
             NSImage(named: name)?.cgImage(forProposedRect: nil, context: nil, hints: nil)
         }
@@ -340,8 +356,8 @@ private final class VictoryCelebrationViewController: NSViewController {
         frameAnimation.repeatDuration = VictoryCelebrationWindowController.fullAnimationDuration
         frameAnimation.isRemovedOnCompletion = false
         frameAnimation.fillMode = .forwards
-        layer.contents = images[0]
-        layer.add(frameAnimation, forKey: "victoryCowFrames")
+        imgLayer.contents = images[0]
+        imgLayer.add(frameAnimation, forKey: "victoryCowFrames")
     }
 
     private func startPoint() -> CGPoint {

@@ -18,6 +18,7 @@ struct LearnOptionsSection: View {
                 LearnOptionRow(localized("learn.options.show_steps.title"), localized("learn.options.show_steps.desc"))
                 LearnOptionRow(localized("learn.options.theming.title"), localized("learn.options.theming.desc"))
                 LearnOptionRow(localized("learn.options.profiles.title"), localized("learn.options.profiles.desc"))
+                LearnOptionRow(localized("learn.options.backup.title"), localized("learn.options.backup.desc"))
                 LearnOptionRow(localized("learn.options.time_limit.title"), localized("learn.options.time_limit.desc"))
                 LearnOptionRow(localized("learn.options.per_game_time_limit.title"), localized("learn.options.per_game_time_limit.desc"))
                 LearnOptionRow(localized("learn.options.sound.title"), localized("learn.options.sound.desc"))

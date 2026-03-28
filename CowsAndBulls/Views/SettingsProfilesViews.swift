@@ -118,20 +118,20 @@ struct BackupTransferSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Divider()
-            SettingsSectionTitle(text: "Backup")
+            SettingsSectionTitle(text: localized("backup.section.title"))
 
             HStack(spacing: 10) {
-                Button("Export Backup", action: onExportBackup)
+                Button(localized("backup.action.export"), action: onExportBackup)
                     .disabled(canTransferBackup == false)
                     .accessibilityIdentifier("settingsExportBackupButton")
 
-                Button("Import Backup", action: onImportBackup)
+                Button(localized("backup.action.import"), action: onImportBackup)
                     .disabled(canTransferBackup == false)
                     .accessibilityIdentifier("settingsImportBackupButton")
             }
 
             if canTransferBackup == false {
-                SettingsLockedNotice(text: "Backups are only available when no game is in progress.")
+                SettingsLockedNotice(text: localized("backup.notice.idle_only"))
             }
 
             if let backupStatusMessage, backupStatusMessage.isEmpty == false {

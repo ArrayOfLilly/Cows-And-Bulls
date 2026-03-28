@@ -18,6 +18,23 @@ struct AppPreferencesSnapshot: Codable, Equatable {
 
 struct AppBackup: Codable {
     static let currentSchemaVersion = 1
+    static let placeholder = AppBackup(
+        schemaVersion: currentSchemaVersion,
+        appVersion: "0.0 (0)",
+        exportedAt: .distantPast,
+        selectedProfileID: "placeholder",
+        profiles: [
+            PlayerProfile(id: "placeholder", name: "Placeholder", createdAt: .distantPast)
+        ],
+        profileSettings: ["placeholder": .default],
+        history: ["placeholder": []],
+        appPreferences: AppPreferencesSnapshot(
+            appLanguageCode: "system",
+            enableBackgroundMusic: false,
+            backgroundMusicTrackID: "Mushroom Background Music",
+            backgroundMusicVolume: 0.35
+        )
+    )
 
     let schemaVersion: Int
     let appVersion: String

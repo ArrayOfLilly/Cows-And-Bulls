@@ -8,6 +8,7 @@
 import SwiftUI
 import AppKit
 
+
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return true
@@ -19,7 +20,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 struct CowsAndBullsApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
-    // @StateObject keeps shared stores alive for the app lifetime.
     @StateObject private var profileStore = ProfileStore()
     @StateObject private var historyStore = HistoryStore()
     @StateObject private var settingsStore = ProfileSettingsStore()
@@ -38,9 +38,6 @@ struct CowsAndBullsApp: App {
     }
 
     private func synchronizeBundleLanguagePreference() {
-        // This is an AppKit/macOS-style language override path.
-        // We write AppleLanguages so newly created localized strings resolve with the selected app language.
-        // Some UI parts still require restart to fully refresh, which is why we also show restart prompts in Settings.
         if appLanguageCode == "system" {
             UserDefaults.standard.removeObject(forKey: "AppleLanguages")
         } else {
@@ -52,7 +49,6 @@ struct CowsAndBullsApp: App {
         let shortVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
         let buildVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
 
-        // We use AppKit here because SwiftUI doesn't expose a fully customizable About panel API.
         var options: [NSApplication.AboutPanelOptionKey: Any] = [
             .applicationName: localized("app.title"),
             .applicationVersion: localized("about.version.format", shortVersion, buildVersion)
@@ -63,7 +59,6 @@ struct CowsAndBullsApp: App {
         NSApp.activate(ignoringOtherApps: true)
     }
 
-    /// Keeps background music playback in sync with persisted user settings.
     private func applyBackgroundMusicSettings() {
         SoundPlayer.shared.updateBackgroundMusic(
             enabled: enableBackgroundMusic,
@@ -88,7 +83,6 @@ struct CowsAndBullsApp: App {
     private func openLearnWindow() {
         let windowID = NSUserInterfaceItemIdentifier("learnWindow")
 
-        // AppKit window lookup prevents opening duplicate Learn windows.
         if let existing = NSApp.windows.first(where: { $0.identifier == windowID }) {
             existing.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
@@ -98,8 +92,6 @@ struct CowsAndBullsApp: App {
         let rootView = LearnView()
             .environmentObject(settingsStore)
             .environment(\.locale, appLocale)
-        // NSHostingController embeds a SwiftUI view inside an AppKit NSWindow.
-        // This is the standard bridge when you need explicit macOS window control.
         let hostingController = NSHostingController(rootView: rootView)
         let window = NSWindow(contentViewController: hostingController)
         window.identifier = windowID
@@ -109,7 +101,86 @@ struct CowsAndBullsApp: App {
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
-    
+
+    private var backupController: AppBackupController {
+        AppBackupController(
+            profileStore: profileStore,
+            settingsStore: settingsStore,
+            historyStore: historyStore,
+            gameSessionStore: gameSessionStore
+        )
+    }
+
+    private var appPreferencesSnapshot: AppPreferencesSnapshot {
+        AppPreferencesSnapshot(
+            appLanguageCode: appLanguageCode,
+            enableBackgroundMusic: enableBackgroundMusic,
+            backgroundMusicTrackID: backgroundMusicTrackID,
+            backgroundMusicVolume: backgroundMusicVolume
+        )
+    }
+
+    private var appVersionDescription: String {
+        let shortVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
+        let buildVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
+        return "\(shortVersion) (\(buildVersion))"
+    }
+
+    private func showBackupAlert(title: String, message: String) {
+        let alert = NSAlert()
+        alert.messageText = title
+        alert.informativeText = message
+        alert.addButton(withTitle: localized("backup.alert.ok"))
+        alert.runModal()
+    }
+
+    private func exportBackupFromMenu() {
+        Task { @MainActor in
+            do {
+                if let fileURL = try await AppBackupPanelController.exportBackup(
+                    backupController: backupController,
+                    appPreferences: appPreferencesSnapshot,
+                    appVersion: appVersionDescription
+                ) {
+                    showBackupAlert(
+                        title: localized("backup.alert.exported.title"),
+                        message: fileURL.lastPathComponent
+                    )
+                }
+            } catch {
+                showBackupAlert(
+                    title: localized("backup.alert.export_failed.title"),
+                    message: error.localizedDescription
+                )
+            }
+        }
+    }
+
+    private func importBackupFromMenu() {
+        Task { @MainActor in
+            do {
+                guard let fileURL = try await AppBackupPanelController.importBackup(
+                    backupController: backupController,
+                    applyAppPreferences: { appPreferences in
+                        appLanguageCode = appPreferences.appLanguageCode
+                        enableBackgroundMusic = appPreferences.enableBackgroundMusic
+                        backgroundMusicTrackID = appPreferences.backgroundMusicTrackID
+                        backgroundMusicVolume = appPreferences.backgroundMusicVolume
+                    }
+                ) else { return }
+                showBackupAlert(
+                    title: localized("backup.alert.imported.title"),
+                    message: fileURL.lastPathComponent
+                )
+            } catch {
+                showBackupAlert(
+                    title: localized("backup.alert.import_failed.title"),
+                    message: error.localizedDescription
+                )
+            }
+        }
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()
@@ -118,7 +189,6 @@ struct CowsAndBullsApp: App {
                 .environmentObject(settingsStore)
                 .environmentObject(gameSessionStore)
                 .environmentObject(gameplayStore)
-                // Environment locale keeps SwiftUI-localized text in sync with the selected app language.
                 .environment(\.locale, appLocale)
                 .onAppear {
                     applyUITestOverridesIfNeeded()
@@ -145,11 +215,23 @@ struct CowsAndBullsApp: App {
                 }
         }
         .commands {
-            // CommandGroup(replacing:) is a macOS-specific way to override default app menu entries.
             CommandGroup(replacing: .appInfo) {
                 Button(localized("app.menu.about.format", localized("app.title"))) {
                     showLocalizedAboutPanel()
                 }
+            }
+
+            CommandGroup(after: .saveItem) {
+                Divider()
+                Button(localized("backup.action.export.ellipsis")) {
+                    exportBackupFromMenu()
+                }
+                .disabled(gameSessionStore.gameInProgress)
+
+                Button(localized("backup.action.import.ellipsis")) {
+                    importBackupFromMenu()
+                }
+                .disabled(gameSessionStore.gameInProgress)
             }
 
             CommandGroup(replacing: .help) {
@@ -162,7 +244,6 @@ struct CowsAndBullsApp: App {
             }
         }
 
-        
         Settings {
             SettingsView()
                 .environment(\.locale, appLocale)
