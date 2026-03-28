@@ -121,6 +121,7 @@ struct GamePresentationRulesTests {
     }
 
     @Test("Profile selection decision is derived outside the view")
+    @MainActor
     func profileSelectionDecision() {
         let idleRules = GamePresentationRules(
             settings: .default,
