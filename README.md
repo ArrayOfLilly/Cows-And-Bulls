@@ -17,16 +17,16 @@ This is a modern, high-quality implementation of the classic **Bulls and Cows** 
 
 ## Screenshots
 ### Gameplay:
-<img width="300" height="678" alt="Screenshot 2026-03-28 at 13 32 58" src="https://github.com/user-attachments/assets/78bc4d47-1b3a-45f2-a0f5-a9e7e1bfd59d" />
+<img width="300" alt="Screenshot 2026-03-28 at 13 32 58" src="https://github.com/user-attachments/assets/78bc4d47-1b3a-45f2-a0f5-a9e7e1bfd59d" />
 
 ### Theming:
-<img width="300" height="591" alt="Screenshot 2026-03-28 at 13 33 30" src="https://github.com/user-attachments/assets/0d8fe4bd-abab-4b23-a5ab-b47c16bd3ab7" />
+<img width="300" alt="Screenshot 2026-03-28 at 13 33 30" src="https://github.com/user-attachments/assets/0d8fe4bd-abab-4b23-a5ab-b47c16bd3ab7" />
 
 ### History:
-<img width="300" height="675" alt="Screenshot 2026-03-28 at 13 36 07" src="https://github.com/user-attachments/assets/579ea7d6-8a2c-4474-8bbf-1c89d4329651" />
+<img width="300" alt="Screenshot 2026-03-28 at 13 36 07" src="https://github.com/user-attachments/assets/579ea7d6-8a2c-4474-8bbf-1c89d4329651" />
 
 ### Statistics:
-<img width="350" height="675" alt="Screenshot 2026-03-28 at 13 36 25" src="https://github.com/user-attachments/assets/4f16faeb-165b-4157-a6d7-07929363d7c5" />
+<img width="300" alt="Screenshot 2026-03-28 at 13 36 25" src="https://github.com/user-attachments/assets/4f16faeb-165b-4157-a6d7-07929363d7c5" />
 
 ### Celebration Animation:
 
