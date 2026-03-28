@@ -1,19 +1,19 @@
 # 🐄 Cows and Bulls for macOS
-**A polished, native logic game built with SwiftUI.**
+**A simple, native logic game built with SwiftUI.**
 
 <img width="256" height="256" alt="cows-bulls" src="https://github.com/user-attachments/assets/1d2909ee-2fc6-4424-8e9b-ca6600a9525d" />
 
 ### 🎯 About the Project
-This is a modern, high-quality implementation of the classic **Bulls and Cows** (number guessing) logic game. Designed specifically for macOS, it feels like a native utility with a touch of Mac-specific whimsy.
+This is a first attempt for modern, higher-quality implementation of the classic **Bulls and Cows** (number guessing) logic game. Designed specifically for macOS (practicing SwiftUI).
 
 ### ✨ Key Features
 *   **100% Native SwiftUI:** Lightweight, fast, and supports **Dark Mode** perfectly.
-*   **Dual Language Support:** Fully localized in **English** and **Hungarian** (Magyar).
+*   **Dual Language Support:** Fully localized in **English** and **Hungarian** (Magyar), you can ask for more.
 *   **Advanced Analytics:** Track your win streaks, average steps, and performance metrics.
 *   **Detailed History:** Review every single guess, including **thinking time per move**.
 *   **Playful Celebrations:** Features a unique "Walking Cow" animation using **NSPanel** that crosses your desktop when you win.
 *   **Customization & Themes:** Multiple visual styles (Classic, Geometric, Chubby, etc.) and player profiles.
-*   **Data Portability:** Full **Export/Import** functionality for your statistics and history.
+*   **Data Portability:** Full **Export/Import** functionality for your statistics and history (currently all profiles at the same time, per profile saving comes later).
 
 ## Screenshots
 ### Gameplay:
