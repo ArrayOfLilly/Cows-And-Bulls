@@ -7,6 +7,54 @@
 
 import SwiftUI
 
+enum GameRootBindings {
+    static func profileSelection(
+        profileStore: ProfileStore,
+        presentationRules: GamePresentationRules,
+        lastSelectedProfileId: String,
+        sessionFlowRuntime: GameSessionFlowRuntime,
+        callbacks: GameProfileSelectionCallbacks
+    ) -> Binding<String> {
+        Binding(
+            get: { profileStore.selectedProfileId },
+            set: { newValue in
+                GameProfileSelectionCoordinator.handleSelection(
+                    newValue,
+                    decision: presentationRules.decisionForProfileSelection(
+                        newValue,
+                        newProfileSelectionId: ProfileStore.newProfileSelectionId
+                    ),
+                    profileStore: profileStore,
+                    lastSelectedProfileId: lastSelectedProfileId,
+                    sessionFlowRuntime: sessionFlowRuntime,
+                    callbacks: callbacks
+                )
+            }
+        )
+    }
+
+    static func guess(_ gameplayStore: GameplayStore) -> Binding<String> {
+        Binding(
+            get: { gameplayStore.guess },
+            set: { gameplayStore.guess = $0 }
+        )
+    }
+
+    static func isGameOver(_ gameplayStore: GameplayStore) -> Binding<Bool> {
+        Binding(
+            get: { gameplayStore.isGameOver },
+            set: { gameplayStore.isGameOver = $0 }
+        )
+    }
+
+    static func localBool(
+        get: @escaping () -> Bool,
+        set: @escaping (Bool) -> Void
+    ) -> Binding<Bool> {
+        Binding(get: get, set: set)
+    }
+}
+
 struct GameRootSnapshot {
     let settings: ProfileSettings
     let answer: String

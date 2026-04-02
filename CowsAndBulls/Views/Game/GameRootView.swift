@@ -81,17 +81,6 @@ struct GameRootView: View {
     private var isPerGuessLimitActive: Bool { presentationRules.isPerGuessLimitActive }
     private var isGameLimitActive: Bool { presentationRules.isGameLimitActive }
     private var isAnyTimerActive: Bool { presentationRules.isAnyTimerActive }
-    private var canChangeProfile: Bool { presentationRules.canChangeProfile }
-
-    private var gameInputContext: GameInputContext {
-        GameInputContext(
-            guessBinding: guessBinding,
-            isPaused: isPaused,
-            isDisabledSubmitButton: snapshot.isDisabledSubmitButton,
-            guessInputErrorMessage: snapshot.guessInputErrorMessage
-        )
-    }
-
     private var gameTabContext: GameTabContext {
         var context = snapshot.makeGameTabContext(
             profiles: profileStore.profiles,
@@ -307,46 +296,29 @@ struct GameRootView: View {
     }
 
     private var profileSelection: Binding<String> {
-        Binding(
-            get: { profileStore.selectedProfileId },
-            set: { newValue in
-                GameProfileSelectionCoordinator.handleSelection(
-                    newValue,
-                    decision: presentationRules.decisionForProfileSelection(
-                        newValue,
-                        newProfileSelectionId: ProfileStore.newProfileSelectionId
-                    ),
-                    profileStore: dependencies.profileStore,
-                    lastSelectedProfileId: lastSelectedProfileId,
-                    sessionFlowRuntime: dependencies.sessionFlowRuntime,
-                    callbacks: profileSelectionCallbacks
-                )
-            }
+        GameRootBindings.profileSelection(
+            profileStore: dependencies.profileStore,
+            presentationRules: presentationRules,
+            lastSelectedProfileId: lastSelectedProfileId,
+            sessionFlowRuntime: dependencies.sessionFlowRuntime,
+            callbacks: profileSelectionCallbacks
         )
     }
 
     private var guessBinding: Binding<String> {
-        Binding(
-            get: { gameplayStore.guess },
-            set: { gameplayStore.guess = $0 }
-        )
+        GameRootBindings.guess(gameplayStore)
     }
 
     private var isGameOverBinding: Binding<Bool> {
-        Binding(
-            get: { gameplayStore.isGameOver },
-            set: { gameplayStore.isGameOver = $0 }
-        )
+        GameRootBindings.isGameOver(gameplayStore)
     }
 
     private var showWinAlertBinding: Binding<Bool> {
-        Binding(
+        GameRootBindings.localBool(
             get: { showWinAlert },
             set: { showWinAlert = $0 }
         )
     }
-
-    private var gameModeMessage: String { presentationRules.gameModeMessage }
 
     private func saveGameToHistory(finalState: Bool, score: Int, endReason: HistoryItem.EndReason = .completed) {
         GameSessionFlowCoordinator.saveGameToHistory(
