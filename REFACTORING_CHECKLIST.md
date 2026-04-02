@@ -103,5 +103,8 @@
   - [x] `ContentView` timer task kezelés `GameTimerController`-be húzva
   - [x] `AnimalIconStyle` egyszerűsítve, a felesleges `cornerRadius` paraméter nélkül
   - [x] `ContentView` game tab paraméterezése context adapterekkel rövidítve
+  - [x] `ContentView` game tab külön `GameTabView` kompozíciós rétegbe húzva
+  - [x] a beágyazott játékképernyő-szekciók külön `GameScreenSections.swift` fájlba mozgatva
+  - [x] a timer tick wiring ismétlés `GameTimeLimitCoordinator` helperbe húzva
   Még hátra van:
   - [ ] a maradék view-oldali döntések további store/helper irányba tolása a következő körökben
