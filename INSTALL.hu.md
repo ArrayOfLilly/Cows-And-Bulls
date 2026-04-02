@@ -1,10 +1,10 @@
 # Cows & Bulls - Telepítési útmutató (macOS)
 
 ## Mit töltesz le?
-Egy ZIP csomagot kapsz, benne a `Cows & Bulls.app` alkalmazással.
+Egy .dmg fájlt kapsz, benne a `Cows & Bulls.app` alkalmazással.
 
 ## Telepítés lépései
-1. Töltsd le a ZIP fájlt.
+1. Töltsd le a .dmg fájlt.
 2. Dupla kattintással csomagold ki.
 3. Húzd a `Cows & Bulls.app` fájlt az `Applications` mappába (ajánlott).
 4. Első indítás:

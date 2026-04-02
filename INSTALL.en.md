@@ -1,11 +1,11 @@
 # Cows & Bulls - Installation Guide (macOS)
 
 ## What you download
-You will receive a ZIP archive containing `Cows & Bulls.app`.
+You will receive a .dmg archive containing `Cows & Bulls.app`.
 
 ## Install steps
-1. Download the ZIP file.
-2. Double-click the ZIP to extract it.
+1. Download the .dmg file.
+2. Double-click the .dmg to extract it.
 3. Drag `Cows & Bulls.app` to your `Applications` folder (recommended).
 4. First launch:
    - Right-click the app and choose `Open`.
