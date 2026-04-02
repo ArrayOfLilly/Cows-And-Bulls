@@ -9,6 +9,8 @@ import SwiftUI
 import AppKit
 
 struct GameRootView: View {
+    private let soundEffectPlayer: any SoundEffectPlaying
+
     @EnvironmentObject private var historyStore: HistoryStore
     @EnvironmentObject private var profileStore: ProfileStore
     @EnvironmentObject private var settingsStore: ProfileSettingsStore
@@ -25,6 +27,10 @@ struct GameRootView: View {
     @State private var showWinAlert = false
 
     @FocusState private var isGuessFieldFocused: Bool
+
+    init(soundEffectPlayer: any SoundEffectPlaying = SoundPlayer.shared) {
+        self.soundEffectPlayer = soundEffectPlayer
+    }
 
     private var settings: ProfileSettings { settingsStore.settings }
     private var gameInProgress: Bool { gameSessionStore.gameInProgress }
@@ -156,9 +162,7 @@ struct GameRootView: View {
                     GameSessionFlowCoordinator.startNewGame(
                         settings: settings,
                         runtime: sessionFlowRuntime,
-                        hideVictoryCelebration: hideVictoryCelebration,
-                        startTimeLimits: startTimeLimits,
-                        focusGuessField: { focusGuessField() }
+                        callbacks: sessionFlowCallbacks
                     )
                     guess = pendingGuess
                 }
@@ -169,8 +173,7 @@ struct GameRootView: View {
                     canTogglePause: presentationRules.canTogglePause,
                     isPaused: isPaused,
                     runtime: sessionFlowRuntime,
-                    resumeTimeLimitsAfterPause: resumeTimeLimitsAfterPause,
-                    focusGuessField: { focusGuessField() }
+                    callbacks: sessionFlowCallbacks
                 )
             },
             onSubmitGuess: {
@@ -195,9 +198,7 @@ struct GameRootView: View {
                         },
                         endGameWithoutResult: endGameWithoutResult
                     ),
-                    playSound: { effect, enabled, volume in
-                        SoundPlayer.shared.play(effect, enabled: enabled, volume: volume)
-                    }
+                    playSound: playSoundEffect
                 )
 
                 focusGuessField()
@@ -208,26 +209,20 @@ struct GameRootView: View {
                     runtime: gameTurnRuntime,
                     presentation: gameTurnPresentation(guessesAreEmpty: guesses.isEmpty),
                     feedback: gameTurnFeedback,
-                    playSound: { effect, enabled, volume in
-                        SoundPlayer.shared.play(effect, enabled: enabled, volume: volume)
-                    }
+                    playSound: playSoundEffect
                 )
             },
             onConfirmProfileSwitchSurrender: {
                 GameSessionFlowCoordinator.surrenderForProfileSwitch(
                     hasGuesses: guesses.isEmpty == false,
                     runtime: sessionFlowRuntime,
-                    saveSurrenderedGame: {
-                        saveGameToHistory(finalState: false, score: 0, endReason: .surrender)
-                    },
-                    hideVictoryCelebration: hideVictoryCelebration
+                    callbacks: profileSwitchCallbacks
                 )
                 if let pendingProfileSwitchId {
                     GameSessionFlowCoordinator.applyProfileSwitch(
                         to: pendingProfileSwitchId,
                         runtime: sessionFlowRuntime,
-                        setLastSelectedProfileId: { lastSelectedProfileId = $0 },
-                        hideVictoryCelebration: hideVictoryCelebration
+                        callbacks: profileSwitchCallbacks
                     )
                 }
             },
@@ -244,9 +239,7 @@ struct GameRootView: View {
                 GameSessionFlowCoordinator.startNewGame(
                     settings: settings,
                     runtime: sessionFlowRuntime,
-                    hideVictoryCelebration: hideVictoryCelebration,
-                    startTimeLimits: startTimeLimits,
-                    focusGuessField: { focusGuessField() }
+                    callbacks: sessionFlowCallbacks
                 )
             },
             onWinAcknowledge: {
@@ -260,9 +253,7 @@ struct GameRootView: View {
                 GameSessionFlowCoordinator.startNewGame(
                     settings: settings,
                     runtime: sessionFlowRuntime,
-                    hideVictoryCelebration: hideVictoryCelebration,
-                    startTimeLimits: startTimeLimits,
-                    focusGuessField: { focusGuessField() }
+                    callbacks: sessionFlowCallbacks
                 )
             },
             onLossAcknowledge: {
@@ -273,9 +264,7 @@ struct GameRootView: View {
                 GameSessionFlowCoordinator.startNewGame(
                     settings: settings,
                     runtime: sessionFlowRuntime,
-                    hideVictoryCelebration: hideVictoryCelebration,
-                    startTimeLimits: startTimeLimits,
-                    focusGuessField: { focusGuessField() }
+                    callbacks: sessionFlowCallbacks
                 )
             }
         )
@@ -305,6 +294,31 @@ struct GameRootView: View {
             soundEffectsEnabled: enableSoundEffects,
             soundEffectsVolume: soundEffectsVolume
         )
+    }
+
+    private var sessionFlowCallbacks: GameSessionFlowCallbacks {
+        GameSessionFlowCallbacks(
+            hideVictoryCelebration: hideVictoryCelebration,
+            startTimeLimits: startTimeLimits,
+            resumeTimeLimitsAfterPause: resumeTimeLimitsAfterPause,
+            focusGuessField: { focusGuessField() }
+        )
+    }
+
+    private var profileSwitchCallbacks: GameProfileSwitchCallbacks {
+        GameProfileSwitchCallbacks(
+            setLastSelectedProfileId: { lastSelectedProfileId = $0 },
+            saveSurrenderedGame: {
+                saveGameToHistory(finalState: false, score: 0, endReason: .surrender)
+            },
+            hideVictoryCelebration: hideVictoryCelebration
+        )
+    }
+
+    private var playSoundEffect: (SoundPlayer.Effect, Bool, Double) -> Void {
+        { effect, enabled, volume in
+            soundEffectPlayer.play(effect, enabled: enabled, volume: volume)
+        }
     }
 
     private func gameTurnPresentation(guessesAreEmpty: Bool) -> GameTurnPresentation {
@@ -400,9 +414,7 @@ struct GameRootView: View {
             runtime: gameTurnRuntime,
             presentation: gameTurnPresentation(guessesAreEmpty: guesses.isEmpty),
             feedback: gameTurnFeedback,
-            playSound: { effect, enabled, volume in
-                SoundPlayer.shared.play(effect, enabled: enabled, volume: volume)
-            }
+            playSound: playSoundEffect
         )
     }
 
@@ -427,8 +439,7 @@ struct GameRootView: View {
         GameSessionFlowCoordinator.resumeAfterWindowCloseIfNeeded(
             runtime: sessionFlowRuntime,
             isAnyTimerActive: isAnyTimerActive,
-            resumeTimeLimitsAfterPause: resumeTimeLimitsAfterPause,
-            focusGuessField: { focusGuessField() }
+            callbacks: sessionFlowCallbacks
         )
     }
 
@@ -439,7 +450,7 @@ struct GameRootView: View {
     private func resetGameSession() {
         GameSessionFlowCoordinator.resetGameSession(
             runtime: sessionFlowRuntime,
-            hideVictoryCelebration: hideVictoryCelebration
+            callbacks: sessionFlowCallbacks
         )
     }
 

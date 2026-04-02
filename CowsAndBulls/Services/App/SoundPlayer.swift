@@ -7,8 +7,12 @@ import Foundation
 import AVFoundation
 import AppKit
 
+protocol SoundEffectPlaying {
+    func play(_ effect: SoundPlayer.Effect, enabled: Bool, volume: Double)
+}
+
 /// Centralized audio service for one-shot sound effects and looping background music.
-final class SoundPlayer {
+final class SoundPlayer: SoundEffectPlaying {
     static let shared = SoundPlayer()
 
     enum Effect: String {

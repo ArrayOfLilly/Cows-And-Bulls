@@ -18,8 +18,8 @@ enum GameProfileSelectionCoordinator {
         setShowNewProfileSheet: (Bool) -> Void,
         setPendingProfileSwitchId: (String?) -> Void,
         setShowProfileSwitchDialog: (Bool) -> Void,
-        setLastSelectedProfileId: (String) -> Void,
-        hideVictoryCelebration: () -> Void
+        setLastSelectedProfileId: @escaping (String) -> Void,
+        hideVictoryCelebration: @escaping () -> Void
     ) {
         _ = newValue
         switch decision {
@@ -34,8 +34,11 @@ enum GameProfileSelectionCoordinator {
             GameSessionFlowCoordinator.applyProfileSwitch(
                 to: profileId,
                 runtime: sessionFlowRuntime,
-                setLastSelectedProfileId: setLastSelectedProfileId,
-                hideVictoryCelebration: hideVictoryCelebration
+                callbacks: GameProfileSwitchCallbacks(
+                    setLastSelectedProfileId: { setLastSelectedProfileId($0) },
+                    saveSurrenderedGame: {},
+                    hideVictoryCelebration: { hideVictoryCelebration() }
+                )
             )
         }
     }

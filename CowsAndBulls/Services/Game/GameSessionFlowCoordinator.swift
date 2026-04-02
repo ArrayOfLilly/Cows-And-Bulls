@@ -15,25 +15,36 @@ struct GameSessionFlowRuntime {
     let timerController: GameTimerController
 }
 
+struct GameSessionFlowCallbacks {
+    let hideVictoryCelebration: () -> Void
+    let startTimeLimits: () -> Void
+    let resumeTimeLimitsAfterPause: () -> Void
+    let focusGuessField: () -> Void
+}
+
+struct GameProfileSwitchCallbacks {
+    let setLastSelectedProfileId: (String) -> Void
+    let saveSurrenderedGame: () -> Void
+    let hideVictoryCelebration: () -> Void
+}
+
 @MainActor
 enum GameSessionFlowCoordinator {
     static func startNewGame(
         settings: ProfileSettings,
         runtime: GameSessionFlowRuntime,
-        hideVictoryCelebration: () -> Void,
-        startTimeLimits: () -> Void,
-        focusGuessField: () -> Void
+        callbacks: GameSessionFlowCallbacks
     ) {
         GameCoordinator.startNewGame(
             settings: settings,
             gameplayStore: runtime.gameplayStore,
             gameSessionStore: runtime.gameSessionStore,
             timerController: runtime.timerController,
-            hideVictoryCelebration: hideVictoryCelebration
+            hideVictoryCelebration: callbacks.hideVictoryCelebration
         )
         guard runtime.gameplayStore.answer.isEmpty == false else { return }
-        startTimeLimits()
-        focusGuessField()
+        callbacks.startTimeLimits()
+        callbacks.focusGuessField()
     }
 
     static func saveGameToHistory(
@@ -60,13 +71,13 @@ enum GameSessionFlowCoordinator {
 
     static func resetGameSession(
         runtime: GameSessionFlowRuntime,
-        hideVictoryCelebration: () -> Void
+        callbacks: GameSessionFlowCallbacks
     ) {
         GameCoordinator.resetGameSession(
             gameplayStore: runtime.gameplayStore,
             gameSessionStore: runtime.gameSessionStore,
             timerController: runtime.timerController,
-            hideVictoryCelebration: hideVictoryCelebration
+            hideVictoryCelebration: callbacks.hideVictoryCelebration
         )
     }
 
@@ -74,14 +85,13 @@ enum GameSessionFlowCoordinator {
         canTogglePause: Bool,
         isPaused: Bool,
         runtime: GameSessionFlowRuntime,
-        resumeTimeLimitsAfterPause: () -> Void,
-        focusGuessField: () -> Void
+        callbacks: GameSessionFlowCallbacks
     ) {
         guard canTogglePause else { return }
         if isPaused {
             runtime.gameSessionStore.resume()
-            resumeTimeLimitsAfterPause()
-            focusGuessField()
+            callbacks.resumeTimeLimitsAfterPause()
+            callbacks.focusGuessField()
         } else {
             runtime.timerController.stopAll()
             runtime.gameSessionStore.pause()
@@ -100,14 +110,13 @@ enum GameSessionFlowCoordinator {
     static func resumeAfterWindowCloseIfNeeded(
         runtime: GameSessionFlowRuntime,
         isAnyTimerActive: Bool,
-        resumeTimeLimitsAfterPause: () -> Void,
-        focusGuessField: () -> Void
+        callbacks: GameSessionFlowCallbacks
     ) {
         guard runtime.gameSessionStore.resumeAfterWindowCloseIfNeeded() else { return }
         if isAnyTimerActive {
-            resumeTimeLimitsAfterPause()
+            callbacks.resumeTimeLimitsAfterPause()
         }
-        focusGuessField()
+        callbacks.focusGuessField()
     }
 
     static func endGameWithoutResult(runtime: GameSessionFlowRuntime) {
@@ -119,27 +128,41 @@ enum GameSessionFlowCoordinator {
     static func applyProfileSwitch(
         to profileId: String,
         runtime: GameSessionFlowRuntime,
-        setLastSelectedProfileId: (String) -> Void,
-        hideVictoryCelebration: () -> Void
+        callbacks: GameProfileSwitchCallbacks
     ) {
         runtime.profileStore.selectProfile(id: profileId)
-        setLastSelectedProfileId(profileId)
-        resetGameSession(runtime: runtime, hideVictoryCelebration: hideVictoryCelebration)
+        callbacks.setLastSelectedProfileId(profileId)
+        resetGameSession(
+            runtime: runtime,
+            callbacks: GameSessionFlowCallbacks(
+                hideVictoryCelebration: callbacks.hideVictoryCelebration,
+                startTimeLimits: {},
+                resumeTimeLimitsAfterPause: {},
+                focusGuessField: {}
+            )
+        )
     }
 
     static func surrenderForProfileSwitch(
         hasGuesses: Bool,
         runtime: GameSessionFlowRuntime,
-        saveSurrenderedGame: () -> Void,
-        hideVictoryCelebration: () -> Void
+        callbacks: GameProfileSwitchCallbacks
     ) {
         GameCoordinator.surrenderForProfileSwitch(
             hasGuesses: hasGuesses,
             gameSessionStore: runtime.gameSessionStore,
             timerController: runtime.timerController,
-            saveSurrenderedGame: saveSurrenderedGame,
+            saveSurrenderedGame: callbacks.saveSurrenderedGame,
             resetGameSession: {
-                resetGameSession(runtime: runtime, hideVictoryCelebration: hideVictoryCelebration)
+                resetGameSession(
+                    runtime: runtime,
+                    callbacks: GameSessionFlowCallbacks(
+                        hideVictoryCelebration: callbacks.hideVictoryCelebration,
+                        startTimeLimits: {},
+                        resumeTimeLimitsAfterPause: {},
+                        focusGuessField: {}
+                    )
+                )
             }
         )
     }
