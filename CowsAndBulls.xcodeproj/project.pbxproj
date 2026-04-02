@@ -29,6 +29,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		AB30160E2F7EACD100468B1C /* PRIVACY.en.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PRIVACY.en.md; sourceTree = "<group>"; };
+		AB30160F2F7EACD100468B1C /* PRIVACY.hu.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PRIVACY.hu.md; sourceTree = "<group>"; };
 		ABB6BB062F5460B500242EFC /* CowsAndBullsTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CowsAndBullsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		ABE228A12F6059CC00EFEA43 /* CowsAndBullsUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CowsAndBullsUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		ABE95FCA2F4E246300BAF3CA /* Cows & Bulls.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Cows & Bulls.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -92,6 +94,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		AB30160D2F7EACB400468B1C /* Documentation */ = {
+			isa = PBXGroup;
+			children = (
+				AB30160E2F7EACD100468B1C /* PRIVACY.en.md */,
+				AB30160F2F7EACD100468B1C /* PRIVACY.hu.md */,
+			);
+			path = Documentation;
+			sourceTree = "<group>";
+		};
 		ABE95FC12F4E246300BAF3CA = {
 			isa = PBXGroup;
 			children = (
@@ -101,6 +112,7 @@
 				ABE95FCB2F4E246300BAF3CA /* Products */,
 				ABEB1BDD2F545974006D62C3 /* INSTALL.en.md */,
 				ABEB1BDF2F545974006D62C3 /* INSTALL.hu.md */,
+				AB30160D2F7EACB400468B1C /* Documentation */,
 			);
 			sourceTree = "<group>";
 		};
