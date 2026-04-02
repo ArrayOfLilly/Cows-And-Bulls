@@ -101,6 +101,56 @@ enum GameRootAssemblies {
             }
         )
     }
+
+    static func sessionFlowCallbacks(
+        hideVictoryCelebration: @escaping () -> Void,
+        startTimeLimits: @escaping () -> Void,
+        resumeTimeLimitsAfterPause: @escaping () -> Void,
+        focusGuessField: @escaping () -> Void
+    ) -> GameSessionFlowCallbacks {
+        GameSessionFlowCallbacks(
+            hideVictoryCelebration: hideVictoryCelebration,
+            startTimeLimits: startTimeLimits,
+            resumeTimeLimitsAfterPause: resumeTimeLimitsAfterPause,
+            focusGuessField: focusGuessField
+        )
+    }
+
+    static func profileSwitchCallbacks(
+        setLastSelectedProfileId: @escaping (String) -> Void,
+        saveSurrenderedGame: @escaping () -> Void,
+        hideVictoryCelebration: @escaping () -> Void
+    ) -> GameProfileSwitchCallbacks {
+        GameProfileSwitchCallbacks(
+            setLastSelectedProfileId: setLastSelectedProfileId,
+            saveSurrenderedGame: saveSurrenderedGame,
+            hideVictoryCelebration: hideVictoryCelebration
+        )
+    }
+
+    static func profileSelectionCallbacks(
+        setShowNewProfileSheet: @escaping (Bool) -> Void,
+        setPendingProfileSwitchId: @escaping (String?) -> Void,
+        setShowProfileSwitchDialog: @escaping (Bool) -> Void,
+        directSwitchCallbacks: GameProfileSwitchCallbacks
+    ) -> GameProfileSelectionCallbacks {
+        GameProfileSelectionCallbacks(
+            setShowNewProfileSheet: setShowNewProfileSheet,
+            setPendingProfileSwitchId: setPendingProfileSwitchId,
+            setShowProfileSwitchDialog: setShowProfileSwitchDialog,
+            directSwitchCallbacks: directSwitchCallbacks
+        )
+    }
+
+    static func profileCreationCallbacks(
+        clearName: @escaping () -> Void,
+        dismissSheet: @escaping () -> Void
+    ) -> GameProfileCreationCallbacks {
+        GameProfileCreationCallbacks(
+            clearName: clearName,
+            dismissSheet: dismissSheet
+        )
+    }
 }
 
 struct GameRootSnapshot {

@@ -28,8 +28,13 @@ struct GameRootView: View {
 
     @FocusState private var isGuessFieldFocused: Bool
 
-    init(soundEffectPlayer: any SoundEffectPlaying = SoundPlayer.shared) {
-        self.soundEffectPlayer = soundEffectPlayer
+    @MainActor
+    init(
+        soundEffectPlayer: (any SoundEffectPlaying)? = nil,
+        timerController: GameTimerController? = nil
+    ) {
+        self.soundEffectPlayer = soundEffectPlayer ?? SoundPlayer.shared
+        _timerController = State(initialValue: timerController ?? GameTimerController())
     }
 
     private var snapshot: GameRootSnapshot {
@@ -128,7 +133,7 @@ struct GameRootView: View {
     }
 
     private var sessionFlowCallbacks: GameSessionFlowCallbacks {
-        GameSessionFlowCallbacks(
+        GameRootAssemblies.sessionFlowCallbacks(
             hideVictoryCelebration: hideVictoryCelebration,
             startTimeLimits: startTimeLimits,
             resumeTimeLimitsAfterPause: resumeTimeLimitsAfterPause,
@@ -137,7 +142,7 @@ struct GameRootView: View {
     }
 
     private var profileSwitchCallbacks: GameProfileSwitchCallbacks {
-        GameProfileSwitchCallbacks(
+        GameRootAssemblies.profileSwitchCallbacks(
             setLastSelectedProfileId: { lastSelectedProfileId = $0 },
             saveSurrenderedGame: {
                 saveGameToHistory(finalState: false, score: 0, endReason: .surrender)
@@ -147,7 +152,7 @@ struct GameRootView: View {
     }
 
     private var directProfileSwitchCallbacks: GameProfileSwitchCallbacks {
-        GameProfileSwitchCallbacks(
+        GameRootAssemblies.profileSwitchCallbacks(
             setLastSelectedProfileId: { lastSelectedProfileId = $0 },
             saveSurrenderedGame: {},
             hideVictoryCelebration: hideVictoryCelebration
@@ -155,7 +160,7 @@ struct GameRootView: View {
     }
 
     private var profileSelectionCallbacks: GameProfileSelectionCallbacks {
-        GameProfileSelectionCallbacks(
+        GameRootAssemblies.profileSelectionCallbacks(
             setShowNewProfileSheet: { showNewProfileSheet = $0 },
             setPendingProfileSwitchId: { pendingProfileSwitchId = $0 },
             setShowProfileSwitchDialog: { showProfileSwitchDialog = $0 },
@@ -164,7 +169,7 @@ struct GameRootView: View {
     }
 
     private var profileCreationCallbacks: GameProfileCreationCallbacks {
-        GameProfileCreationCallbacks(
+        GameRootAssemblies.profileCreationCallbacks(
             clearName: { newProfileName = "" },
             dismissSheet: { showNewProfileSheet = false }
         )
