@@ -102,6 +102,27 @@ struct CowsAndBullsApp: App {
         NSApp.activate(ignoringOtherApps: true)
     }
 
+    private func openPrivacyPolicyWindow() {
+        let windowID = NSUserInterfaceItemIdentifier("privacyPolicyWindow")
+
+        if let existing = NSApp.windows.first(where: { $0.identifier == windowID }) {
+            existing.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+
+        let rootView = PrivacyPolicyView()
+            .environment(\.locale, appLocale)
+        let hostingController = NSHostingController(rootView: rootView)
+        let window = NSWindow(contentViewController: hostingController)
+        window.identifier = windowID
+        window.title = localized("privacy.title")
+        window.setContentSize(NSSize(width: 640, height: 760))
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
     private var backupController: AppBackupController {
         AppBackupController(
             profileStore: profileStore,
@@ -238,9 +259,15 @@ struct CowsAndBullsApp: App {
                 Button(action: {
                     openLearnWindow()
                 }, label: {
-                    Text("Help")
+                    Text(localized("learn.window.title"))
                 })
                 .keyboardShortcut("/")
+
+                Button(action: {
+                    openPrivacyPolicyWindow()
+                }, label: {
+                    Text(localized("privacy.title"))
+                })
             }
         }
 
