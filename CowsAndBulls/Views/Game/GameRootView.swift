@@ -107,123 +107,19 @@ struct GameRootView: View {
 
     private var gameTabActions: GameTabActions {
         GameTabActions(
-            onAppear: {
-                if answer.isEmpty {
-                    resetGameSession()
-                }
-            },
+            onAppear: handleGameTabAppear,
             onDisappear: hideVictoryCelebration,
-            onGuessChange: {
-                if gameInProgress == false, guess.isEmpty == false {
-                    let pendingGuess = guess
-                    GameSessionFlowCoordinator.startNewGame(
-                        settings: settings,
-                        runtime: dependencies.sessionFlowRuntime,
-                        callbacks: sessionFlowCallbacks
-                    )
-                    guess = pendingGuess
-                }
-                gameplayStore.updateLiveGuessValidation(settings: settings)
-            },
-            onTogglePause: {
-                GameSessionFlowCoordinator.togglePause(
-                    canTogglePause: presentationRules.canTogglePause,
-                    isPaused: isPaused,
-                    runtime: dependencies.sessionFlowRuntime,
-                    callbacks: sessionFlowCallbacks
-                )
-            },
-            onSubmitGuess: {
-                let result = gameplayStore.submitGuess(settings: settings, gameInProgress: gameInProgress)
-
-                if result == .invalid {
-                    focusGuessField(selectAll: true)
-                    return
-                }
-
-                gameSessionStore.recordSubmittedGuess()
-                GameTurnCoordinator.handleSubmissionResult(
-                    result,
-                    runtime: dependencies.turnRuntime,
-                    feedback: gameTurnFeedback,
-                    handlers: GameTurnHandlers(
-                        restartPerGuessTimeLimit: restartPerGuessTimeLimit,
-                        playVictoryCelebration: playVictoryCelebration,
-                        showWinAlert: {
-                            isWon = true
-                            showWinAlert = true
-                        },
-                        endGameWithoutResult: endGameWithoutResult
-                    ),
-                    playSound: playSoundEffect
-                )
-
-                focusGuessField()
-            },
-            onSurrender: {
-                guard gameInProgress, guesses.isEmpty == false, isWon == false, isGameOver == false else { return }
-                GameTurnCoordinator.surrenderGame(
-                    runtime: dependencies.turnRuntime,
-                    presentation: gameTurnPresentation(guessesAreEmpty: guesses.isEmpty),
-                    feedback: gameTurnFeedback,
-                    playSound: playSoundEffect
-                )
-            },
-            onConfirmProfileSwitchSurrender: {
-                GameSessionFlowCoordinator.surrenderForProfileSwitch(
-                    hasGuesses: guesses.isEmpty == false,
-                    runtime: dependencies.sessionFlowRuntime,
-                    callbacks: profileSwitchCallbacks
-                )
-                if let pendingProfileSwitchId {
-                    GameSessionFlowCoordinator.applyProfileSwitch(
-                        to: pendingProfileSwitchId,
-                        runtime: dependencies.sessionFlowRuntime,
-                        callbacks: profileSwitchCallbacks
-                    )
-                }
-            },
-            onConfirmProfileSwitchPause: {
-                GameSessionFlowCoordinator.pauseGameForProfileSwitch(
-                    canPause: gameInProgress && isWon == false && isGameOver == false,
-                    runtime: dependencies.sessionFlowRuntime
-                )
-            },
-            onWinPlayAgain: {
-                hideVictoryCelebration()
-                showWinAlert = false
-                saveGameToHistory(finalState: true, score: scoreValue, endReason: .completed)
-                GameSessionFlowCoordinator.startNewGame(
-                    settings: settings,
-                    runtime: dependencies.sessionFlowRuntime,
-                    callbacks: sessionFlowCallbacks
-                )
-            },
-            onWinAcknowledge: {
-                hideVictoryCelebration()
-                showWinAlert = false
-                gameplayStore.finalizeWin()
-                saveGameToHistory(finalState: true, score: scoreValue, endReason: .completed)
-            },
-            onLossPlayAgain: {
-                saveGameToHistory(finalState: false, score: 0, endReason: presentationRules.lossEndReason(timeoutEndReason: timeoutEndReason))
-                GameSessionFlowCoordinator.startNewGame(
-                    settings: settings,
-                    runtime: dependencies.sessionFlowRuntime,
-                    callbacks: sessionFlowCallbacks
-                )
-            },
-            onLossAcknowledge: {
-                gameplayStore.finalizeLoss()
-                saveGameToHistory(finalState: false, score: 0, endReason: presentationRules.lossEndReason(timeoutEndReason: timeoutEndReason))
-            },
-            onRestart: {
-                GameSessionFlowCoordinator.startNewGame(
-                    settings: settings,
-                    runtime: dependencies.sessionFlowRuntime,
-                    callbacks: sessionFlowCallbacks
-                )
-            }
+            onGuessChange: handleGuessChange,
+            onTogglePause: handleTogglePause,
+            onSubmitGuess: handleSubmitGuess,
+            onSurrender: handleSurrender,
+            onConfirmProfileSwitchSurrender: handleConfirmProfileSwitchSurrender,
+            onConfirmProfileSwitchPause: handleConfirmProfileSwitchPause,
+            onWinPlayAgain: handleWinPlayAgain,
+            onWinAcknowledge: handleWinAcknowledge,
+            onLossPlayAgain: handleLossPlayAgain,
+            onLossAcknowledge: handleLossAcknowledge,
+            onRestart: startNewGame
         )
     }
 
@@ -345,6 +241,130 @@ struct GameRootView: View {
             score: score,
             settings: settings,
             endReason: endReason
+        )
+    }
+
+    private func startNewGame() {
+        GameSessionFlowCoordinator.startNewGame(
+            settings: settings,
+            runtime: dependencies.sessionFlowRuntime,
+            callbacks: sessionFlowCallbacks
+        )
+    }
+
+    private func handleGameTabAppear() {
+        if answer.isEmpty {
+            resetGameSession()
+        }
+    }
+
+    private func handleGuessChange() {
+        if gameInProgress == false, guess.isEmpty == false {
+            let pendingGuess = guess
+            startNewGame()
+            guess = pendingGuess
+        }
+        gameplayStore.updateLiveGuessValidation(settings: settings)
+    }
+
+    private func handleTogglePause() {
+        GameSessionFlowCoordinator.togglePause(
+            canTogglePause: presentationRules.canTogglePause,
+            isPaused: isPaused,
+            runtime: dependencies.sessionFlowRuntime,
+            callbacks: sessionFlowCallbacks
+        )
+    }
+
+    private func handleSubmitGuess() {
+        let result = gameplayStore.submitGuess(settings: settings, gameInProgress: gameInProgress)
+
+        if result == .invalid {
+            focusGuessField(selectAll: true)
+            return
+        }
+
+        gameSessionStore.recordSubmittedGuess()
+        GameTurnCoordinator.handleSubmissionResult(
+            result,
+            runtime: dependencies.turnRuntime,
+            feedback: gameTurnFeedback,
+            handlers: GameTurnHandlers(
+                restartPerGuessTimeLimit: restartPerGuessTimeLimit,
+                playVictoryCelebration: playVictoryCelebration,
+                showWinAlert: {
+                    isWon = true
+                    showWinAlert = true
+                },
+                endGameWithoutResult: endGameWithoutResult
+            ),
+            playSound: playSoundEffect
+        )
+
+        focusGuessField()
+    }
+
+    private func handleSurrender() {
+        guard gameInProgress, guesses.isEmpty == false, isWon == false, isGameOver == false else { return }
+        GameTurnCoordinator.surrenderGame(
+            runtime: dependencies.turnRuntime,
+            presentation: gameTurnPresentation(guessesAreEmpty: guesses.isEmpty),
+            feedback: gameTurnFeedback,
+            playSound: playSoundEffect
+        )
+    }
+
+    private func handleConfirmProfileSwitchSurrender() {
+        GameSessionFlowCoordinator.surrenderForProfileSwitch(
+            hasGuesses: guesses.isEmpty == false,
+            runtime: dependencies.sessionFlowRuntime,
+            callbacks: profileSwitchCallbacks
+        )
+        if let pendingProfileSwitchId {
+            GameSessionFlowCoordinator.applyProfileSwitch(
+                to: pendingProfileSwitchId,
+                runtime: dependencies.sessionFlowRuntime,
+                callbacks: profileSwitchCallbacks
+            )
+        }
+    }
+
+    private func handleConfirmProfileSwitchPause() {
+        GameSessionFlowCoordinator.pauseGameForProfileSwitch(
+            canPause: gameInProgress && isWon == false && isGameOver == false,
+            runtime: dependencies.sessionFlowRuntime
+        )
+    }
+
+    private func handleWinPlayAgain() {
+        hideVictoryCelebration()
+        showWinAlert = false
+        saveGameToHistory(finalState: true, score: scoreValue, endReason: .completed)
+        startNewGame()
+    }
+
+    private func handleWinAcknowledge() {
+        hideVictoryCelebration()
+        showWinAlert = false
+        gameplayStore.finalizeWin()
+        saveGameToHistory(finalState: true, score: scoreValue, endReason: .completed)
+    }
+
+    private func handleLossPlayAgain() {
+        saveGameToHistory(
+            finalState: false,
+            score: 0,
+            endReason: presentationRules.lossEndReason(timeoutEndReason: timeoutEndReason)
+        )
+        startNewGame()
+    }
+
+    private func handleLossAcknowledge() {
+        gameplayStore.finalizeLoss()
+        saveGameToHistory(
+            finalState: false,
+            score: 0,
+            endReason: presentationRules.lossEndReason(timeoutEndReason: timeoutEndReason)
         )
     }
 
