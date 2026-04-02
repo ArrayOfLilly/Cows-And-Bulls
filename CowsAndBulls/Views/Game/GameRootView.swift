@@ -261,6 +261,30 @@ struct GameRootView: View {
         )
     }
 
+    private var directProfileSwitchCallbacks: GameProfileSwitchCallbacks {
+        GameProfileSwitchCallbacks(
+            setLastSelectedProfileId: { lastSelectedProfileId = $0 },
+            saveSurrenderedGame: {},
+            hideVictoryCelebration: hideVictoryCelebration
+        )
+    }
+
+    private var profileSelectionCallbacks: GameProfileSelectionCallbacks {
+        GameProfileSelectionCallbacks(
+            setShowNewProfileSheet: { showNewProfileSheet = $0 },
+            setPendingProfileSwitchId: { pendingProfileSwitchId = $0 },
+            setShowProfileSwitchDialog: { showProfileSwitchDialog = $0 },
+            directSwitchCallbacks: directProfileSwitchCallbacks
+        )
+    }
+
+    private var profileCreationCallbacks: GameProfileCreationCallbacks {
+        GameProfileCreationCallbacks(
+            clearName: { newProfileName = "" },
+            dismissSheet: { showNewProfileSheet = false }
+        )
+    }
+
     private var playSoundEffect: (SoundPlayer.Effect, Bool, Double) -> Void {
         { effect, enabled, volume in
             dependencies.playSound(effect, enabled: enabled, volume: volume)
@@ -295,11 +319,7 @@ struct GameRootView: View {
                     profileStore: dependencies.profileStore,
                     lastSelectedProfileId: lastSelectedProfileId,
                     sessionFlowRuntime: dependencies.sessionFlowRuntime,
-                    setShowNewProfileSheet: { showNewProfileSheet = $0 },
-                    setPendingProfileSwitchId: { pendingProfileSwitchId = $0 },
-                    setShowProfileSwitchDialog: { showProfileSwitchDialog = $0 },
-                    setLastSelectedProfileId: { lastSelectedProfileId = $0 },
-                    hideVictoryCelebration: hideVictoryCelebration
+                    callbacks: profileSelectionCallbacks
                 )
             }
         )
@@ -459,14 +479,12 @@ struct GameRootView: View {
                     GameProfileSelectionCoordinator.createProfile(
                         named: name,
                         profileStore: profileStore,
-                        clearName: { newProfileName = "" },
-                        dismissSheet: { showNewProfileSheet = false }
+                        callbacks: profileCreationCallbacks
                     )
                 },
                 onCancel: {
                     GameProfileSelectionCoordinator.cancelProfileCreation(
-                        clearName: { newProfileName = "" },
-                        dismissSheet: { showNewProfileSheet = false }
+                        callbacks: profileCreationCallbacks
                     )
                 }
             )

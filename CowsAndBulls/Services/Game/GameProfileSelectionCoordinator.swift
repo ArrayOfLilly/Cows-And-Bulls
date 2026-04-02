@@ -7,6 +7,18 @@
 
 import Foundation
 
+struct GameProfileSelectionCallbacks {
+    let setShowNewProfileSheet: (Bool) -> Void
+    let setPendingProfileSwitchId: (String?) -> Void
+    let setShowProfileSwitchDialog: (Bool) -> Void
+    let directSwitchCallbacks: GameProfileSwitchCallbacks
+}
+
+struct GameProfileCreationCallbacks {
+    let clearName: () -> Void
+    let dismissSheet: () -> Void
+}
+
 @MainActor
 enum GameProfileSelectionCoordinator {
     static func handleSelection(
@@ -15,30 +27,22 @@ enum GameProfileSelectionCoordinator {
         profileStore: ProfileStore,
         lastSelectedProfileId: String,
         sessionFlowRuntime: GameSessionFlowRuntime,
-        setShowNewProfileSheet: (Bool) -> Void,
-        setPendingProfileSwitchId: (String?) -> Void,
-        setShowProfileSwitchDialog: (Bool) -> Void,
-        setLastSelectedProfileId: @escaping (String) -> Void,
-        hideVictoryCelebration: @escaping () -> Void
+        callbacks: GameProfileSelectionCallbacks
     ) {
         _ = newValue
         switch decision {
         case .showNewProfileSheet:
-            setShowNewProfileSheet(true)
+            callbacks.setShowNewProfileSheet(true)
             profileStore.selectProfile(id: lastSelectedProfileId)
         case let .confirmInProgressSwitch(profileId):
-            setPendingProfileSwitchId(profileId)
-            setShowProfileSwitchDialog(true)
+            callbacks.setPendingProfileSwitchId(profileId)
+            callbacks.setShowProfileSwitchDialog(true)
             profileStore.selectProfile(id: lastSelectedProfileId)
         case let .switchDirectly(profileId):
             GameSessionFlowCoordinator.applyProfileSwitch(
                 to: profileId,
                 runtime: sessionFlowRuntime,
-                callbacks: GameProfileSwitchCallbacks(
-                    setLastSelectedProfileId: { setLastSelectedProfileId($0) },
-                    saveSurrenderedGame: {},
-                    hideVictoryCelebration: { hideVictoryCelebration() }
-                )
+                callbacks: callbacks.directSwitchCallbacks
             )
         }
     }
@@ -46,19 +50,17 @@ enum GameProfileSelectionCoordinator {
     static func createProfile(
         named name: String,
         profileStore: ProfileStore,
-        clearName: () -> Void,
-        dismissSheet: () -> Void
+        callbacks: GameProfileCreationCallbacks
     ) {
         profileStore.createProfile(named: name)
-        clearName()
-        dismissSheet()
+        callbacks.clearName()
+        callbacks.dismissSheet()
     }
 
     static func cancelProfileCreation(
-        clearName: () -> Void,
-        dismissSheet: () -> Void
+        callbacks: GameProfileCreationCallbacks
     ) {
-        clearName()
-        dismissSheet()
+        callbacks.clearName()
+        callbacks.dismissSheet()
     }
 }
