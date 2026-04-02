@@ -9,38 +9,26 @@ import SwiftUI
 
 struct GameTabView: View {
     let context: GameTabContext
+    let actions: GameTabActions
     @Binding var showSurrenderConfirmation: Bool
     @Binding var pendingProfileSwitchId: String?
     @Binding var showProfileSwitchDialog: Bool
     let showWinAlert: Binding<Bool>
     let isGameOver: Binding<Bool>
     let focusBinding: FocusState<Bool>.Binding
-    let onAppear: () -> Void
-    let onDisappear: () -> Void
-    let onGuessChange: () -> Void
-    let onTogglePause: () -> Void
-    let onSubmitGuess: () -> Void
-    let onSurrender: () -> Void
-    let onConfirmProfileSwitchSurrender: () -> Void
-    let onConfirmProfileSwitchPause: () -> Void
-    let onWinPlayAgain: () -> Void
-    let onWinAcknowledge: () -> Void
-    let onLossPlayAgain: () -> Void
-    let onLossAcknowledge: () -> Void
-    let onRestart: () -> Void
 
     var body: some View {
         GameTabContentView(
             context: context,
             focusBinding: focusBinding,
-            onTogglePause: onTogglePause,
-            onSubmitGuess: onSubmitGuess,
+            onTogglePause: actions.onTogglePause,
+            onSubmitGuess: actions.onSubmitGuess,
             onShowSurrenderConfirmation: { showSurrenderConfirmation = true },
-            onRestart: onRestart
+            onRestart: actions.onRestart
         )
-        .onAppear(perform: onAppear)
-        .onDisappear(perform: onDisappear)
-        .onChange(of: context.guess, onGuessChange)
+        .onAppear(perform: actions.onAppear)
+        .onDisappear(perform: actions.onDisappear)
+        .onChange(of: context.guess, actions.onGuessChange)
         .modifier(
             GameTabPresentationModifier(
                 context: context,
@@ -49,13 +37,13 @@ struct GameTabView: View {
                 showProfileSwitchDialog: $showProfileSwitchDialog,
                 showWinAlert: showWinAlert,
                 isGameOver: isGameOver,
-                onSurrender: onSurrender,
-                onConfirmProfileSwitchSurrender: onConfirmProfileSwitchSurrender,
-                onConfirmProfileSwitchPause: onConfirmProfileSwitchPause,
-                onWinPlayAgain: onWinPlayAgain,
-                onWinAcknowledge: onWinAcknowledge,
-                onLossPlayAgain: onLossPlayAgain,
-                onLossAcknowledge: onLossAcknowledge
+                onSurrender: actions.onSurrender,
+                onConfirmProfileSwitchSurrender: actions.onConfirmProfileSwitchSurrender,
+                onConfirmProfileSwitchPause: actions.onConfirmProfileSwitchPause,
+                onWinPlayAgain: actions.onWinPlayAgain,
+                onWinAcknowledge: actions.onWinAcknowledge,
+                onLossPlayAgain: actions.onLossPlayAgain,
+                onLossAcknowledge: actions.onLossAcknowledge
             )
         )
         .tabItem {
@@ -73,4 +61,20 @@ struct GameTabContext {
     let guessesCount: Int
     let scoreValue: Int
     let lossAlertMessage: String
+}
+
+struct GameTabActions {
+    let onAppear: () -> Void
+    let onDisappear: () -> Void
+    let onGuessChange: () -> Void
+    let onTogglePause: () -> Void
+    let onSubmitGuess: () -> Void
+    let onSurrender: () -> Void
+    let onConfirmProfileSwitchSurrender: () -> Void
+    let onConfirmProfileSwitchPause: () -> Void
+    let onWinPlayAgain: () -> Void
+    let onWinAcknowledge: () -> Void
+    let onLossPlayAgain: () -> Void
+    let onLossAcknowledge: () -> Void
+    let onRestart: () -> Void
 }

@@ -147,10 +147,159 @@ struct ContentView: View {
         )
     }
 
+    private var gameTabActions: GameTabActions {
+        GameTabActions(
+            onAppear: {
+                if answer.isEmpty {
+                    resetGameSession()
+                }
+            },
+            onDisappear: hideVictoryCelebration,
+            onGuessChange: {
+                if gameInProgress == false, guess.isEmpty == false {
+                    let pendingGuess = guess
+                    GameSessionFlowCoordinator.startNewGame(
+                        settings: settings,
+                        runtime: sessionFlowRuntime,
+                        hideVictoryCelebration: hideVictoryCelebration,
+                        startTimeLimits: startTimeLimits,
+                        focusGuessField: { focusGuessField() }
+                    )
+                    guess = pendingGuess
+                }
+                gameplayStore.updateLiveGuessValidation(settings: settings)
+            },
+            onTogglePause: {
+                GameSessionFlowCoordinator.togglePause(
+                    canTogglePause: presentationRules.canTogglePause,
+                    isPaused: isPaused,
+                    runtime: sessionFlowRuntime,
+                    resumeTimeLimitsAfterPause: resumeTimeLimitsAfterPause,
+                    focusGuessField: { focusGuessField() }
+                )
+            },
+            onSubmitGuess: {
+                let result = gameplayStore.submitGuess(settings: settings, gameInProgress: gameInProgress)
+
+                if result == .invalid {
+                    focusGuessField(selectAll: true)
+                    return
+                }
+
+                gameSessionStore.recordSubmittedGuess()
+                GameTurnCoordinator.handleSubmissionResult(
+                    result,
+                    runtime: gameTurnRuntime,
+                    feedback: gameTurnFeedback,
+                    handlers: GameTurnHandlers(
+                        restartPerGuessTimeLimit: restartPerGuessTimeLimit,
+                        playVictoryCelebration: playVictoryCelebration,
+                        showWinAlert: {
+                            isWon = true
+                            showWinAlert = true
+                        },
+                        endGameWithoutResult: endGameWithoutResult
+                    ),
+                    playSound: { effect, enabled, volume in
+                        SoundPlayer.shared.play(effect, enabled: enabled, volume: volume)
+                    }
+                )
+
+                focusGuessField()
+            },
+            onSurrender: {
+                guard gameInProgress, guesses.isEmpty == false, isWon == false, isGameOver == false else { return }
+                GameTurnCoordinator.surrenderGame(
+                    runtime: gameTurnRuntime,
+                    presentation: gameTurnPresentation(guessesAreEmpty: guesses.isEmpty),
+                    feedback: gameTurnFeedback,
+                    playSound: { effect, enabled, volume in
+                        SoundPlayer.shared.play(effect, enabled: enabled, volume: volume)
+                    }
+                )
+            },
+            onConfirmProfileSwitchSurrender: {
+                GameSessionFlowCoordinator.surrenderForProfileSwitch(
+                    hasGuesses: guesses.isEmpty == false,
+                    runtime: sessionFlowRuntime,
+                    saveSurrenderedGame: {
+                        saveGameToHistory(finalState: false, score: 0, endReason: .surrender)
+                    },
+                    hideVictoryCelebration: hideVictoryCelebration
+                )
+                if let pendingProfileSwitchId {
+                    GameSessionFlowCoordinator.applyProfileSwitch(
+                        to: pendingProfileSwitchId,
+                        runtime: sessionFlowRuntime,
+                        setLastSelectedProfileId: { lastSelectedProfileId = $0 },
+                        hideVictoryCelebration: hideVictoryCelebration
+                    )
+                }
+            },
+            onConfirmProfileSwitchPause: {
+                GameSessionFlowCoordinator.pauseGameForProfileSwitch(
+                    canPause: gameInProgress && isWon == false && isGameOver == false,
+                    runtime: sessionFlowRuntime
+                )
+            },
+            onWinPlayAgain: {
+                hideVictoryCelebration()
+                showWinAlert = false
+                saveGameToHistory(finalState: true, score: scoreValue, endReason: .completed)
+                GameSessionFlowCoordinator.startNewGame(
+                    settings: settings,
+                    runtime: sessionFlowRuntime,
+                    hideVictoryCelebration: hideVictoryCelebration,
+                    startTimeLimits: startTimeLimits,
+                    focusGuessField: { focusGuessField() }
+                )
+            },
+            onWinAcknowledge: {
+                hideVictoryCelebration()
+                showWinAlert = false
+                gameplayStore.finalizeWin()
+                saveGameToHistory(finalState: true, score: scoreValue, endReason: .completed)
+            },
+            onLossPlayAgain: {
+                saveGameToHistory(finalState: false, score: 0, endReason: presentationRules.lossEndReason(timeoutEndReason: timeoutEndReason))
+                GameSessionFlowCoordinator.startNewGame(
+                    settings: settings,
+                    runtime: sessionFlowRuntime,
+                    hideVictoryCelebration: hideVictoryCelebration,
+                    startTimeLimits: startTimeLimits,
+                    focusGuessField: { focusGuessField() }
+                )
+            },
+            onLossAcknowledge: {
+                gameplayStore.finalizeLoss()
+                saveGameToHistory(finalState: false, score: 0, endReason: presentationRules.lossEndReason(timeoutEndReason: timeoutEndReason))
+            },
+            onRestart: {
+                GameSessionFlowCoordinator.startNewGame(
+                    settings: settings,
+                    runtime: sessionFlowRuntime,
+                    hideVictoryCelebration: hideVictoryCelebration,
+                    startTimeLimits: startTimeLimits,
+                    focusGuessField: { focusGuessField() }
+                )
+            }
+        )
+    }
+
     private var gameTurnRuntime: GameTurnRuntime {
         GameTurnRuntime(
             gameplayStore: gameplayStore,
             gameSessionStore: gameSessionStore,
+            timerController: timerController
+        )
+    }
+
+    private var sessionFlowRuntime: GameSessionFlowRuntime {
+        GameSessionFlowRuntime(
+            gameplayStore: gameplayStore,
+            gameSessionStore: gameSessionStore,
+            historyStore: historyStore,
+            profileStore: profileStore,
             timerController: timerController
         )
     }
@@ -182,20 +331,21 @@ struct ContentView: View {
         Binding(
             get: { profileStore.selectedProfileId },
             set: { newValue in
-                switch presentationRules.decisionForProfileSelection(
+                GameProfileSelectionCoordinator.handleSelection(
                     newValue,
-                    newProfileSelectionId: ProfileStore.newProfileSelectionId
-                ) {
-                case .showNewProfileSheet:
-                    showNewProfileSheet = true
-                    profileStore.selectProfile(id: lastSelectedProfileId)
-                case let .confirmInProgressSwitch(profileId):
-                    pendingProfileSwitchId = profileId
-                    showProfileSwitchDialog = true
-                    profileStore.selectProfile(id: lastSelectedProfileId)
-                case let .switchDirectly(profileId):
-                    applyProfileSwitch(to: profileId)
-                }
+                    decision: presentationRules.decisionForProfileSelection(
+                        newValue,
+                        newProfileSelectionId: ProfileStore.newProfileSelectionId
+                    ),
+                    profileStore: profileStore,
+                    lastSelectedProfileId: lastSelectedProfileId,
+                    sessionFlowRuntime: sessionFlowRuntime,
+                    setShowNewProfileSheet: { showNewProfileSheet = $0 },
+                    setPendingProfileSwitchId: { pendingProfileSwitchId = $0 },
+                    setShowProfileSwitchDialog: { showProfileSwitchDialog = $0 },
+                    setLastSelectedProfileId: { lastSelectedProfileId = $0 },
+                    hideVictoryCelebration: hideVictoryCelebration
+                )
             }
         )
     }
@@ -224,66 +374,17 @@ struct ContentView: View {
     private var gameModeMessage: String { presentationRules.gameModeMessage }
 
     // MARK: - Lifecycle
-    
-    private func startNewGame() {
-        GameCoordinator.startNewGame(
-            settings: settings,
-            gameplayStore: gameplayStore,
-            gameSessionStore: gameSessionStore,
-            timerController: timerController,
-            hideVictoryCelebration: hideVictoryCelebration
-        )
-        guard gameplayStore.answer.isEmpty == false else { return }
-        startTimeLimits()
-        focusGuessField()
-    }
-
-    private func submitGuess() {
-        let result = gameplayStore.submitGuess(settings: settings, gameInProgress: gameInProgress)
-
-        if result == .invalid {
-            focusGuessField(selectAll: true)
-            return
-        }
-
-        gameSessionStore.recordSubmittedGuess()
-        GameTurnCoordinator.handleSubmissionResult(
-            result,
-            runtime: gameTurnRuntime,
-            feedback: gameTurnFeedback,
-            handlers: GameTurnHandlers(
-                restartPerGuessTimeLimit: restartPerGuessTimeLimit,
-                playVictoryCelebration: playVictoryCelebration,
-                showWinAlert: {
-                    isWon = true
-                    showWinAlert = true
-                },
-                endGameWithoutResult: endGameWithoutResult
-            ),
-            playSound: { effect, enabled, volume in
-                SoundPlayer.shared.play(effect, enabled: enabled, volume: volume)
-            }
-        )
-
-        focusGuessField()
-    }
-
-    private func updateLiveGuessValidation() {
-        gameplayStore.updateLiveGuessValidation(settings: settings)
-    }
 
     private func saveGameToHistory(finalState: Bool, score: Int, endReason: HistoryItem.EndReason = .completed) {
-        guard let item = gameSessionStore.makeHistoryItem(
+        GameSessionFlowCoordinator.saveGameToHistory(
+            runtime: sessionFlowRuntime,
             finalState: finalState,
             answer: answer,
             guesses: guesses,
             score: score,
-            currentSettings: settings,
+            settings: settings,
             endReason: endReason
-        ) else {
-            return
-        }
-        historyStore.add(item)
+        )
     }
 
     // MARK: - Timers
@@ -325,102 +426,50 @@ struct ContentView: View {
         )
     }
 
-    private func togglePause() {
-        guard presentationRules.canTogglePause else { return }
-        if isPaused {
-            gameSessionStore.resume()
-            resumeTimeLimitsAfterPause()
-            focusGuessField()
-        } else {
-            timerController.stopAll()
-            gameSessionStore.pause()
-        }
-    }
-
     private func pauseForWindowClose() {
-        guard presentationRules.canPauseForWindowClose else { return }
-        timerController.stopAll()
-        gameSessionStore.pause(dueToWindowClose: true)
+        GameSessionFlowCoordinator.pauseForWindowClose(
+            canPauseForWindowClose: presentationRules.canPauseForWindowClose,
+            runtime: sessionFlowRuntime
+        )
     }
 
     private func resumeAfterWindowCloseIfNeeded() {
-        guard gameSessionStore.resumeAfterWindowCloseIfNeeded() else { return }
-        if isAnyTimerActive {
-            resumeTimeLimitsAfterPause()
-        }
-        focusGuessField()
-    }
-
-    private func surrenderGame() {
-        guard gameInProgress, guesses.isEmpty == false, isWon == false, isGameOver == false else { return }
-        GameTurnCoordinator.surrenderGame(
-            runtime: gameTurnRuntime,
-            presentation: gameTurnPresentation(guessesAreEmpty: guesses.isEmpty),
-            feedback: gameTurnFeedback,
-            playSound: { effect, enabled, volume in
-                SoundPlayer.shared.play(effect, enabled: enabled, volume: volume)
-            }
+        GameSessionFlowCoordinator.resumeAfterWindowCloseIfNeeded(
+            runtime: sessionFlowRuntime,
+            isAnyTimerActive: isAnyTimerActive,
+            resumeTimeLimitsAfterPause: resumeTimeLimitsAfterPause,
+            focusGuessField: { focusGuessField() }
         )
     }
 
     private func endGameWithoutResult() {
-        timerController.stopAll()
-        gameSessionStore.resetSession()
-        gameplayStore.reset()
-    }
-
-    private func applyProfileSwitch(to profileId: String) {
-        profileStore.selectProfile(id: profileId)
-        lastSelectedProfileId = profileId
-        resetGameSession()
+        GameSessionFlowCoordinator.endGameWithoutResult(runtime: sessionFlowRuntime)
     }
 
     private func resetGameSession() {
-        GameCoordinator.resetGameSession(
-            gameplayStore: gameplayStore,
-            gameSessionStore: gameSessionStore,
-            timerController: timerController,
+        GameSessionFlowCoordinator.resetGameSession(
+            runtime: sessionFlowRuntime,
             hideVictoryCelebration: hideVictoryCelebration
         )
     }
 
-    private func surrenderForProfileSwitch() {
-        GameCoordinator.surrenderForProfileSwitch(
-            hasGuesses: guesses.isEmpty == false,
-            gameSessionStore: gameSessionStore,
-            timerController: timerController,
-            saveSurrenderedGame: {
-                saveGameToHistory(finalState: false, score: 0, endReason: .surrender)
-            },
-            resetGameSession: resetGameSession
-        )
-    }
-
-    private func pauseGameForProfileSwitch() {
-        GameCoordinator.pauseGameForProfileSwitch(
-            canPause: gameInProgress && isWon == false && isGameOver == false,
-            gameSessionStore: gameSessionStore,
-            timerController: timerController
-        )
-    }
-
     private func focusGuessField(selectAll: Bool = false) {
-        DispatchQueue.main.async {
-            isGuessFieldFocused = true
-            if selectAll { NSApp.sendAction(#selector(NSText.selectAll(_:)), to: nil, from: nil) }
-        }
+        ContentViewPresentationCoordinator.focusGuessField(
+            setFocused: { isGuessFieldFocused = true },
+            selectAll: selectAll
+        )
     }
 
     private func playVictoryCelebration() {
         showWinAlert = false
-        VictoryCelebrationWindowController.shared.present(from: NSApp.keyWindow ?? NSApp.mainWindow) { [self] in
+        ContentViewPresentationCoordinator.playVictoryCelebration {
             isWon = true
             showWinAlert = true
         }
     }
 
     private func hideVictoryCelebration() {
-        VictoryCelebrationWindowController.shared.dismiss()
+        ContentViewPresentationCoordinator.hideVictoryCelebration()
     }
 
     // MARK: - UI
@@ -446,9 +495,7 @@ struct ContentView: View {
                 onPause: {
                     pauseForWindowClose()
                 },
-                onGiveUp: {
-                    surrenderGame()
-                },
+                onGiveUp: gameTabActions.onSurrender,
                 onResume: {
                     resumeAfterWindowCloseIfNeeded()
                 }
@@ -461,13 +508,18 @@ struct ContentView: View {
             NewProfileSheet(
                 name: $newProfileName,
                 onCreate: { name in
-                    profileStore.createProfile(named: name)
-                    newProfileName = ""
-                    showNewProfileSheet = false
+                    GameProfileSelectionCoordinator.createProfile(
+                        named: name,
+                        profileStore: profileStore,
+                        clearName: { newProfileName = "" },
+                        dismissSheet: { showNewProfileSheet = false }
+                    )
                 },
                 onCancel: {
-                    newProfileName = ""
-                    showNewProfileSheet = false
+                    GameProfileSelectionCoordinator.cancelProfileCreation(
+                        clearName: { newProfileName = "" },
+                        dismissSheet: { showNewProfileSheet = false }
+                    )
                 }
             )
         }
@@ -476,57 +528,13 @@ struct ContentView: View {
     private var gameTab: some View {
         GameTabView(
             context: gameTabContext,
+            actions: gameTabActions,
             showSurrenderConfirmation: $showSurrenderConfirmation,
             pendingProfileSwitchId: $pendingProfileSwitchId,
             showProfileSwitchDialog: $showProfileSwitchDialog,
             showWinAlert: showWinAlertBinding,
             isGameOver: isGameOverBinding,
-            focusBinding: $isGuessFieldFocused,
-            onAppear: {
-                if answer.isEmpty {
-                    resetGameSession()
-                }
-            },
-            onDisappear: hideVictoryCelebration,
-            onGuessChange: {
-                if gameInProgress == false, guess.isEmpty == false {
-                    let pendingGuess = guess
-                    startNewGame()
-                    guess = pendingGuess
-                }
-                updateLiveGuessValidation()
-            },
-            onTogglePause: togglePause,
-            onSubmitGuess: submitGuess,
-            onSurrender: surrenderGame,
-            onConfirmProfileSwitchSurrender: {
-                surrenderForProfileSwitch()
-                if let pendingProfileSwitchId {
-                    applyProfileSwitch(to: pendingProfileSwitchId)
-                }
-            },
-            onConfirmProfileSwitchPause: pauseGameForProfileSwitch,
-            onWinPlayAgain: {
-                hideVictoryCelebration()
-                showWinAlert = false
-                saveGameToHistory(finalState: true, score: scoreValue, endReason: .completed)
-                startNewGame()
-            },
-            onWinAcknowledge: {
-                hideVictoryCelebration()
-                showWinAlert = false
-                gameplayStore.finalizeWin()
-                saveGameToHistory(finalState: true, score: scoreValue, endReason: .completed)
-            },
-            onLossPlayAgain: {
-                saveGameToHistory(finalState: false, score: 0, endReason: presentationRules.lossEndReason(timeoutEndReason: timeoutEndReason))
-                startNewGame()
-            },
-            onLossAcknowledge: {
-                gameplayStore.finalizeLoss()
-                saveGameToHistory(finalState: false, score: 0, endReason: presentationRules.lossEndReason(timeoutEndReason: timeoutEndReason))
-            },
-            onRestart: startNewGame
+            focusBinding: $isGuessFieldFocused
         )
     }
 
