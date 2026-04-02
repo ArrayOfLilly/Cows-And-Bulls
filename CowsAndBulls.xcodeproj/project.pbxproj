@@ -7,6 +7,20 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AB3015BD2F7EA47600468B1C /* AppBackupController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB3015862F7EA47600468B1C /* AppBackupController.swift */; };
+		AB3015BE2F7EA47600468B1C /* AppBackupPanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB3015872F7EA47600468B1C /* AppBackupPanelController.swift */; };
+		AB3015BF2F7EA47600468B1C /* GameCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB3015882F7EA47600468B1C /* GameCoordinator.swift */; };
+		AB3015C02F7EA47600468B1C /* GameLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB3015892F7EA47600468B1C /* GameLogic.swift */; };
+		AB3015C12F7EA47600468B1C /* GameTimerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB30158A2F7EA47600468B1C /* GameTimerController.swift */; };
+		AB3015C22F7EA47600468B1C /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB30158B2F7EA47600468B1C /* Localization.swift */; };
+		AB3015C32F7EA47600468B1C /* SoundPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB30158C2F7EA47600468B1C /* SoundPlayer.swift */; };
+		AB3015C42F7EA47600468B1C /* StatisticsLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB30158D2F7EA47600468B1C /* StatisticsLogic.swift */; };
+		AB3015C82F7EA47600468B1C /* GamePresentationRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB3015922F7EA47600468B1C /* GamePresentationRules.swift */; };
+		AB3015CB2F7EA47600468B1C /* ProfileSettingsRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB3015952F7EA47600468B1C /* ProfileSettingsRules.swift */; };
+		AB3016022F7EA8CA00468B1C /* GameTimeLimitCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB3015FF2F7EA8CA00468B1C /* GameTimeLimitCoordinator.swift */; };
+		AB30160A2F7EAAC800468B1C /* GameTurnCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB3016092F7EAAC800468B1C /* GameTurnCoordinator.swift */; };
+		AB3016112F7EADE900468B1C /* GameSessionFlowCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB3016102F7EADE900468B1C /* GameSessionFlowCoordinator.swift */; };
+		AB3016142F7EAF3E00468B1C /* GameProfileSelectionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB3016122F7EAF3E00468B1C /* GameProfileSelectionCoordinator.swift */; };
 		ABEB1BDE2F545974006D62C3 /* INSTALL.en.md in Resources */ = {isa = PBXBuildFile; fileRef = ABEB1BDD2F545974006D62C3 /* INSTALL.en.md */; };
 		ABEB1BE02F545974006D62C3 /* INSTALL.hu.md in Resources */ = {isa = PBXBuildFile; fileRef = ABEB1BDF2F545974006D62C3 /* INSTALL.hu.md */; };
 /* End PBXBuildFile section */
@@ -29,8 +43,22 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		AB3015862F7EA47600468B1C /* AppBackupController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppBackupController.swift; sourceTree = "<group>"; };
+		AB3015872F7EA47600468B1C /* AppBackupPanelController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppBackupPanelController.swift; sourceTree = "<group>"; };
+		AB3015882F7EA47600468B1C /* GameCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameCoordinator.swift; sourceTree = "<group>"; };
+		AB3015892F7EA47600468B1C /* GameLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameLogic.swift; sourceTree = "<group>"; };
+		AB30158A2F7EA47600468B1C /* GameTimerController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameTimerController.swift; sourceTree = "<group>"; };
+		AB30158B2F7EA47600468B1C /* Localization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Localization.swift; sourceTree = "<group>"; };
+		AB30158C2F7EA47600468B1C /* SoundPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundPlayer.swift; sourceTree = "<group>"; };
+		AB30158D2F7EA47600468B1C /* StatisticsLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatisticsLogic.swift; sourceTree = "<group>"; };
+		AB3015922F7EA47600468B1C /* GamePresentationRules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GamePresentationRules.swift; sourceTree = "<group>"; };
+		AB3015952F7EA47600468B1C /* ProfileSettingsRules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSettingsRules.swift; sourceTree = "<group>"; };
+		AB3015FF2F7EA8CA00468B1C /* GameTimeLimitCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameTimeLimitCoordinator.swift; sourceTree = "<group>"; };
+		AB3016092F7EAAC800468B1C /* GameTurnCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameTurnCoordinator.swift; sourceTree = "<group>"; };
 		AB30160E2F7EACD100468B1C /* PRIVACY.en.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PRIVACY.en.md; sourceTree = "<group>"; };
 		AB30160F2F7EACD100468B1C /* PRIVACY.hu.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PRIVACY.hu.md; sourceTree = "<group>"; };
+		AB3016102F7EADE900468B1C /* GameSessionFlowCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameSessionFlowCoordinator.swift; sourceTree = "<group>"; };
+		AB3016122F7EAF3E00468B1C /* GameProfileSelectionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameProfileSelectionCoordinator.swift; sourceTree = "<group>"; };
 		ABB6BB062F5460B500242EFC /* CowsAndBullsTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CowsAndBullsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		ABE228A12F6059CC00EFEA43 /* CowsAndBullsUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CowsAndBullsUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		ABE95FCA2F4E246300BAF3CA /* Cows & Bulls.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Cows & Bulls.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -94,6 +122,90 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		AB3016292F7EB59900468B1C /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				AB30162B2F7EB59E00468B1C /* App */,
+				AB30162C2F7EB59E00468B1C /* Backup */,
+				AB30162D2F7EB59E00468B1C /* Game */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		AB30162A2F7EB59900468B1C /* Domain */ = {
+			isa = PBXGroup;
+			children = (
+				AB30162E2F7EB59E00468B1C /* Game */,
+				AB30162F2F7EB59E00468B1C /* Profile */,
+				AB3016302F7EB59E00468B1C /* Statistics */,
+				AB3016312F7EB5BB00468B1C /* App */,
+			);
+			path = Domain;
+			sourceTree = "<group>";
+		};
+		AB30162B2F7EB59E00468B1C /* App */ = {
+			isa = PBXGroup;
+			children = (
+				AB30158C2F7EA47600468B1C /* SoundPlayer.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		AB30162C2F7EB59E00468B1C /* Backup */ = {
+			isa = PBXGroup;
+			children = (
+				AB3015862F7EA47600468B1C /* AppBackupController.swift */,
+				AB3015872F7EA47600468B1C /* AppBackupPanelController.swift */,
+			);
+			path = Backup;
+			sourceTree = "<group>";
+		};
+		AB30162D2F7EB59E00468B1C /* Game */ = {
+			isa = PBXGroup;
+			children = (
+				AB3015882F7EA47600468B1C /* GameCoordinator.swift */,
+				AB3016122F7EAF3E00468B1C /* GameProfileSelectionCoordinator.swift */,
+				AB3016102F7EADE900468B1C /* GameSessionFlowCoordinator.swift */,
+				AB30158A2F7EA47600468B1C /* GameTimerController.swift */,
+				AB3015FF2F7EA8CA00468B1C /* GameTimeLimitCoordinator.swift */,
+				AB3016092F7EAAC800468B1C /* GameTurnCoordinator.swift */,
+			);
+			path = Game;
+			sourceTree = "<group>";
+		};
+		AB30162E2F7EB59E00468B1C /* Game */ = {
+			isa = PBXGroup;
+			children = (
+				AB3015892F7EA47600468B1C /* GameLogic.swift */,
+				AB3015922F7EA47600468B1C /* GamePresentationRules.swift */,
+			);
+			path = Game;
+			sourceTree = "<group>";
+		};
+		AB30162F2F7EB59E00468B1C /* Profile */ = {
+			isa = PBXGroup;
+			children = (
+				AB3015952F7EA47600468B1C /* ProfileSettingsRules.swift */,
+			);
+			path = Profile;
+			sourceTree = "<group>";
+		};
+		AB3016302F7EB59E00468B1C /* Statistics */ = {
+			isa = PBXGroup;
+			children = (
+				AB30158D2F7EA47600468B1C /* StatisticsLogic.swift */,
+			);
+			path = Statistics;
+			sourceTree = "<group>";
+		};
+		AB3016312F7EB5BB00468B1C /* App */ = {
+			isa = PBXGroup;
+			children = (
+				AB30158B2F7EA47600468B1C /* Localization.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
 		ABE95FC12F4E246300BAF3CA = {
 			isa = PBXGroup;
 			children = (
@@ -105,6 +217,8 @@
 				ABEB1BDF2F545974006D62C3 /* INSTALL.hu.md */,
 				AB30160E2F7EACD100468B1C /* PRIVACY.en.md */,
 				AB30160F2F7EACD100468B1C /* PRIVACY.hu.md */,
+				AB3016292F7EB59900468B1C /* Services */,
+				AB30162A2F7EB59900468B1C /* Domain */,
 			);
 			sourceTree = "<group>";
 		};
@@ -279,6 +393,20 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AB3015BD2F7EA47600468B1C /* AppBackupController.swift in Sources */,
+				AB3015BE2F7EA47600468B1C /* AppBackupPanelController.swift in Sources */,
+				AB3015BF2F7EA47600468B1C /* GameCoordinator.swift in Sources */,
+				AB3015C02F7EA47600468B1C /* GameLogic.swift in Sources */,
+				AB3015C12F7EA47600468B1C /* GameTimerController.swift in Sources */,
+				AB3015C22F7EA47600468B1C /* Localization.swift in Sources */,
+				AB3015C32F7EA47600468B1C /* SoundPlayer.swift in Sources */,
+				AB3015C42F7EA47600468B1C /* StatisticsLogic.swift in Sources */,
+				AB3015C82F7EA47600468B1C /* GamePresentationRules.swift in Sources */,
+				AB3015CB2F7EA47600468B1C /* ProfileSettingsRules.swift in Sources */,
+				AB30160A2F7EAAC800468B1C /* GameTurnCoordinator.swift in Sources */,
+				AB3016142F7EAF3E00468B1C /* GameProfileSelectionCoordinator.swift in Sources */,
+				AB3016112F7EADE900468B1C /* GameSessionFlowCoordinator.swift in Sources */,
+				AB3016022F7EA8CA00468B1C /* GameTimeLimitCoordinator.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
