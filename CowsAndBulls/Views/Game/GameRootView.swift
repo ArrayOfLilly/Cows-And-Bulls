@@ -32,10 +32,19 @@ struct GameRootView: View {
         self.soundEffectPlayer = soundEffectPlayer
     }
 
-    private var settings: ProfileSettings { settingsStore.settings }
-    private var gameInProgress: Bool { gameSessionStore.gameInProgress }
-    private var answer: String { gameplayStore.answer }
-    private var guesses: [String] { gameplayStore.guesses }
+    private var snapshot: GameRootSnapshot {
+        GameRootSnapshot(
+            settings: settingsStore.settings,
+            gameplayStore: gameplayStore,
+            gameSessionStore: gameSessionStore,
+            historyItems: historyStore.items
+        )
+    }
+
+    private var settings: ProfileSettings { snapshot.settings }
+    private var gameInProgress: Bool { snapshot.gameInProgress }
+    private var answer: String { snapshot.answer }
+    private var guesses: [String] { snapshot.guesses }
     private var guess: String {
         get { gameplayStore.guess }
         nonmutating set { gameplayStore.guess = newValue }
@@ -48,37 +57,14 @@ struct GameRootView: View {
         get { gameplayStore.isGameOver }
         nonmutating set { gameplayStore.isGameOver = newValue }
     }
-    private var isDisabledSubmitButton: Bool { gameplayStore.isDisabledSubmitButton }
-    private var guessInputErrorMessage: String { gameplayStore.guessInputErrorMessage }
-    private var gameOverMessage: String { gameplayStore.gameOverMessage }
-    private var perGuessRemainingSeconds: Int { gameSessionStore.perGuessRemainingSeconds }
-    private var gameRemainingSeconds: Int { gameSessionStore.gameRemainingSeconds }
-    private var guessDurations: [Int] { gameSessionStore.guessDurations }
-    private var timeoutEndReason: HistoryItem.EndReason? { gameSessionStore.timeoutEndReason }
-    private var isPaused: Bool { gameSessionStore.isPaused }
-    private var maximumGuesses: Int { settings.maximumGuesses }
-    private var showGuessCount: Bool { settings.showGuessCount }
-    private var enableCelebration: Bool { settings.enableCelebration }
-    private var enableSoundEffects: Bool { settings.enableSoundEffects }
-    private var soundEffectsVolume: Double { settings.soundEffectsVolume }
+    private var timeoutEndReason: HistoryItem.EndReason? { snapshot.timeoutEndReason }
+    private var isPaused: Bool { snapshot.isPaused }
     private var perGuessTimeLimitSeconds: Int { settings.perGuessTimeLimitSeconds }
     private var selectedBullAssetName: String { settings.selectedBullAssetName }
     private var selectedCowAssetName: String { settings.selectedCowAssetName }
 
-    private var stats: StatisticsLogic {
-        StatisticsLogic(items: historyStore.items)
-    }
-
     private var presentationRules: GamePresentationRules {
-        GamePresentationRules(
-            settings: settings,
-            startedSettingsSnapshot: gameSessionStore.startedSettingsSnapshot,
-            guessesCount: guesses.count,
-            gameInProgress: gameInProgress,
-            hasGuesses: guesses.isEmpty == false,
-            isWon: isWon,
-            isGameOver: isGameOver
-        )
+        snapshot.presentationRules(startedSettingsSnapshot: gameSessionStore.startedSettingsSnapshot)
     }
 
     private var scoreValue: Int { presentationRules.scoreValue }
@@ -87,65 +73,37 @@ struct GameRootView: View {
     private var isAnyTimerActive: Bool { presentationRules.isAnyTimerActive }
     private var canChangeProfile: Bool { presentationRules.canChangeProfile }
 
-    private var gameHeaderContext: GameHeaderContext {
-        GameHeaderContext(
-            profiles: profileStore.profiles,
-            profileSelection: profileSelection,
-            canChangeProfile: canChangeProfile,
-            profilePickerHelpText: presentationRules.profilePickerHelpText,
-            gameModeMessage: gameModeMessage,
-            averageSteps: stats.averageSteps,
-            bestWinStreak: stats.bestWinStreak,
-            selectedBullAssetName: selectedBullAssetName,
-            selectedCowAssetName: selectedCowAssetName,
-            isAnyTimerActive: isAnyTimerActive,
-            isPerGuessLimitActive: isPerGuessLimitActive,
-            isGameLimitActive: isGameLimitActive,
-            perGuessRemainingSeconds: perGuessRemainingSeconds,
-            gameRemainingSeconds: gameRemainingSeconds,
-            isPaused: isPaused
-        )
-    }
-
     private var gameInputContext: GameInputContext {
         GameInputContext(
             guessBinding: guessBinding,
             isPaused: isPaused,
-            isDisabledSubmitButton: isDisabledSubmitButton,
-            guessInputErrorMessage: guessInputErrorMessage
-        )
-    }
-
-    private var guessesListContext: GuessesListContext {
-        GuessesListContext(
-            guesses: guesses,
-            guessDurations: guessDurations,
-            answer: answer,
-            selectedBullAssetName: selectedBullAssetName,
-            selectedCowAssetName: selectedCowAssetName
-        )
-    }
-
-    private var gameFooterContext: GameFooterContext {
-        GameFooterContext(
-            showGuessCount: showGuessCount,
-            guessesCount: guesses.count,
-            maximumGuesses: maximumGuesses,
-            canSurrender: presentationRules.canSurrender
+            isDisabledSubmitButton: snapshot.isDisabledSubmitButton,
+            guessInputErrorMessage: snapshot.guessInputErrorMessage
         )
     }
 
     private var gameTabContext: GameTabContext {
-        GameTabContext(
-            header: gameHeaderContext,
-            input: gameInputContext,
-            guessesList: guessesListContext,
-            footer: gameFooterContext,
-            guess: guess,
-            guessesCount: guesses.count,
-            scoreValue: scoreValue,
-            lossAlertMessage: presentationRules.lossAlertMessage(answer: answer, gameOverMessage: gameOverMessage)
+        var context = snapshot.makeGameTabContext(
+            profiles: profileStore.profiles,
+            profileSelection: profileSelection,
+            startedSettingsSnapshot: gameSessionStore.startedSettingsSnapshot
         )
+        context = GameTabContext(
+            header: context.header,
+            input: GameInputContext(
+                guessBinding: guessBinding,
+                isPaused: context.input.isPaused,
+                isDisabledSubmitButton: context.input.isDisabledSubmitButton,
+                guessInputErrorMessage: context.input.guessInputErrorMessage
+            ),
+            guessesList: context.guessesList,
+            footer: context.footer,
+            guess: guess,
+            guessesCount: context.guessesCount,
+            scoreValue: context.scoreValue,
+            lossAlertMessage: context.lossAlertMessage
+        )
+        return context
     }
 
     private var gameTabActions: GameTabActions {
@@ -289,11 +247,7 @@ struct GameRootView: View {
     }
 
     private var gameTurnFeedback: GameTurnFeedback {
-        GameTurnFeedback(
-            enableCelebration: enableCelebration,
-            soundEffectsEnabled: enableSoundEffects,
-            soundEffectsVolume: soundEffectsVolume
-        )
+        snapshot.gameTurnFeedback
     }
 
     private var sessionFlowCallbacks: GameSessionFlowCallbacks {
