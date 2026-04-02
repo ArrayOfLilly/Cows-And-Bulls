@@ -94,15 +94,6 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		AB30160D2F7EACB400468B1C /* Documentation */ = {
-			isa = PBXGroup;
-			children = (
-				AB30160E2F7EACD100468B1C /* PRIVACY.en.md */,
-				AB30160F2F7EACD100468B1C /* PRIVACY.hu.md */,
-			);
-			path = Documentation;
-			sourceTree = "<group>";
-		};
 		ABE95FC12F4E246300BAF3CA = {
 			isa = PBXGroup;
 			children = (
@@ -112,7 +103,8 @@
 				ABE95FCB2F4E246300BAF3CA /* Products */,
 				ABEB1BDD2F545974006D62C3 /* INSTALL.en.md */,
 				ABEB1BDF2F545974006D62C3 /* INSTALL.hu.md */,
-				AB30160D2F7EACB400468B1C /* Documentation */,
+				AB30160E2F7EACD100468B1C /* PRIVACY.en.md */,
+				AB30160F2F7EACD100468B1C /* PRIVACY.hu.md */,
 			);
 			sourceTree = "<group>";
 		};
