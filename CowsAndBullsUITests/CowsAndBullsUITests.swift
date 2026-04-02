@@ -164,6 +164,41 @@ final class CowsAndBullsUITests: XCTestCase {
         XCTAssertTrue(soundToggle.isEnabled)
     }
 
+    func testFirstTypingStartsGameInsteadOfLaunch() throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["UITEST_FORCE_LANGUAGE"] = "en"
+        app.launchEnvironment["UITEST_SETTINGS_TAB_SHORTCUTS"] = "1"
+        app.launch()
+
+        openSettings(app: app)
+
+        let settingsRoot = app.descendants(matching: .any).matching(identifier: "settingsRoot").firstMatch
+        XCTAssertTrue(settingsRoot.waitForExistence(timeout: 2))
+
+        let gameTab = app.buttons["settingsOpenGameTab"]
+        XCTAssertTrue(gameTab.waitForExistence(timeout: 2))
+        gameTab.click()
+
+        let celebrationToggle = app.descendants(matching: .any).matching(identifier: "settingsEnableCelebrationToggle").firstMatch
+        XCTAssertTrue(celebrationToggle.waitForExistence(timeout: 2))
+        XCTAssertTrue(celebrationToggle.isEnabled)
+
+        closeFrontWindow(app: app)
+
+        let guessField = app.descendants(matching: .any).matching(identifier: "guessInputField").firstMatch
+        XCTAssertTrue(guessField.waitForExistence(timeout: 2))
+        guessField.click()
+        app.typeText("1")
+
+        openSettings(app: app)
+        XCTAssertTrue(celebrationToggle.waitForExistence(timeout: 2))
+
+        let disabledPredicate = NSPredicate(format: "enabled == false")
+        expectation(for: disabledPredicate, evaluatedWith: celebrationToggle)
+        waitForExpectations(timeout: 2)
+        XCTAssertFalse(celebrationToggle.isEnabled)
+    }
+
     func testSettingsProfilesControlsLockDuringActiveGame() throws {
         let app = XCUIApplication()
         app.launchEnvironment["UITEST_FORCE_LANGUAGE"] = "en"
@@ -216,6 +251,39 @@ final class CowsAndBullsUITests: XCTestCase {
         let laterButton = restartDialog.buttons["Later"]
         XCTAssertTrue(laterButton.waitForExistence(timeout: 2))
         laterButton.click()
+    }
+
+    func testSettingsLanguageChangeDoesNotRestartWhenChoosingLater() throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["UITEST_FORCE_LANGUAGE"] = "system"
+        app.launchEnvironment["UITEST_SETTINGS_TAB_SHORTCUTS"] = "1"
+        app.launchEnvironment["UITEST_SETTINGS_INITIAL_TAB"] = "language"
+        app.launch()
+
+        openSettings(app: app)
+
+        let settingsRoot = app.descendants(matching: .any).matching(identifier: "settingsRoot").firstMatch
+        XCTAssertTrue(settingsRoot.waitForExistence(timeout: 2))
+
+        let englishButton = app.descendants(matching: .any).matching(identifier: "settingsSelectEnglishLanguageForTest").firstMatch
+        XCTAssertTrue(englishButton.waitForExistence(timeout: 2))
+        englishButton.click()
+
+        let restartDialog = app.sheets.firstMatch
+        XCTAssertTrue(restartDialog.waitForExistence(timeout: 2))
+
+        let laterButton = restartDialog.buttons["Later"]
+        XCTAssertTrue(laterButton.waitForExistence(timeout: 2))
+        laterButton.click()
+
+        let selectedTabState = app.descendants(matching: .any).matching(identifier: "settingsSelectedTabState").firstMatch
+        XCTAssertTrue(selectedTabState.waitForExistence(timeout: 2))
+        XCTAssertEqual(selectedTabState.value as? String, "language")
+
+        let gameTab = app.buttons["settingsOpenGameTab"]
+        XCTAssertTrue(gameTab.waitForExistence(timeout: 2))
+        gameTab.click()
+        XCTAssertEqual(selectedTabState.value as? String, "game")
     }
 
     func testSettingsThemeSelectionUpdatesSelectedRow() throws {
@@ -332,5 +400,9 @@ final class CowsAndBullsUITests: XCTestCase {
 
     private func openSettings(app: XCUIApplication) {
         app.typeKey(",", modifierFlags: .command)
+    }
+
+    private func closeFrontWindow(app: XCUIApplication) {
+        app.typeKey("w", modifierFlags: .command)
     }
 }

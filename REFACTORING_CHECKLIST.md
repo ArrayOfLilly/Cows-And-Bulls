@@ -45,6 +45,8 @@
   - [x] `testSettingsThemeSelectionUpdatesSelectedRow()`
   - [x] `testSettingsProfileReorderButtonsReflectBoundaryState()`
   - [x] `testSettingsProfileReorderInteractionUpdatesOrder()`
+  - [x] `testFirstTypingStartsGameInsteadOfLaunch()`
+  - [x] `testSettingsLanguageChangeDoesNotRestartWhenChoosingLater()`
 - [x] célzott unit teszt a view-ból kiemelt game-screen szabályokra
   - [x] `GamePresentationRulesTests/scoreUsesLowerOfStartedAndCurrentTimerConfigurations()`
   - [x] `GamePresentationRulesTests/timerFlagsAndSurrenderAvailability()`
@@ -56,10 +58,10 @@
 
 ## Important Guardrails
 
-- [ ] Ne kerüljön vissza az auto-restart settings változásra.
-- [ ] A gameplay beállítások maradjanak lockolva futó játék alatt.
-- [ ] A profilműveletek maradjanak tiltva futó játék alatt.
-- [ ] Az első gépelés indítsa a játékot, ne a launch vagy profilváltás.
+- [x] Ne kerüljön vissza az auto-restart settings változásra.
+- [x] A gameplay beállítások maradjanak lockolva futó játék alatt.
+- [x] A profilműveletek maradjanak tiltva futó játék alatt.
+- [x] Az első gépelés indítsa a játékot, ne a launch vagy profilváltás.
 - [ ] Ne kerüljön üzleti logika vissza nagy SwiftUI `body` blokkokba.
 
 ## Nice To Have
@@ -69,6 +71,8 @@
   - [x] gameplay settings lock active game alatt
   - [x] profile create lock active game alatt
   - [x] language change restart prompt
+  - [x] no auto-restart when choosing restart later
+  - [x] first typing starts the game
   - [x] theme selection semantic state update
   - [x] profile reorder boundary-state teszt
   - [x] profile reorder interaction teszt
