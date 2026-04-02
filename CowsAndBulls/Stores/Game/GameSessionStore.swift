@@ -2,7 +2,7 @@
 //  GameSessionStore.swift
 //  CowsAndBulls
 //
-//  Created by Codex on 2026. 03. 11..
+//  Created by Ildikó Kasza.
 //
 
 import Foundation

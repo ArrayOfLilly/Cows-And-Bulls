@@ -2,7 +2,7 @@
 //  GameRootView.swift
 //  CowsAndBulls
 //
-//  Created by OpenAI Codex.
+//  Created by Ildikó Kasza.
 //
 
 import SwiftUI
@@ -42,6 +42,16 @@ struct GameRootView: View {
     }
 
     private var settings: ProfileSettings { snapshot.settings }
+    private var dependencies: GameDependencies {
+        GameDependencies(
+            gameplayStore: gameplayStore,
+            gameSessionStore: gameSessionStore,
+            historyStore: historyStore,
+            profileStore: profileStore,
+            timerController: timerController,
+            soundEffectPlayer: soundEffectPlayer
+        )
+    }
     private var gameInProgress: Bool { snapshot.gameInProgress }
     private var answer: String { snapshot.answer }
     private var guesses: [String] { snapshot.guesses }
@@ -119,7 +129,7 @@ struct GameRootView: View {
                     let pendingGuess = guess
                     GameSessionFlowCoordinator.startNewGame(
                         settings: settings,
-                        runtime: sessionFlowRuntime,
+                        runtime: dependencies.sessionFlowRuntime,
                         callbacks: sessionFlowCallbacks
                     )
                     guess = pendingGuess
@@ -130,7 +140,7 @@ struct GameRootView: View {
                 GameSessionFlowCoordinator.togglePause(
                     canTogglePause: presentationRules.canTogglePause,
                     isPaused: isPaused,
-                    runtime: sessionFlowRuntime,
+                    runtime: dependencies.sessionFlowRuntime,
                     callbacks: sessionFlowCallbacks
                 )
             },
@@ -145,7 +155,7 @@ struct GameRootView: View {
                 gameSessionStore.recordSubmittedGuess()
                 GameTurnCoordinator.handleSubmissionResult(
                     result,
-                    runtime: gameTurnRuntime,
+                    runtime: dependencies.turnRuntime,
                     feedback: gameTurnFeedback,
                     handlers: GameTurnHandlers(
                         restartPerGuessTimeLimit: restartPerGuessTimeLimit,
@@ -164,7 +174,7 @@ struct GameRootView: View {
             onSurrender: {
                 guard gameInProgress, guesses.isEmpty == false, isWon == false, isGameOver == false else { return }
                 GameTurnCoordinator.surrenderGame(
-                    runtime: gameTurnRuntime,
+                    runtime: dependencies.turnRuntime,
                     presentation: gameTurnPresentation(guessesAreEmpty: guesses.isEmpty),
                     feedback: gameTurnFeedback,
                     playSound: playSoundEffect
@@ -173,13 +183,13 @@ struct GameRootView: View {
             onConfirmProfileSwitchSurrender: {
                 GameSessionFlowCoordinator.surrenderForProfileSwitch(
                     hasGuesses: guesses.isEmpty == false,
-                    runtime: sessionFlowRuntime,
+                    runtime: dependencies.sessionFlowRuntime,
                     callbacks: profileSwitchCallbacks
                 )
                 if let pendingProfileSwitchId {
                     GameSessionFlowCoordinator.applyProfileSwitch(
                         to: pendingProfileSwitchId,
-                        runtime: sessionFlowRuntime,
+                        runtime: dependencies.sessionFlowRuntime,
                         callbacks: profileSwitchCallbacks
                     )
                 }
@@ -187,7 +197,7 @@ struct GameRootView: View {
             onConfirmProfileSwitchPause: {
                 GameSessionFlowCoordinator.pauseGameForProfileSwitch(
                     canPause: gameInProgress && isWon == false && isGameOver == false,
-                    runtime: sessionFlowRuntime
+                    runtime: dependencies.sessionFlowRuntime
                 )
             },
             onWinPlayAgain: {
@@ -196,7 +206,7 @@ struct GameRootView: View {
                 saveGameToHistory(finalState: true, score: scoreValue, endReason: .completed)
                 GameSessionFlowCoordinator.startNewGame(
                     settings: settings,
-                    runtime: sessionFlowRuntime,
+                    runtime: dependencies.sessionFlowRuntime,
                     callbacks: sessionFlowCallbacks
                 )
             },
@@ -210,7 +220,7 @@ struct GameRootView: View {
                 saveGameToHistory(finalState: false, score: 0, endReason: presentationRules.lossEndReason(timeoutEndReason: timeoutEndReason))
                 GameSessionFlowCoordinator.startNewGame(
                     settings: settings,
-                    runtime: sessionFlowRuntime,
+                    runtime: dependencies.sessionFlowRuntime,
                     callbacks: sessionFlowCallbacks
                 )
             },
@@ -221,28 +231,10 @@ struct GameRootView: View {
             onRestart: {
                 GameSessionFlowCoordinator.startNewGame(
                     settings: settings,
-                    runtime: sessionFlowRuntime,
+                    runtime: dependencies.sessionFlowRuntime,
                     callbacks: sessionFlowCallbacks
                 )
             }
-        )
-    }
-
-    private var gameTurnRuntime: GameTurnRuntime {
-        GameTurnRuntime(
-            gameplayStore: gameplayStore,
-            gameSessionStore: gameSessionStore,
-            timerController: timerController
-        )
-    }
-
-    private var sessionFlowRuntime: GameSessionFlowRuntime {
-        GameSessionFlowRuntime(
-            gameplayStore: gameplayStore,
-            gameSessionStore: gameSessionStore,
-            historyStore: historyStore,
-            profileStore: profileStore,
-            timerController: timerController
         )
     }
 
@@ -271,7 +263,7 @@ struct GameRootView: View {
 
     private var playSoundEffect: (SoundPlayer.Effect, Bool, Double) -> Void {
         { effect, enabled, volume in
-            soundEffectPlayer.play(effect, enabled: enabled, volume: volume)
+            dependencies.playSound(effect, enabled: enabled, volume: volume)
         }
     }
 
@@ -300,9 +292,9 @@ struct GameRootView: View {
                         newValue,
                         newProfileSelectionId: ProfileStore.newProfileSelectionId
                     ),
-                    profileStore: profileStore,
+                    profileStore: dependencies.profileStore,
                     lastSelectedProfileId: lastSelectedProfileId,
-                    sessionFlowRuntime: sessionFlowRuntime,
+                    sessionFlowRuntime: dependencies.sessionFlowRuntime,
                     setShowNewProfileSheet: { showNewProfileSheet = $0 },
                     setPendingProfileSwitchId: { pendingProfileSwitchId = $0 },
                     setShowProfileSwitchDialog: { showProfileSwitchDialog = $0 },
@@ -338,7 +330,7 @@ struct GameRootView: View {
 
     private func saveGameToHistory(finalState: Bool, score: Int, endReason: HistoryItem.EndReason = .completed) {
         GameSessionFlowCoordinator.saveGameToHistory(
-            runtime: sessionFlowRuntime,
+            runtime: dependencies.sessionFlowRuntime,
             finalState: finalState,
             answer: answer,
             guesses: guesses,
@@ -365,7 +357,7 @@ struct GameRootView: View {
     private func handleTimeLimitExpired(_ type: GameTimeLimitType) {
         GameTurnCoordinator.handleTimeLimitExpired(
             type,
-            runtime: gameTurnRuntime,
+            runtime: dependencies.turnRuntime,
             presentation: gameTurnPresentation(guessesAreEmpty: guesses.isEmpty),
             feedback: gameTurnFeedback,
             playSound: playSoundEffect
@@ -385,25 +377,25 @@ struct GameRootView: View {
     private func pauseForWindowClose() {
         GameSessionFlowCoordinator.pauseForWindowClose(
             canPauseForWindowClose: presentationRules.canPauseForWindowClose,
-            runtime: sessionFlowRuntime
+            runtime: dependencies.sessionFlowRuntime
         )
     }
 
     private func resumeAfterWindowCloseIfNeeded() {
         GameSessionFlowCoordinator.resumeAfterWindowCloseIfNeeded(
-            runtime: sessionFlowRuntime,
+            runtime: dependencies.sessionFlowRuntime,
             isAnyTimerActive: isAnyTimerActive,
             callbacks: sessionFlowCallbacks
         )
     }
 
     private func endGameWithoutResult() {
-        GameSessionFlowCoordinator.endGameWithoutResult(runtime: sessionFlowRuntime)
+        GameSessionFlowCoordinator.endGameWithoutResult(runtime: dependencies.sessionFlowRuntime)
     }
 
     private func resetGameSession() {
         GameSessionFlowCoordinator.resetGameSession(
-            runtime: sessionFlowRuntime,
+            runtime: dependencies.sessionFlowRuntime,
             callbacks: sessionFlowCallbacks
         )
     }

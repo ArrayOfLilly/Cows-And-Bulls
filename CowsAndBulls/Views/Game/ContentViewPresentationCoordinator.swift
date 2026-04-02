@@ -2,7 +2,7 @@
 //  ContentViewPresentationCoordinator.swift
 //  CowsAndBulls
 //
-//  Created by OpenAI Codex.
+//  Created by Ildikó Kasza.
 //
 
 import SwiftUI

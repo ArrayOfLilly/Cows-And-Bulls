@@ -2,7 +2,7 @@
 //  LearnSkillsSection.swift
 //  CowsAndBulls
 //
-//  Created by Codex on 2026. 03. 18..
+//  Created by Ildikó Kasza.
 //
 
 import SwiftUI

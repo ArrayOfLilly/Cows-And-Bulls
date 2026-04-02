@@ -2,7 +2,7 @@
 //  GameTimeLimitCoordinatorTests.swift
 //  CowsAndBullsTests
 //
-//  Created by OpenAI Codex.
+//  Created by Ildikó Kasza.
 //
 
 import Testing
