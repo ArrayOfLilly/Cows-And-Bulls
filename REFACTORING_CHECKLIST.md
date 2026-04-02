@@ -106,5 +106,6 @@
   - [x] `ContentView` game tab külön `GameTabView` kompozíciós rétegbe húzva
   - [x] a beágyazott játékképernyő-szekciók külön `GameScreenSections.swift` fájlba mozgatva
   - [x] a timer tick wiring ismétlés `GameTimeLimitCoordinator` helperbe húzva
+  - [x] a submit / timeout / surrender orchestration `GameTurnCoordinator` helperbe húzva
   Még hátra van:
   - [ ] a maradék view-oldali döntések további store/helper irányba tolása a következő körökben

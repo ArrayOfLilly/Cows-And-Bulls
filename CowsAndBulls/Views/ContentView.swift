@@ -147,6 +147,37 @@ struct ContentView: View {
         )
     }
 
+    private var gameTurnRuntime: GameTurnRuntime {
+        GameTurnRuntime(
+            gameplayStore: gameplayStore,
+            gameSessionStore: gameSessionStore,
+            timerController: timerController
+        )
+    }
+
+    private var gameTurnFeedback: GameTurnFeedback {
+        GameTurnFeedback(
+            enableCelebration: enableCelebration,
+            soundEffectsEnabled: enableSoundEffects,
+            soundEffectsVolume: soundEffectsVolume
+        )
+    }
+
+    private func gameTurnPresentation(guessesAreEmpty: Bool) -> GameTurnPresentation {
+        GameTurnPresentation(
+            guessesAreEmpty: guessesAreEmpty,
+            timeoutMessage: { type in
+                presentationRules.timeoutGameOverMessage(
+                    for: type == .perGuess ? .perGuess : .game,
+                    answer: answer
+                )
+            },
+            surrenderMessage: {
+                presentationRules.surrenderGameOverMessage(answer: answer)
+            }
+        )
+    }
+
     private var profileSelection: Binding<String> {
         Binding(
             get: { profileStore.selectedProfileId },
@@ -216,26 +247,23 @@ struct ContentView: View {
         }
 
         gameSessionStore.recordSubmittedGuess()
-
-        if result == .won {
-            timerController.stopAll()
-            gameSessionStore.finishGame()
-            SoundPlayer.shared.play(.win, enabled: enableSoundEffects, volume: soundEffectsVolume)
-            if enableCelebration {
-                playVictoryCelebration()
-            } else {
-                isWon = true
-                showWinAlert = true
+        GameTurnCoordinator.handleSubmissionResult(
+            result,
+            runtime: gameTurnRuntime,
+            feedback: gameTurnFeedback,
+            handlers: GameTurnHandlers(
+                restartPerGuessTimeLimit: restartPerGuessTimeLimit,
+                playVictoryCelebration: playVictoryCelebration,
+                showWinAlert: {
+                    isWon = true
+                    showWinAlert = true
+                },
+                endGameWithoutResult: endGameWithoutResult
+            ),
+            playSound: { effect, enabled, volume in
+                SoundPlayer.shared.play(effect, enabled: enabled, volume: volume)
             }
-        } else if result == .lost {
-            timerController.stopAll()
-            gameSessionStore.finishGame()
-            SoundPlayer.shared.play(.lose, enabled: enableSoundEffects, volume: soundEffectsVolume)
-            isGameOver = true
-        } else {
-            SoundPlayer.shared.play(.submit, enabled: enableSoundEffects, volume: soundEffectsVolume)
-            restartPerGuessTimeLimit()
-        }
+        )
 
         focusGuessField()
     }
@@ -276,19 +304,15 @@ struct ContentView: View {
     }
 
     private func handleTimeLimitExpired(_ type: GameTimeLimitType) {
-        timerController.stopAll()
-        gameSessionStore.markTimeout(type == .perGuess ? .timeoutPerGuess : .timeoutGame)
-        if guesses.isEmpty {
-            endGameWithoutResult()
-            return
-        }
-        gameplayStore.presentGameOver(
-            message: presentationRules.timeoutGameOverMessage(
-                for: type == .perGuess ? .perGuess : .game,
-                answer: answer
-            )
+        GameTurnCoordinator.handleTimeLimitExpired(
+            type,
+            runtime: gameTurnRuntime,
+            presentation: gameTurnPresentation(guessesAreEmpty: guesses.isEmpty),
+            feedback: gameTurnFeedback,
+            playSound: { effect, enabled, volume in
+                SoundPlayer.shared.play(effect, enabled: enabled, volume: volume)
+            }
         )
-        SoundPlayer.shared.play(.lose, enabled: enableSoundEffects, volume: soundEffectsVolume)
     }
 
     private func restartPerGuessTimeLimit() {
@@ -329,10 +353,14 @@ struct ContentView: View {
 
     private func surrenderGame() {
         guard gameInProgress, guesses.isEmpty == false, isWon == false, isGameOver == false else { return }
-        timerController.stopAll()
-        gameSessionStore.markSurrender()
-        gameplayStore.presentGameOver(message: presentationRules.surrenderGameOverMessage(answer: answer))
-        SoundPlayer.shared.play(.lose, enabled: enableSoundEffects, volume: soundEffectsVolume)
+        GameTurnCoordinator.surrenderGame(
+            runtime: gameTurnRuntime,
+            presentation: gameTurnPresentation(guessesAreEmpty: guesses.isEmpty),
+            feedback: gameTurnFeedback,
+            playSound: { effect, enabled, volume in
+                SoundPlayer.shared.play(effect, enabled: enabled, volume: volume)
+            }
+        )
     }
 
     private func endGameWithoutResult() {
