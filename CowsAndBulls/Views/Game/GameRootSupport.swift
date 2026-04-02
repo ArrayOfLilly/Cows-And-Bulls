@@ -55,6 +55,54 @@ enum GameRootBindings {
     }
 }
 
+struct GameRootWindowCloseConfiguration {
+    let shouldPromptOnClose: () -> Bool
+    let onPause: () -> Void
+    let onGiveUp: () -> Void
+    let onResume: () -> Void
+}
+
+struct GameRootNewProfileSheetActions {
+    let onCreate: (String) -> Void
+    let onCancel: () -> Void
+}
+
+enum GameRootAssemblies {
+    static func windowCloseConfiguration(
+        presentationRules: GamePresentationRules,
+        onPause: @escaping () -> Void,
+        onGiveUp: @escaping () -> Void,
+        onResume: @escaping () -> Void
+    ) -> GameRootWindowCloseConfiguration {
+        GameRootWindowCloseConfiguration(
+            shouldPromptOnClose: { presentationRules.shouldPromptOnClose },
+            onPause: onPause,
+            onGiveUp: onGiveUp,
+            onResume: onResume
+        )
+    }
+
+    static func newProfileSheetActions(
+        profileStore: ProfileStore,
+        callbacks: GameProfileCreationCallbacks
+    ) -> GameRootNewProfileSheetActions {
+        GameRootNewProfileSheetActions(
+            onCreate: { name in
+                GameProfileSelectionCoordinator.createProfile(
+                    named: name,
+                    profileStore: profileStore,
+                    callbacks: callbacks
+                )
+            },
+            onCancel: {
+                GameProfileSelectionCoordinator.cancelProfileCreation(
+                    callbacks: callbacks
+                )
+            }
+        )
+    }
+}
+
 struct GameRootSnapshot {
     let settings: ProfileSettings
     let answer: String

@@ -274,6 +274,22 @@ struct GameRootView: View {
         )
     }
 
+    private var windowCloseConfiguration: GameRootWindowCloseConfiguration {
+        GameRootAssemblies.windowCloseConfiguration(
+            presentationRules: presentationRules,
+            onPause: pauseForWindowClose,
+            onGiveUp: gameTabActions.onSurrender,
+            onResume: resumeAfterWindowCloseIfNeeded
+        )
+    }
+
+    private var newProfileSheetActions: GameRootNewProfileSheetActions {
+        GameRootAssemblies.newProfileSheetActions(
+            profileStore: profileStore,
+            callbacks: profileCreationCallbacks
+        )
+    }
+
     private var playSoundEffect: (SoundPlayer.Effect, Bool, Double) -> Void {
         { effect, enabled, volume in
             dependencies.playSound(effect, enabled: enabled, volume: volume)
@@ -429,16 +445,10 @@ struct GameRootView: View {
         }
         .background(
             WindowCloseHandler(
-                shouldPromptOnClose: {
-                    presentationRules.shouldPromptOnClose
-                },
-                onPause: {
-                    pauseForWindowClose()
-                },
-                onGiveUp: gameTabActions.onSurrender,
-                onResume: {
-                    resumeAfterWindowCloseIfNeeded()
-                }
+                shouldPromptOnClose: windowCloseConfiguration.shouldPromptOnClose,
+                onPause: windowCloseConfiguration.onPause,
+                onGiveUp: windowCloseConfiguration.onGiveUp,
+                onResume: windowCloseConfiguration.onResume
             )
         )
         .onChange(of: profileStore.selectedProfileId) {
@@ -447,18 +457,8 @@ struct GameRootView: View {
         .sheet(isPresented: $showNewProfileSheet) {
             NewProfileSheet(
                 name: $newProfileName,
-                onCreate: { name in
-                    GameProfileSelectionCoordinator.createProfile(
-                        named: name,
-                        profileStore: profileStore,
-                        callbacks: profileCreationCallbacks
-                    )
-                },
-                onCancel: {
-                    GameProfileSelectionCoordinator.cancelProfileCreation(
-                        callbacks: profileCreationCallbacks
-                    )
-                }
+                onCreate: newProfileSheetActions.onCreate,
+                onCancel: newProfileSheetActions.onCancel
             )
         }
     }
