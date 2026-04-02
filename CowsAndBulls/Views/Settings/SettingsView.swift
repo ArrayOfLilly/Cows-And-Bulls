@@ -11,16 +11,6 @@ import UniformTypeIdentifiers
 
 /// Central settings UI for gameplay rules, audio, language, and visual themes.
 struct SettingsView: View {
-    private enum SettingsTab: Hashable {
-        case game
-        case advanced
-        case sound
-        case music
-        case profiles
-        case language
-        case theme
-    }
-
     @AppStorage("enableBackgroundMusic") private var enableBackgroundMusic = false
     @AppStorage("backgroundMusicTrackID") private var backgroundMusicTrackID = "Mushroom Background Music"
     @AppStorage("backgroundMusicVolume") private var backgroundMusicVolume = 0.35
@@ -48,19 +38,8 @@ struct SettingsView: View {
     }
 
     private var initialUITestTab: SettingsTab? {
-        guard let value = ProcessInfo.processInfo.environment["UITEST_SETTINGS_INITIAL_TAB"] else {
-            return nil
-        }
-        switch value {
-        case "game": return .game
-        case "advanced": return .advanced
-        case "sound": return .sound
-        case "music": return .music
-        case "profiles": return .profiles
-        case "language": return .language
-        case "theme": return .theme
-        default: return nil
-        }
+        ProcessInfo.processInfo.environment["UITEST_SETTINGS_INITIAL_TAB"]
+            .flatMap(SettingsTab.init(uiTestValue:))
     }
 
     private var canEditGameplaySettings: Bool { gameSessionStore.canEditGameplaySettings }
@@ -79,6 +58,14 @@ struct SettingsView: View {
     private var canRenameProfiles: Bool { profileRules.canRenameProfiles }
     private var canReorderProfiles: Bool { profileRules.canReorderProfiles }
     private var canDeleteProfiles: Bool { profileRules.canDeleteProfiles }
+
+    private var profilesAccessibilitySnapshot: SettingsProfilesAccessibilitySnapshot {
+        SettingsProfilesAccessibilitySnapshot(
+            canRenameProfiles: canRenameProfiles,
+            profiles: profileStore.profiles,
+            profileRules: profileRules
+        )
+    }
 
     private var answerLengthHasValidationError: Bool {
         guard let draftValue = Int(answerLengthDraft) else { return false }
@@ -113,27 +100,12 @@ struct SettingsView: View {
         return "\(shortVersion) (\(buildVersion))"
     }
 
-    private func profilesReorderState(for index: Int) -> String? {
-        guard profileStore.profiles.indices.contains(index) else { return nil }
-        let rowState = profileRules.rowState(for: profileStore.profiles[index])
-        let moveUpState = rowState.canMoveUp ? "enabled" : "disabled"
-        let moveDownState = rowState.canMoveDown ? "enabled" : "disabled"
-        return "up:\(moveUpState),down:\(moveDownState)"
-    }
-
     private var profilesEditabilityAccessibilityValue: String {
-        let editability = canRenameProfiles ? "editable" : "locked"
-        let reorderSummary = (0..<3)
-            .compactMap { index in
-                profilesReorderState(for: index).map { "row\(index):\($0)" }
-            }
-            .joined(separator: "|")
-        guard reorderSummary.isEmpty == false else { return editability }
-        return "\(editability)|\(reorderSummary)"
+        profilesAccessibilitySnapshot.editabilityValue
     }
 
     private var profilesOrderAccessibilityValue: String {
-        profileStore.profiles.map(\.name).joined(separator: "|")
+        profilesAccessibilitySnapshot.orderValue
     }
 
     private var selectedThemeAccessibilityValue: String {
@@ -141,7 +113,7 @@ struct SettingsView: View {
     }
 
     private var profilesUITestStateValue: String {
-        "\(profilesEditabilityAccessibilityValue)||order:\(profilesOrderAccessibilityValue)"
+        profilesAccessibilitySnapshot.uiTestStateValue
     }
 
     private func binding<T>(_ keyPath: WritableKeyPath<ProfileSettings, T>) -> Binding<T> {
@@ -271,15 +243,7 @@ struct SettingsView: View {
     }
 
     private var selectedTabAccessibilityValue: String {
-        switch selectedTab {
-        case .game: "game"
-        case .advanced: "advanced"
-        case .sound: "sound"
-        case .music: "music"
-        case .profiles: "profiles"
-        case .language: "language"
-        case .theme: "theme"
-        }
+        selectedTab.accessibilityValue
     }
 
     @ViewBuilder
