@@ -309,15 +309,19 @@ final class CowsAndBullsUITests: XCTestCase {
             "editable|row0:up:disabled,down:enabled|row1:up:enabled,down:enabled|row2:up:enabled,down:disabled||order:UI Reorder Alpha|UI Reorder Bravo|UI Reorder Charlie"
         )
 
-        let moveUpButton = app.descendants(matching: .any).matching(identifier: "settingsMoveSecondProfileUpForTest").firstMatch
+        let moveUpButton = app.staticTexts["settingsMoveSecondProfileUpForTest"]
         XCTAssertTrue(moveUpButton.waitForExistence(timeout: 2))
         XCTAssertTrue(moveUpButton.isEnabled)
         moveUpButton.click()
 
-        XCTAssertEqual(
-            profilesState.value as? String,
-            "editable|row0:up:disabled,down:enabled|row1:up:enabled,down:enabled|row2:up:enabled,down:disabled||order:UI Reorder Bravo|UI Reorder Alpha|UI Reorder Charlie"
-        )
+        let updatedProfilesState = app.staticTexts["settingsProfilesState"]
+        let expectedProfilesState = "editable|row0:up:disabled,down:enabled|row1:up:enabled,down:enabled|row2:up:enabled,down:disabled||order:UI Reorder Bravo|UI Reorder Alpha|UI Reorder Charlie"
+
+        XCTAssertTrue(updatedProfilesState.waitForExistence(timeout: 2))
+        let updatedStatePredicate = NSPredicate(format: "value == %@", expectedProfilesState)
+        expectation(for: updatedStatePredicate, evaluatedWith: updatedProfilesState)
+        waitForExpectations(timeout: 2)
+        XCTAssertEqual(updatedProfilesState.value as? String, expectedProfilesState)
     }
 
     private func typeAndReplace(app: XCUIApplication, text: String) {
