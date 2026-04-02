@@ -11,6 +11,8 @@ import UniformTypeIdentifiers
 
 /// Central settings UI for gameplay rules, audio, language, and visual themes.
 struct SettingsView: View {
+    private let backgroundMusicUpdater: any BackgroundMusicUpdating
+
     @AppStorage("enableBackgroundMusic") private var enableBackgroundMusic = false
     @AppStorage("backgroundMusicTrackID") private var backgroundMusicTrackID = "Mushroom Background Music"
     @AppStorage("backgroundMusicVolume") private var backgroundMusicVolume = 0.35
@@ -32,6 +34,10 @@ struct SettingsView: View {
     @FocusState private var isAnswerLengthFocused: Bool
 
     private let animalThemes = AnimalTheme.all
+
+    init(backgroundMusicUpdater: any BackgroundMusicUpdating = SoundPlayer.shared) {
+        self.backgroundMusicUpdater = backgroundMusicUpdater
+    }
 
     private var showsUITestTabShortcuts: Bool {
         ProcessInfo.processInfo.environment["UITEST_SETTINGS_TAB_SHORTCUTS"] == "1"
@@ -322,7 +328,7 @@ struct SettingsView: View {
     }
 
     private func applyMusicSettings() {
-        SoundPlayer.shared.updateBackgroundMusic(
+        backgroundMusicUpdater.updateBackgroundMusic(
             enabled: enableBackgroundMusic,
             trackID: backgroundMusicTrackID,
             volume: backgroundMusicVolume

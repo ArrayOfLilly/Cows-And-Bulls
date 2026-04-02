@@ -11,8 +11,12 @@ protocol SoundEffectPlaying {
     func play(_ effect: SoundPlayer.Effect, enabled: Bool, volume: Double)
 }
 
+protocol BackgroundMusicUpdating {
+    func updateBackgroundMusic(enabled: Bool, trackID: String, volume: Double)
+}
+
 /// Centralized audio service for one-shot sound effects and looping background music.
-final class SoundPlayer: SoundEffectPlaying {
+final class SoundPlayer: SoundEffectPlaying, BackgroundMusicUpdating {
     static let shared = SoundPlayer()
 
     enum Effect: String {
